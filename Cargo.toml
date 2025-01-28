@@ -1,0 +1,11 @@
+[workspace]
+members = [
+  "crates/*",
+  "crates/ext-php-rs/crates/*",
+  "crates/ext-php-rs/tests"
+]
+resolver = "2"
+
+[workspace.package]
+authors    = ["Jon Surrell <sirreal@users.noreply.github.com>"]
+edition    = "2021"
