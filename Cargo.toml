@@ -1,6 +1,8 @@
 [workspace]
 members = [
   "crates/*",
+  "crates/ext-php-rs/crates/*",
+  "crates/ext-php-rs/tests"
 ]
 resolver = "2"
 
