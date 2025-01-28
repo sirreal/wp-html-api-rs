@@ -14,7 +14,7 @@ pub struct WP_HTML_Processor_RS {
     processor: html_api::HtmlProcessor,
 }
 
-#[php_impl]
+#[php_impl(rename_methods = "none")]
 impl WP_HTML_Processor_RS {
     pub fn create_fragment(html: &str) -> Self {
         let processor = html_api::HtmlProcessor::create_fragment(html);
