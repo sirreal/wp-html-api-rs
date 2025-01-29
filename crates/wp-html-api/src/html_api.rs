@@ -1,5 +1,3 @@
-use std::os::unix::process;
-
 pub struct HtmlProcessor {
     html: Box<str>,
 
@@ -20,6 +18,15 @@ pub struct HtmlProcessor {
     comment_type: Option<CommentType>,
     text_node_classification: TextNodeClassification,
     duplicate_attributes: Option<Vec<HtmlSpan>>,
+
+    parsing_namespace: ParsingNamespace,
+}
+
+#[derive(Default, PartialEq)]
+enum ParsingNamespace {
+    #[default]
+    Html,
+    Svg,
 }
 
 struct HtmlTextReplacement {
@@ -78,7 +85,7 @@ impl HtmlProcessor {
 
         // Find the next tag if it exists.
         if false == self.parse_next_tag() {
-            if (self.parser_state == ProcessorState::IncompleteInput) {
+            if self.parser_state == ProcessorState::IncompleteInput {
                 self.bytes_already_parsed = was_at;
             }
 
@@ -144,7 +151,7 @@ impl HtmlProcessor {
          *  - XMP (deprecated)
          */
         if self.is_closing_tag.unwrap_or(false)
-            || "html" != self.parsing_namespace
+            || ParsingNamespace::Html != self.parsing_namespace
             || match self.html.as_bytes()[self.token_starts_at.unwrap()] {
                 b'i' | b'I' | b'l' | b'L' | b'n' | b'N' | b'p' | b'P' | b's' | b'S' | b't'
                 | b'T' | b'x' | b'X' => true,
@@ -180,15 +187,12 @@ impl HtmlProcessor {
             self.get_updated_html();
         }
 
-        for update in self.lexical_updates {
-            /*
-             * Any updates appearing after the cursor should be applied
-             * before proceeding, otherwise they may be overlooked.
-             */
-            if update.start >= self.bytes_already_parsed {
-                self.get_updated_html();
-                break;
-            }
+        if self
+            .lexical_updates
+            .iter()
+            .any(|update| update.start >= self.bytes_already_parsed)
+        {
+            self.get_updated_html();
         }
 
         self.token_starts_at = None;
@@ -225,7 +229,7 @@ impl Default for HtmlProcessor {
     fn default() -> Self {
         Self {
             html: String::new().into_boxed_str(),
-            parser_state: ProcessorState::default(),
+            parser_state: Default::default(),
             lexical_updates: Vec::new(),
             bytes_already_parsed: 0,
 
@@ -240,6 +244,7 @@ impl Default for HtmlProcessor {
             comment_type: None,
             text_node_classification: TextNodeClassification::Generic,
             duplicate_attributes: None,
+            parsing_namespace: Default::default(),
         }
     }
 }
@@ -276,7 +281,7 @@ enum CommentType {
      *
      * @since 6.5.0
      */
-    ABRUPTLY_CLOSED_COMMENT,
+    AbruptlyClosedComment,
 
     /**
      * Indicates that a comment would be parsed as a CDATA node,
@@ -290,7 +295,7 @@ enum CommentType {
      *
      * @since 6.5.0
      */
-    CDATA_LOOKALIKE,
+    CdataLookalike,
 
     /**
      * Indicates that a comment was created when encountering
@@ -302,7 +307,7 @@ enum CommentType {
      *
      * @since 6.5.0
      */
-    HTML_COMMENT,
+    HtmlComment,
 
     /**
      * Indicates that a comment would be parsed as a Processing
@@ -316,7 +321,7 @@ enum CommentType {
      *
      * @since 6.5.0
      */
-    PI_NODE_LOOKALIKE,
+    PiNodeLookalike,
 
     /**
      * Indicates that a comment was created when encountering invalid
@@ -329,5 +334,5 @@ enum CommentType {
      *
      * @since 6.5.0
      */
-    INVALID_HTML,
+    InvalidHtml,
 }
