@@ -181,7 +181,7 @@ impl HtmlProcessor {
             return true;
         }
 
-        let tag_name = self.get_tag();
+        let tag_name = self.get_tag().unwrap();
 
         /*
          * For LISTING, PRE, and TEXTAREA, the first linefeed of an immediately-following
@@ -214,7 +214,7 @@ impl HtmlProcessor {
         let tag_ends_at = self.token_starts_at.unwrap() + self.token_length.unwrap();
         let duplicate_attributes = self.duplicate_attributes.clone();
 
-        let found_closer = match tag_name.as_str() {
+        let found_closer = match tag_name.deref() {
             "SCRIPT" => self.skip_script_data(),
 
             "TEXTAREA" | "TITLE" => self.skip_rcdata(&tag_name),
@@ -889,8 +889,28 @@ impl HtmlProcessor {
         return true;
     }
 
-    fn get_tag(&self) -> String {
-        todo!()
+    fn get_tag(&self) -> Option<TagName> {
+        self.tag_name_starts_at
+            .and_then(|start| {
+                self.tag_name_length
+                    .and_then(|length| match self.parser_state {
+                        ProcessorState::MatchedTag => String::from_utf8(
+                            substr(&self.html_bytes, start, length).to_ascii_uppercase(),
+                        )
+                        .ok()
+                        .map(|s| s.into_boxed_str()),
+                        ProcessorState::Comment => self
+                            .comment_type
+                            .filter(|ct| ct == &CommentType::PiNodeLookalike)
+                            .and_then(|_| {
+                                String::from_utf8(substr(&self.html_bytes, start, length).to_vec())
+                                    .ok()
+                                    .map(|s| s.into_boxed_str())
+                            }),
+                        _ => None,
+                    })
+            })
+            .map(|s| TagName(s))
     }
 
     fn skip_script_data(&self) -> bool {
@@ -910,7 +930,7 @@ impl HtmlProcessor {
     }
 }
 
-struct TagName(String);
+struct TagName(Box<str>);
 impl Deref for TagName {
     type Target = str;
 
@@ -920,7 +940,7 @@ impl Deref for TagName {
 }
 impl PartialEq<&str> for TagName {
     fn eq(&self, other: &&str) -> bool {
-        self.0 == *other
+        self.0.deref() == *other
     }
 }
 
@@ -969,6 +989,7 @@ enum TextNodeClassification {
     Whitespace,
 }
 
+#[derive(Clone, Copy, PartialEq)]
 enum CommentType {
     /**
      * Indicates that a comment was created when encountering abruptly-closed HTML comment.
