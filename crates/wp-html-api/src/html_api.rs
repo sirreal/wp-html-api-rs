@@ -2,14 +2,30 @@
 
 use std::ops::Deref;
 
-use ext_php_rs::props::Prop;
+macro_rules! strspn {
+    ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
+        $expression[$offset..]
+            .iter()
+            .take_while(|&b| matches!(b, $pattern))
+            .count()
+    }};
+}
+
+macro_rules! strcspn {
+    ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
+        $expression[$offset..]
+            .iter()
+            .take_while(|&b| !matches!(b, $pattern))
+            .count()
+    }};
+}
 
 pub struct HtmlProcessor {
     attributes: (),
     bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
     duplicate_attributes: Option<Vec<HtmlSpan>>,
-    html: Box<str>,
+    html_bytes: Box<[u8]>,
     is_closing_tag: Option<bool>,
     lexical_updates: Vec<HtmlTextReplacement>,
     parser_state: ProcessorState,
@@ -55,8 +71,9 @@ impl HtmlTextReplacement {
 
 impl HtmlProcessor {
     pub fn create_fragment(html: &str) -> Self {
+        let html_bytes = html.as_bytes().to_vec().into_boxed_slice();
         Self {
-            html: html.to_string().into_boxed_str(),
+            html_bytes,
             ..Default::default()
         }
     }
@@ -81,7 +98,7 @@ impl HtmlProcessor {
          */
         self.parser_state = ProcessorState::Ready;
 
-        if self.bytes_already_parsed >= self.html.len() {
+        if self.bytes_already_parsed >= self.html_bytes.len() {
             self.parser_state = ProcessorState::Complete;
             return false;
         }
@@ -113,7 +130,7 @@ impl HtmlProcessor {
 
         // Ensure that the tag closes before the end of the document.
         if ProcessorState::IncompleteInput == self.parser_state
-            || self.bytes_already_parsed >= self.html.len()
+            || self.bytes_already_parsed >= self.html_bytes.len()
         {
             // Does this appropriately clear state (parsed attributes)?
             self.parser_state = ProcessorState::IncompleteInput;
@@ -122,7 +139,7 @@ impl HtmlProcessor {
             return false;
         }
 
-        let tag_ends_at = self.html[self.bytes_already_parsed..].find('>');
+        let tag_ends_at = strpos(&self.html_bytes, self.bytes_already_parsed, b">");
         if tag_ends_at.is_none() {
             self.parser_state = ProcessorState::IncompleteInput;
             self.bytes_already_parsed = was_at;
@@ -155,7 +172,7 @@ impl HtmlProcessor {
          */
         if self.is_closing_tag.unwrap_or(false)
             || ParsingNamespace::Html != self.parsing_namespace
-            || match self.html.as_bytes()[self.token_starts_at.unwrap()] {
+            || match self.html_bytes[self.token_starts_at.unwrap()] {
                 b'i' | b'I' | b'l' | b'L' | b'n' | b'N' | b'p' | b'P' | b's' | b'S' | b't'
                 | b'T' | b'x' | b'X' => true,
                 _ => false,
@@ -297,8 +314,428 @@ impl HtmlProcessor {
         unimplemented!()
     }
 
-    fn parse_next_tag(&self) -> bool {
-        todo!()
+    fn parse_next_tag(&mut self) -> bool {
+        self.after_tag();
+
+        let doc_length = self.html_bytes.len();
+        let was_at = self.bytes_already_parsed;
+        let mut at = was_at;
+
+        while at < self.html_bytes.len() {
+            let next_at = strpos(&self.html_bytes, at, b"<");
+            if next_at.is_none() {
+                break;
+            }
+            at = at + next_at.unwrap();
+
+            if at > was_at {
+                /*
+                 * A "<" normally starts a new HTML tag or syntax token, but in cases where the
+                 * following character can't produce a valid token, the "<" is instead treated
+                 * as plaintext and the parser should skip over it. This avoids a problem when
+                 * following earlier practices of typing emoji with text, e.g. "<3". This
+                 * should be a heart, not a tag. It's supposed to be rendered, not hidden.
+                 *
+                 * At this point the parser checks if this is one of those cases and if it is
+                 * will continue searching for the next "<" in search of a token boundary.
+                 *
+                 * @see https://html.spec.whatwg.org/#tag-open-state
+                 */
+                if matches!( self.html_bytes[at + 1], b'!'| b'/'| b'?'| b'a'..=b'z' | b'A'..=b'Z') {
+                    at += 1;
+                    continue;
+                }
+
+                self.parser_state = ProcessorState::TextNode;
+                self.token_starts_at = Some(was_at);
+                self.token_length = Some(at - was_at);
+                self.text_starts_at = Some(was_at);
+                self.text_length = Some(self.token_length.unwrap());
+                self.bytes_already_parsed = at;
+                return true;
+            }
+
+            self.token_starts_at = Some(at);
+
+            if at + 1 < self.html_bytes.len() && b'/' == self.html_bytes[at + 1] {
+                self.is_closing_tag = Some(true);
+                at += 1;
+            } else {
+                self.is_closing_tag = Some(false);
+            }
+
+            /*
+             * HTML tag names must start with [a-zA-Z] otherwise they are not tags.
+             * For example, "<3" is rendered as text, not a tag opener. If at least
+             * one letter follows the "<" then _it is_ a tag, but if the following
+             * character is anything else it _is not a tag_.
+             *
+             * It's not uncommon to find non-tags starting with `<` in an HTML
+             * document, so it's good for performance to make this pre-check before
+             * continuing to attempt to parse a tag name.
+             *
+             * Reference:
+             * * https://html.spec.whatwg.org/multipage/parsing.html#data-state
+             * * https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
+             */
+            let tag_name_prefix_length =
+                strspn!( self.html_bytes, b'a'..=b'z'|b'A'..=b'Z', at + 1 );
+
+            if tag_name_prefix_length > 0 {
+                at += 1;
+                self.parser_state = ProcessorState::MatchedTag;
+                self.tag_name_starts_at = Some(at);
+                self.tag_name_length = Some(
+                    tag_name_prefix_length
+                        + strcspn!(
+                            self.html_bytes,
+                            b' ' | b'\t' | 0x0c | b'\r' | b'\n' | b'/' | b'>',
+                            at + tag_name_prefix_length
+                        ),
+                );
+                self.bytes_already_parsed = at + self.tag_name_length.unwrap();
+                return true;
+            }
+
+            /*
+             * Abort if no tag is found before the end of
+             * the document. There is nothing left to parse.
+             */
+            if at + 1 >= self.html_bytes.len() {
+                self.parser_state = ProcessorState::IncompleteInput;
+                return false;
+            }
+
+            /*
+             * `<!` transitions to markup declaration open state
+             * https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
+             */
+            if !self.is_closing_tag.unwrap_or(false) && b'!' == self.html_bytes[at + 1] {
+                /*
+                 * `<!--` transitions to a comment state – apply further comment rules.
+                 * https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
+                 */
+                if &self.html_bytes[at + 2..at + 4] == b"--" {
+                    let mut closer_at = at + 4;
+                    // If it's not possible to close the comment then there is nothing more to scan.
+                    if self.html_bytes.len() <= closer_at {
+                        self.parser_state = ProcessorState::IncompleteInput;
+                        return false;
+                    }
+
+                    // Abruptly-closed empty comments are a sequence of dashes followed by `>`.
+                    let span_of_dashes = strspn!(self.html_bytes, b'-', closer_at);
+                    if b'>' == self.html_bytes[closer_at + span_of_dashes] {
+                        /*
+                         * @todo When implementing `set_modifiable_text()` ensure that updates to this token
+                         *       don't break the syntax for short comments, e.g. `<!--->`. Unlike other comment
+                         *       and bogus comment syntax, these leave no clear insertion point for text and
+                         *       they need to be modified specially in order to contain text. E.g. to store
+                         *       `?` as the modifiable text, the `<!--->` needs to become `<!--?-->`, which
+                         *       involves inserting an additional `-` into the token after the modifiable text.
+                         */
+                        self.parser_state = ProcessorState::Comment;
+                        self.comment_type = Some(CommentType::AbruptlyClosedComment);
+                        self.token_length =
+                            Some(closer_at + span_of_dashes + 1 - self.token_starts_at.unwrap());
+
+                        // Only provide modifiable text if the token is long enough to contain it.
+                        if span_of_dashes >= 2 {
+                            self.comment_type = Some(CommentType::HtmlComment);
+                            self.text_starts_at = Some(self.token_starts_at.unwrap() + 4);
+                            self.text_length = Some(span_of_dashes - 2);
+                        }
+
+                        self.bytes_already_parsed = closer_at + span_of_dashes + 1;
+                        return true;
+                    }
+
+                    /*
+                     * Comments may be closed by either a --> or an invalid --!>.
+                     * The first occurrence closes the comment.
+                     *
+                     * See https://html.spec.whatwg.org/#parse-error-incorrectly-closed-comment
+                     */
+                    closer_at -= 1; // Pre-increment inside condition below reduces risk of accidental infinite looping.
+                    while ({
+                        closer_at += 1;
+                        closer_at
+                    } < self.html_bytes.len())
+                    {
+                        let next_closer = strpos(&self.html_bytes, closer_at, b"--");
+                        if next_closer.is_none() {
+                            self.parser_state = ProcessorState::IncompleteInput;
+                            return false;
+                        }
+                        closer_at = next_closer.unwrap();
+
+                        if closer_at + 2 < self.html_bytes.len()
+                            && b'>' == self.html_bytes[closer_at + 2]
+                        {
+                            self.parser_state = ProcessorState::Comment;
+                            self.comment_type = Some(CommentType::HtmlComment);
+                            self.token_length = Some(closer_at + 3 - self.token_starts_at.unwrap());
+                            self.text_starts_at = Some(self.token_starts_at.unwrap() + 4);
+                            self.text_length = Some(closer_at - self.text_starts_at.unwrap());
+                            self.bytes_already_parsed = closer_at + 3;
+                            return true;
+                        }
+
+                        if closer_at + 3 < doc_length
+                            && b'!' == self.html_bytes[closer_at + 2]
+                            && b'>' == self.html_bytes[closer_at + 3]
+                        {
+                            self.parser_state = ProcessorState::Comment;
+                            self.comment_type = Some(CommentType::HtmlComment);
+                            self.token_length = Some(closer_at + 4 - self.token_starts_at.unwrap());
+                            self.text_starts_at = Some(self.token_starts_at.unwrap() + 4);
+                            self.text_length = Some(closer_at - self.text_starts_at.unwrap());
+                            self.bytes_already_parsed = closer_at + 4;
+                            return true;
+                        }
+                    }
+                }
+
+                /*
+                 * `<!DOCTYPE` transitions to DOCTYPE state – skip to the nearest >
+                 * These are ASCII-case-insensitive.
+                 * https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
+                 */
+                if doc_length > at + 8
+                    && matches!(&self.html_bytes[at + 2], b'D' | b'd')
+                    && matches!(&self.html_bytes[at + 3], b'O' | b'o')
+                    && matches!(&self.html_bytes[at + 4], b'C' | b'c')
+                    && matches!(&self.html_bytes[at + 5], b'T' | b't')
+                    && matches!(&self.html_bytes[at + 6], b'Y' | b'y')
+                    && matches!(&self.html_bytes[at + 7], b'P' | b'p')
+                    && matches!(&self.html_bytes[at + 8], b'E' | b'e')
+                {
+                    let closer_at = strpos(&self.html_bytes, at + 9, b">");
+                    if closer_at.is_none() {
+                        self.parser_state = ProcessorState::IncompleteInput;
+                        return false;
+                    }
+                    let closer_at = closer_at.unwrap();
+
+                    let token_starts_at = self.token_starts_at.unwrap();
+                    self.parser_state = ProcessorState::Doctype;
+                    self.token_length = Some(closer_at + 1 - token_starts_at);
+                    self.text_starts_at = Some(token_starts_at + 9);
+                    self.text_length = Some(closer_at - self.text_starts_at.unwrap());
+                    self.bytes_already_parsed = closer_at + 1;
+                    return true;
+                }
+
+                if self.parsing_namespace == ParsingNamespace::Html
+                    && doc_length > at + 8
+                    && &self.html_bytes[at + 2..=at + 8] == b"[CDATA["
+                {
+                    let closer_at = strpos(&self.html_bytes, at + 9, b"]]>");
+                    if closer_at.is_none() {
+                        self.parser_state = ProcessorState::IncompleteInput;
+                        return false;
+                    }
+                    let closer_at = closer_at.unwrap();
+
+                    self.parser_state = ProcessorState::CDATANode;
+                    self.text_starts_at = Some(at + 9);
+                    self.text_length = Some(closer_at - self.text_starts_at.unwrap());
+                    self.token_length = Some(closer_at + 3 - self.token_starts_at.unwrap());
+                    self.bytes_already_parsed = closer_at + 3;
+                    return true;
+                }
+
+                /*
+                 * Anything else here is an incorrectly-opened comment and transitions
+                 * to the bogus comment state - skip to the nearest >. If no closer is
+                 * found then the HTML was truncated inside the markup declaration.
+                 */
+                let closer_at = strpos(&self.html_bytes, at + 1, b">");
+                if closer_at.is_none() {
+                    self.parser_state = ProcessorState::IncompleteInput;
+                    return false;
+                }
+                let closer_at = closer_at.unwrap();
+
+                self.parser_state = ProcessorState::Comment;
+                self.comment_type = Some(CommentType::InvalidHtml);
+                self.token_length = Some(closer_at + 1 - self.token_starts_at.unwrap());
+                self.text_starts_at = Some(self.token_starts_at.unwrap() + 2);
+                self.text_length = Some(closer_at - self.text_starts_at.unwrap());
+                self.bytes_already_parsed = closer_at + 1;
+
+                /*
+                 * Identify nodes that would be CDATA if HTML had CDATA sections.
+                 *
+                 * This section must occur after identifying the bogus comment end
+                 * because in an HTML parser it will span to the nearest `>`, even
+                 * if there's no `]]>` as would be required in an XML document. It
+                 * is therefore not possible to parse a CDATA section containing
+                 * a `>` in the HTML syntax.
+                 *
+                 * Inside foreign elements there is a discrepancy between browsers
+                 * and the specification on this.
+                 *
+                 * @todo Track whether the Tag Processor is inside a foreign element
+                 *       and require the proper closing `]]>` in those cases.
+                 */
+                if self.token_length.unwrap() >= 10
+                    && b'[' == self.html_bytes[self.token_starts_at.unwrap() + 2]
+                    && b'C' == self.html_bytes[self.token_starts_at.unwrap() + 3]
+                    && b'D' == self.html_bytes[self.token_starts_at.unwrap() + 4]
+                    && b'A' == self.html_bytes[self.token_starts_at.unwrap() + 5]
+                    && b'T' == self.html_bytes[self.token_starts_at.unwrap() + 6]
+                    && b'A' == self.html_bytes[self.token_starts_at.unwrap() + 7]
+                    && b'[' == self.html_bytes[self.token_starts_at.unwrap() + 8]
+                    && b']' == self.html_bytes[closer_at - 1]
+                    && b']' == self.html_bytes[closer_at - 2]
+                {
+                    self.parser_state = ProcessorState::Comment;
+                    self.comment_type = Some(CommentType::CdataLookalike);
+                    self.text_starts_at = Some(self.text_starts_at.unwrap() + 7);
+                    self.text_length = Some(self.text_length.unwrap() - 9);
+                }
+
+                return true;
+            }
+
+            /*
+             * </> is a missing end tag name, which is ignored.
+             *
+             * This was also known as the "presumptuous empty tag"
+             * in early discussions as it was proposed to close
+             * the nearest previous opening tag.
+             *
+             * See https://html.spec.whatwg.org/#parse-error-missing-end-tag-name
+             */
+            if b'>' == self.html_bytes[at + 1] {
+                // `<>` is interpreted as plaintext.
+                if !self.is_closing_tag.unwrap() {
+                    at += 1;
+                    continue;
+                }
+
+                self.parser_state = ProcessorState::PresumptuousTag;
+                self.token_length = Some(at + 2 - self.token_starts_at.unwrap());
+                self.bytes_already_parsed = at + 2;
+                return true;
+            }
+
+            /*
+             * `<?` transitions to a bogus comment state – skip to the nearest >
+             * See https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
+             */
+            if !self.is_closing_tag.unwrap() && b'?' == self.html_bytes[at + 1] {
+                let closer_at = strpos(&self.html_bytes, at + 2, b">");
+                if closer_at.is_none() {
+                    self.parser_state = ProcessorState::IncompleteInput;
+                    return false;
+                }
+                let closer_at = closer_at.unwrap();
+
+                self.parser_state = ProcessorState::Comment;
+                self.comment_type = Some(CommentType::InvalidHtml);
+                self.token_length = Some(closer_at + 1 - self.token_starts_at.unwrap());
+                self.text_starts_at = Some(self.token_starts_at.unwrap() + 2);
+                self.text_length = Some(closer_at - self.text_starts_at.unwrap());
+                self.bytes_already_parsed = closer_at + 1;
+
+                /*
+                 * Identify a Processing Instruction node were HTML to have them.
+                 *
+                 * This section must occur after identifying the bogus comment end
+                 * because in an HTML parser it will span to the nearest `>`, even
+                 * if there's no `?>` as would be required in an XML document. It
+                 * is therefore not possible to parse a Processing Instruction node
+                 * containing a `>` in the HTML syntax.
+                 *
+                 * XML allows for more target names, but this code only identifies
+                 * those with ASCII-representable target names. This means that it
+                 * may identify some Processing Instruction nodes as bogus comments,
+                 * but it will not misinterpret the HTML structure. By limiting the
+                 * identification to these target names the Tag Processor can avoid
+                 * the need to start parsing UTF-8 sequences.
+                 *
+                 * > NameStartChar ::= ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] | [#xF8-#x2FF] |
+                 *                     [#x370-#x37D] | [#x37F-#x1FFF] | [#x200C-#x200D] | [#x2070-#x218F] |
+                 *                     [#x2C00-#x2FEF] | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] |
+                 *                     [#x10000-#xEFFFF]
+                 * > NameChar      ::= NameStartChar | "-" | "." | [0-9] | #xB7 | [#x0300-#x036F] | [#x203F-#x2040]
+                 *
+                 * @todo Processing instruction nodes in SGML may contain any kind of markup. XML defines a
+                 *       special case with `<?xml ... ?>` syntax, but the `?` is part of the bogus comment.
+                 *
+                 * @see https://www.w3.org/TR/2006/REC-xml11-20060816/#NT-PITarget
+                 */
+                if self.token_length.unwrap() >= 5 && b'?' == self.html_bytes[closer_at - 1] {
+                    let comment_text = substr(
+                        &self.html_bytes,
+                        self.token_starts_at.unwrap() + 2,
+                        self.token_length.unwrap() - 4,
+                    );
+                    let mut pi_target_length =
+                        strspn!( comment_text, b'a'..=b'z'|b'A'..b'Z'|b':'|b'_', 0 );
+
+                    if 0 < pi_target_length {
+                        pi_target_length += strspn!( comment_text, b'a'..=b'z'|b'A'..b'Z'|b':'|b'_'|b'-'|b'.', pi_target_length );
+
+                        self.comment_type = Some(CommentType::PiNodeLookalike);
+                        self.tag_name_starts_at = Some(self.token_starts_at.unwrap() + 2);
+                        self.tag_name_length = Some(pi_target_length);
+                        self.text_starts_at = Some(self.text_starts_at.unwrap() + pi_target_length);
+                        self.text_length = Some(self.text_length.unwrap() - (pi_target_length + 1));
+                    }
+                }
+
+                return true;
+            }
+
+            /*
+             * If a non-alpha starts the tag name in a tag closer it's a comment.
+             * Find the first `>`, which closes the comment.
+             *
+             * This parser classifies these particular comments as special "funky comments"
+             * which are made available for further processing.
+             *
+             * See https://html.spec.whatwg.org/#parse-error-invalid-first-character-of-tag-name
+             */
+            if self.is_closing_tag.unwrap() {
+                // No chance of finding a closer.
+                if at + 3 > doc_length {
+                    self.parser_state = ProcessorState::IncompleteInput;
+                    return false;
+                }
+
+                let closer_at = strpos(&self.html_bytes, at + 2, b">");
+                if closer_at.is_none() {
+                    self.parser_state = ProcessorState::IncompleteInput;
+                    return false;
+                }
+                let closer_at = closer_at.unwrap();
+
+                self.parser_state = ProcessorState::FunkyComment;
+                self.token_length = Some(closer_at + 1 - self.token_starts_at.unwrap());
+                self.text_starts_at = Some(self.token_starts_at.unwrap() + 2);
+                self.text_length = Some(closer_at - self.text_starts_at.unwrap());
+                self.bytes_already_parsed = closer_at + 1;
+                return true;
+            }
+
+            at += 1;
+        }
+
+        /*
+         * This does not imply an incomplete parse; it indicates that there
+         * can be nothing left in the document other than a #text node.
+         */
+        self.parser_state = ProcessorState::TextNode;
+        self.token_starts_at = Some(was_at);
+        self.token_length = Some(doc_length - was_at);
+        self.text_starts_at = Some(was_at);
+        self.text_length = Some(self.token_length.unwrap());
+        self.bytes_already_parsed = doc_length;
+
+        true
     }
 
     fn parse_next_attribute(&self) -> bool {
@@ -343,7 +780,7 @@ impl Default for HtmlProcessor {
             bytes_already_parsed: 0,
             comment_type: None,
             duplicate_attributes: None,
-            html: String::new().into_boxed_str(),
+            html_bytes: Box::new([]),
             is_closing_tag: None,
             lexical_updates: Vec::new(),
             parser_state: Default::default(),
@@ -446,4 +883,15 @@ enum CommentType {
      * @since 6.5.0
      */
     InvalidHtml,
+}
+
+fn substr(s: &[u8], offset: usize, length: usize) -> &[u8] {
+    &s[offset..offset + length]
+}
+
+fn strpos(s: &[u8], offset: usize, pattern: &[u8]) -> Option<usize> {
+    let window_size = pattern.len();
+    s[offset..]
+        .windows(window_size)
+        .position(|bytes| bytes == pattern)
 }
