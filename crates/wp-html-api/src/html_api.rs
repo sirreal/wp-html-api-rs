@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::ops::Deref;
+use std::{collections::HashMap, ops::Deref};
 
 macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
@@ -21,10 +21,10 @@ macro_rules! strcspn {
 }
 
 pub struct HtmlProcessor {
-    attributes: (),
+    attributes: HashMap<Box<[u8]>, AttributeToken>,
     bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
-    duplicate_attributes: Option<Vec<HtmlSpan>>,
+    duplicate_attributes: Option<HashMap<Box<[u8]>, Vec<HtmlSpan>>>,
     html_bytes: Box<[u8]>,
     is_closing_tag: Option<bool>,
     lexical_updates: Vec<HtmlTextReplacement>,
@@ -139,7 +139,7 @@ impl HtmlProcessor {
             return false;
         }
 
-        let tag_ends_at = strpos(&self.html_bytes, self.bytes_already_parsed, b">");
+        let tag_ends_at = strpos(&self.html_bytes, b">", self.bytes_already_parsed);
         if tag_ends_at.is_none() {
             self.parser_state = ProcessorState::IncompleteInput;
             self.bytes_already_parsed = was_at;
@@ -212,7 +212,6 @@ impl HtmlProcessor {
         let tag_name_starts_at = self.tag_name_starts_at.unwrap();
         let tag_name_length = self.tag_name_length.unwrap();
         let tag_ends_at = self.token_starts_at.unwrap() + self.token_length.unwrap();
-        let attributes = self.attributes;
         let duplicate_attributes = self.duplicate_attributes.clone();
 
         let found_closer = match tag_name.as_str() {
@@ -256,7 +255,6 @@ impl HtmlProcessor {
         self.text_length = Some(self.tag_name_starts_at.unwrap() - self.text_starts_at.unwrap());
         self.tag_name_starts_at = Some(tag_name_starts_at);
         self.tag_name_length = Some(tag_name_length);
-        self.attributes = attributes;
         self.duplicate_attributes = duplicate_attributes;
 
         return true;
@@ -300,14 +298,14 @@ impl HtmlProcessor {
         self.text_starts_at = None;
         self.text_length = None;
         self.is_closing_tag = None;
-        self.attributes = ();
+        self.attributes = HashMap::new();
         self.comment_type = None;
         self.text_node_classification = TextNodeClassification::Generic;
         self.duplicate_attributes = None;
     }
 
     fn class_name_updates_to_attributes_updates(&self) {
-        unimplemented!()
+        // Implement me!
     }
 
     fn get_updated_html(&self) {
@@ -322,7 +320,7 @@ impl HtmlProcessor {
         let mut at = was_at;
 
         while at < self.html_bytes.len() {
-            let next_at = strpos(&self.html_bytes, at, b"<");
+            let next_at = strpos(&self.html_bytes, b"<", at);
             if next_at.is_none() {
                 break;
             }
@@ -462,7 +460,7 @@ impl HtmlProcessor {
                         closer_at
                     } < self.html_bytes.len())
                     {
-                        let next_closer = strpos(&self.html_bytes, closer_at, b"--");
+                        let next_closer = strpos(&self.html_bytes, b"--", closer_at);
                         if next_closer.is_none() {
                             self.parser_state = ProcessorState::IncompleteInput;
                             return false;
@@ -510,7 +508,7 @@ impl HtmlProcessor {
                     && matches!(&self.html_bytes[at + 7], b'P' | b'p')
                     && matches!(&self.html_bytes[at + 8], b'E' | b'e')
                 {
-                    let closer_at = strpos(&self.html_bytes, at + 9, b">");
+                    let closer_at = strpos(&self.html_bytes, b">", at + 9);
                     if closer_at.is_none() {
                         self.parser_state = ProcessorState::IncompleteInput;
                         return false;
@@ -530,7 +528,7 @@ impl HtmlProcessor {
                     && doc_length > at + 8
                     && &self.html_bytes[at + 2..=at + 8] == b"[CDATA["
                 {
-                    let closer_at = strpos(&self.html_bytes, at + 9, b"]]>");
+                    let closer_at = strpos(&self.html_bytes, b"]]>", at + 9);
                     if closer_at.is_none() {
                         self.parser_state = ProcessorState::IncompleteInput;
                         return false;
@@ -550,7 +548,7 @@ impl HtmlProcessor {
                  * to the bogus comment state - skip to the nearest >. If no closer is
                  * found then the HTML was truncated inside the markup declaration.
                  */
-                let closer_at = strpos(&self.html_bytes, at + 1, b">");
+                let closer_at = strpos(&self.html_bytes, b">", at + 1);
                 if closer_at.is_none() {
                     self.parser_state = ProcessorState::IncompleteInput;
                     return false;
@@ -626,7 +624,7 @@ impl HtmlProcessor {
              * See https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
              */
             if !self.is_closing_tag.unwrap() && b'?' == self.html_bytes[at + 1] {
-                let closer_at = strpos(&self.html_bytes, at + 2, b">");
+                let closer_at = strpos(&self.html_bytes, b">", at + 2);
                 if closer_at.is_none() {
                     self.parser_state = ProcessorState::IncompleteInput;
                     return false;
@@ -706,7 +704,7 @@ impl HtmlProcessor {
                     return false;
                 }
 
-                let closer_at = strpos(&self.html_bytes, at + 2, b">");
+                let closer_at = strpos(&self.html_bytes, b">", at + 2);
                 if closer_at.is_none() {
                     self.parser_state = ProcessorState::IncompleteInput;
                     return false;
@@ -738,8 +736,157 @@ impl HtmlProcessor {
         true
     }
 
-    fn parse_next_attribute(&self) -> bool {
-        todo!()
+    fn parse_next_attribute(&mut self) -> bool {
+        let doc_length = self.html_bytes.len();
+
+        // Skip whitespace and slashes.
+        self.bytes_already_parsed += strspn!(
+            &self.html_bytes,
+            b' ' | b'\t' | 0x0c | b'\r' | b'\n' | b'/',
+            self.bytes_already_parsed
+        );
+        if self.bytes_already_parsed >= doc_length {
+            self.parser_state = ProcessorState::IncompleteInput;
+            return false;
+        }
+
+        /*
+         * Treat the equal sign as a part of the attribute
+         * name if it is the first encountered byte.
+         *
+         * @see https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
+         */
+        let name_length = if b'=' == self.html_bytes[self.bytes_already_parsed] {
+            1 + strcspn!(
+                self.html_bytes,
+                b'=' | b'/' | b'>' | b' ' | b'\t' | 0x0c | b'\r' | b'\n',
+                self.bytes_already_parsed + 1
+            )
+        } else {
+            strcspn!(
+                self.html_bytes,
+                b'=' | b'/' | b'>' | b' ' | b'\t' | 0x0c | b'\r' | b'\n',
+                self.bytes_already_parsed
+            )
+        };
+
+        // No attribute, just tag closer.
+        if 0 == name_length || self.bytes_already_parsed + name_length >= doc_length {
+            return false;
+        }
+
+        let attribute_start = self.bytes_already_parsed;
+        let attribute_name = substr(&self.html_bytes, attribute_start, name_length);
+        self.bytes_already_parsed += name_length;
+        if self.bytes_already_parsed >= doc_length {
+            self.parser_state = ProcessorState::IncompleteInput;
+            return false;
+        }
+
+        self.skip_whitespace();
+        if self.bytes_already_parsed >= doc_length {
+            self.parser_state = ProcessorState::IncompleteInput;
+            return false;
+        }
+
+        let has_value = b'=' == self.html_bytes[self.bytes_already_parsed];
+        let (value_start, value_length, attribute_end) = if has_value {
+            self.bytes_already_parsed += 1;
+            self.skip_whitespace();
+            if self.bytes_already_parsed >= doc_length {
+                self.parser_state = ProcessorState::IncompleteInput;
+                return false;
+            }
+
+            match self.html_bytes[self.bytes_already_parsed] {
+                quote @ (b'\'' | b'"') => {
+                    let value_start = self.bytes_already_parsed + 1;
+                    let end_quote_at = strpos(&self.html_bytes, &[quote], value_start);
+                    let end_quote_at = end_quote_at.unwrap_or(doc_length);
+                    let value_length = end_quote_at - value_start;
+                    let attribute_end = end_quote_at + 1;
+                    self.bytes_already_parsed = attribute_end;
+                    (value_start, value_length, attribute_end)
+                }
+
+                _ => {
+                    let value_start = self.bytes_already_parsed;
+                    let value_length = strcspn!(
+                        self.html_bytes,
+                        b'>' | b' ' | b'\t' | 0x0c | b'\r' | b'\n',
+                        value_start
+                    );
+                    let attribute_end = value_start + value_length;
+                    self.bytes_already_parsed = attribute_end;
+                    (value_start, value_length, attribute_end)
+                }
+            }
+        } else {
+            let value_start = self.bytes_already_parsed;
+            let value_length = 0;
+            let attribute_end = attribute_start + name_length;
+            (value_start, value_length, attribute_end)
+        };
+
+        if attribute_end >= doc_length {
+            self.parser_state = ProcessorState::IncompleteInput;
+            return false;
+        }
+
+        if self.is_closing_tag.unwrap() {
+            return true;
+        }
+
+        /*
+         * > There must never be two or more attributes on
+         * > the same start tag whose names are an ASCII
+         * > case-insensitive match for each other.
+         *     - HTML 5 spec
+         *
+         * @see https://html.spec.whatwg.org/multipage/syntax.html#attributes-2:ascii-case-insensitive
+         */
+        let comparable_name = attribute_name.to_ascii_lowercase().into_boxed_slice();
+
+        // If an attribute is listed many times, only use the first declaration and ignore the rest.
+        if !self.attributes.contains_key(&comparable_name) {
+            let attribute_token = AttributeToken {
+                name: attribute_name.to_vec().into_boxed_slice(),
+                value_starts_at: value_start,
+                value_length,
+                start: attribute_start,
+                length: attribute_end - attribute_start,
+                is_true: !has_value,
+            };
+            self.attributes.insert(comparable_name, attribute_token);
+            return true;
+        }
+
+        /*
+         * Track the duplicate attributes so if we remove it, all disappear together.
+         *
+         * While `$this->duplicated_attributes` could always be stored as an `array()`,
+         * which would simplify the logic here, storing a `null` and only allocating
+         * an array when encountering duplicates avoids needless allocations in the
+         * normative case of parsing tags with no duplicate attributes.
+         */
+        let duplicate_span = HtmlSpan {
+            start: attribute_start,
+            length: attribute_end - attribute_start,
+        };
+        if self.duplicate_attributes.is_none() {
+            let mut duplicate_attributes = HashMap::new();
+            duplicate_attributes.insert(comparable_name, vec![duplicate_span]);
+            self.duplicate_attributes = Some(duplicate_attributes);
+        } else {
+            let dupes = self.duplicate_attributes.as_mut().unwrap();
+            if let Some(v) = dupes.get_mut(&comparable_name) {
+                v.push(duplicate_span);
+            } else {
+                dupes.insert(comparable_name, vec![duplicate_span]);
+            }
+        }
+
+        return true;
     }
 
     fn get_tag(&self) -> String {
@@ -755,6 +902,10 @@ impl HtmlProcessor {
     }
 
     fn skip_rawtext(&self, tag_name: &str) -> bool {
+        todo!()
+    }
+
+    fn skip_whitespace(&self) -> () {
         todo!()
     }
 }
@@ -776,7 +927,7 @@ impl PartialEq<&str> for TagName {
 impl Default for HtmlProcessor {
     fn default() -> Self {
         Self {
-            attributes: (),
+            attributes: HashMap::new(),
             bytes_already_parsed: 0,
             comment_type: None,
             duplicate_attributes: None,
@@ -889,9 +1040,48 @@ fn substr(s: &[u8], offset: usize, length: usize) -> &[u8] {
     &s[offset..offset + length]
 }
 
-fn strpos(s: &[u8], offset: usize, pattern: &[u8]) -> Option<usize> {
+fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     let window_size = pattern.len();
     s[offset..]
         .windows(window_size)
         .position(|bytes| bytes == pattern)
+}
+
+struct AttributeToken {
+    /// The attribute name.
+    pub name: Box<[u8]>,
+
+    /// The byte offset where the attribute value starts.
+    pub value_starts_at: usize,
+
+    /// The byte length of the attribute value
+    pub value_length: usize,
+
+    /// The byte offset where the attribute name starts.
+    pub start: usize,
+
+    /// Byte length of text spanning the attribute inside a tag.
+    ///
+    /// This span starts at the first character of the attribute name
+    /// and it ends after one of three cases:
+    ///
+    ///  - at the end of the attribute name for boolean attributes.
+    ///  - at the end of the value for unquoted attributes.
+    ///  - at the final single or double quote for quoted attributes.
+    ///
+    /// Example:
+    ///
+    ///     <div class="post">
+    ///          ------------ length is 12, including quotes
+    ///
+    ///     <input type="checked" checked id="selector">
+    ///                           ------- length is 6
+    ///
+    ///     <a rel=noopener>
+    ///        ------------ length is 11
+    ///
+    pub length: usize,
+
+    /// Whether the attribute is a boolean attribute with value `true`.
+    pub is_true: bool,
 }
