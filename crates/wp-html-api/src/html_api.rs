@@ -1,25 +1,27 @@
+#![allow(dead_code)]
+
+use std::ops::Deref;
+
+use ext_php_rs::props::Prop;
+
 pub struct HtmlProcessor {
-    html: Box<str>,
-
-    parser_state: ProcessorState,
-
-    bytes_already_parsed: usize,
-
-    lexical_updates: Vec<HtmlTextReplacement>,
-
-    token_starts_at: Option<usize>,
-    token_length: Option<usize>,
-    tag_name_starts_at: Option<usize>,
-    tag_name_length: Option<usize>,
-    text_starts_at: usize,
-    text_length: usize,
-    is_closing_tag: Option<bool>,
     attributes: (),
+    bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
-    text_node_classification: TextNodeClassification,
     duplicate_attributes: Option<Vec<HtmlSpan>>,
-
+    html: Box<str>,
+    is_closing_tag: Option<bool>,
+    lexical_updates: Vec<HtmlTextReplacement>,
+    parser_state: ProcessorState,
     parsing_namespace: ParsingNamespace,
+    skip_newline_at: Option<usize>,
+    tag_name_length: Option<usize>,
+    tag_name_starts_at: Option<usize>,
+    text_length: Option<usize>,
+    text_node_classification: TextNodeClassification,
+    text_starts_at: Option<usize>,
+    token_length: Option<usize>,
+    token_starts_at: Option<usize>,
 }
 
 #[derive(Default, PartialEq)]
@@ -35,6 +37,7 @@ struct HtmlTextReplacement {
     text: Box<str>,
 }
 
+#[derive(Clone)]
 struct HtmlSpan {
     start: usize,
     length: usize,
@@ -63,7 +66,7 @@ impl HtmlProcessor {
     }
 
     fn base_class_next_token(&mut self) -> bool {
-        let mut was_at = self.bytes_already_parsed;
+        let was_at = self.bytes_already_parsed;
         self.after_tag();
 
         if self.parser_state == ProcessorState::Complete
@@ -161,7 +164,85 @@ impl HtmlProcessor {
             return true;
         }
 
-        todo!()
+        let tag_name = self.get_tag();
+
+        /*
+         * For LISTING, PRE, and TEXTAREA, the first linefeed of an immediately-following
+         * text node is ignored as an authoring convenience.
+         *
+         * @see static::skip_newline_at
+         */
+        if tag_name == "LISTING" || tag_name == "PRE" {
+            self.skip_newline_at = Some(self.bytes_already_parsed);
+            return true;
+        }
+
+        /*
+         * There are certain elements whose children are not DATA but are instead
+         * RCDATA or RAWTEXT. These cannot contain other elements, and the contents
+         * are parsed as plaintext, with character references decoded in RCDATA but
+         * not in RAWTEXT.
+         *
+         * These elements are described here as "self-contained" or special atomic
+         * elements whose end tag is consumed with the opening tag, and they will
+         * contain modifiable text inside of them.
+         *
+         * Preserve the opening tag pointers, as these will be overwritten
+         * when finding the closing tag. They will be reset after finding
+         * the closing to tag to point to the opening of the special atomic
+         * tag sequence.
+         */
+        let tag_name_starts_at = self.tag_name_starts_at.unwrap();
+        let tag_name_length = self.tag_name_length.unwrap();
+        let tag_ends_at = self.token_starts_at.unwrap() + self.token_length.unwrap();
+        let attributes = self.attributes;
+        let duplicate_attributes = self.duplicate_attributes.clone();
+
+        let found_closer = match tag_name.as_str() {
+            "SCRIPT" => self.skip_script_data(),
+
+            "TEXTAREA" | "TITLE" => self.skip_rcdata(&tag_name),
+
+            /*
+             * In the browser this list would include the NOSCRIPT element,
+             * but the Tag Processor is an environment with the scripting
+             * flag disabled, meaning that it needs to descend into the
+             * NOSCRIPT element to be able to properly process what will be
+             * sent to a browser.
+             *
+             * Note that this rule makes HTML5 syntax incompatible with XML,
+             * because the parsing of this token depends on client application.
+             * The NOSCRIPT element cannot be represented in the XHTML syntax.
+             */
+            "IFRAME" | "NOEMBED" | "NOFRAMES" | "STYLE" | "XMP" => self.skip_rawtext(&tag_name),
+
+            // No other tags should be treated in their entirety here.
+            _ => true,
+        };
+
+        if !found_closer {
+            self.parser_state = ProcessorState::IncompleteInput;
+            self.bytes_already_parsed = was_at;
+            return false;
+        }
+
+        /*
+         * The values here look like they reference the opening tag but they reference
+         * the closing tag instead. This is why the opening tag values were stored
+         * above in a variable. It reads confusingly here, but that's because the
+         * functions that skip the contents have moved all the internal cursors past
+         * the inner content of the tag.
+         */
+        self.token_starts_at = Some(was_at);
+        self.token_length = Some(self.bytes_already_parsed - self.token_starts_at.unwrap());
+        self.text_starts_at = Some(tag_ends_at);
+        self.text_length = Some(self.tag_name_starts_at.unwrap() - self.text_starts_at.unwrap());
+        self.tag_name_starts_at = Some(tag_name_starts_at);
+        self.tag_name_length = Some(tag_name_length);
+        self.attributes = attributes;
+        self.duplicate_attributes = duplicate_attributes;
+
+        return true;
     }
 
     /// Applies attribute updates and cleans up once a tag is fully parsed.
@@ -199,8 +280,8 @@ impl HtmlProcessor {
         self.token_length = None;
         self.tag_name_starts_at = None;
         self.tag_name_length = None;
-        self.text_starts_at = 0;
-        self.text_length = 0;
+        self.text_starts_at = None;
+        self.text_length = None;
         self.is_closing_tag = None;
         self.attributes = ();
         self.comment_type = None;
@@ -223,28 +304,58 @@ impl HtmlProcessor {
     fn parse_next_attribute(&self) -> bool {
         todo!()
     }
+
+    fn get_tag(&self) -> String {
+        todo!()
+    }
+
+    fn skip_script_data(&self) -> bool {
+        todo!()
+    }
+
+    fn skip_rcdata(&self, tag_name: &str) -> bool {
+        todo!()
+    }
+
+    fn skip_rawtext(&self, tag_name: &str) -> bool {
+        todo!()
+    }
+}
+
+struct TagName(String);
+impl Deref for TagName {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+impl PartialEq<&str> for TagName {
+    fn eq(&self, other: &&str) -> bool {
+        self.0 == *other
+    }
 }
 
 impl Default for HtmlProcessor {
     fn default() -> Self {
         Self {
-            html: String::new().into_boxed_str(),
-            parser_state: Default::default(),
-            lexical_updates: Vec::new(),
-            bytes_already_parsed: 0,
-
-            token_starts_at: None,
-            token_length: None,
-            tag_name_starts_at: None,
-            tag_name_length: None,
-            text_starts_at: 0,
-            text_length: 0,
-            is_closing_tag: None,
             attributes: (),
+            bytes_already_parsed: 0,
             comment_type: None,
-            text_node_classification: TextNodeClassification::Generic,
             duplicate_attributes: None,
+            html: String::new().into_boxed_str(),
+            is_closing_tag: None,
+            lexical_updates: Vec::new(),
+            parser_state: Default::default(),
             parsing_namespace: Default::default(),
+            skip_newline_at: None,
+            tag_name_length: None,
+            tag_name_starts_at: None,
+            text_length: None,
+            text_node_classification: TextNodeClassification::Generic,
+            text_starts_at: None,
+            token_length: None,
+            token_starts_at: None,
         }
     }
 }
