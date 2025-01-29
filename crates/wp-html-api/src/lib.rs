@@ -24,6 +24,22 @@ impl WP_HTML_Processor_RS {
     pub fn next_token(#[this] this: &mut ZendClassObject<WP_HTML_Processor_RS>) -> bool {
         this.processor.next_token()
     }
+
+    pub fn get_tag(#[this] this: &mut ZendClassObject<WP_HTML_Processor_RS>) -> Option<String> {
+        this.processor.get_tag().map(|t| t.into())
+    }
+
+    pub fn get_token_type(
+        #[this] this: &mut ZendClassObject<WP_HTML_Processor_RS>,
+    ) -> Option<String> {
+        this.processor.get_token_type().map(|t| t.into())
+    }
+
+    pub fn get_token_name(
+        #[this] this: &mut ZendClassObject<WP_HTML_Processor_RS>,
+    ) -> Option<String> {
+        this.processor.get_token_name().map(|t| t.into())
+    }
 }
 
 #[php_module]

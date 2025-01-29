@@ -889,7 +889,7 @@ impl HtmlProcessor {
         return true;
     }
 
-    fn get_tag(&self) -> Option<TagName> {
+    pub fn get_tag(&self) -> Option<TagName> {
         self.tag_name_starts_at
             .and_then(|start| {
                 self.tag_name_length
@@ -913,6 +913,47 @@ impl HtmlProcessor {
             .map(|s| TagName(s))
     }
 
+    /// Indicates the kind of matched token, if any.
+    ///
+    /// This differs from `get_token_name()` in that it always
+    /// returns a static string indicating the type, whereas
+    /// `get_token_name()` may return values derived from the
+    /// token itself, such as a tag name or processing
+    /// instruction tag.
+    ///
+    /// Possible values:
+    ///  - `#tag` when matched on a tag.
+    ///  - `#text` when matched on a text node.
+    ///  - `#cdata-section` when matched on a CDATA node.
+    ///  - `#comment` when matched on a comment.
+    ///  - `#doctype` when matched on a DOCTYPE declaration.
+    ///  - `#presumptuous-tag` when matched on an empty tag closer.
+    ///  - `#funky-comment` when matched on a funky comment.
+    ///
+    pub fn get_token_type(&self) -> Option<TokenType> {
+        match self.parser_state {
+            ProcessorState::MatchedTag => Some(TokenType::Tag),
+            ProcessorState::Doctype => Some(TokenType::Doctype),
+            ProcessorState::TextNode => Some(TokenType::Text),
+            ProcessorState::CDATANode => Some(TokenType::CdataSection),
+            ProcessorState::Comment => Some(TokenType::Comment),
+            ProcessorState::PresumptuousTag => Some(TokenType::PresumptuousTag),
+            ProcessorState::FunkyComment => Some(TokenType::FunkyComment),
+
+            ProcessorState::Ready | ProcessorState::Complete | ProcessorState::IncompleteInput => {
+                None
+            }
+        }
+    }
+
+    pub fn get_token_name(&self) -> Option<Box<str>> {
+        match self.parser_state {
+            ProcessorState::MatchedTag => self.get_tag().map(|t| t.0),
+            ProcessorState::Doctype => Some("html".into()),
+            _ => self.get_token_type().map(|t| t.into()),
+        }
+    }
+
     fn skip_script_data(&self) -> bool {
         todo!()
     }
@@ -930,7 +971,7 @@ impl HtmlProcessor {
     }
 }
 
-struct TagName(Box<str>);
+pub(crate) struct TagName(Box<str>);
 impl Deref for TagName {
     type Target = str;
 
@@ -941,6 +982,16 @@ impl Deref for TagName {
 impl PartialEq<&str> for TagName {
     fn eq(&self, other: &&str) -> bool {
         self.0.deref() == *other
+    }
+}
+impl Into<Box<str>> for TagName {
+    fn into(self) -> Box<str> {
+        self.0
+    }
+}
+impl Into<String> for TagName {
+    fn into(self) -> String {
+        self.0.into()
     }
 }
 
@@ -1066,6 +1117,44 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     s[offset..]
         .windows(window_size)
         .position(|bytes| bytes == pattern)
+}
+
+pub(crate) enum TokenType {
+    Tag,
+    Text,
+    CdataSection,
+    Comment,
+    Doctype,
+    PresumptuousTag,
+    FunkyComment,
+}
+
+impl Into<String> for TokenType {
+    fn into(self) -> String {
+        match self {
+            TokenType::Tag => "#tag".into(),
+            TokenType::Text => "#text".into(),
+            TokenType::CdataSection => "#cdata-section".into(),
+            TokenType::Comment => "#comment".into(),
+            TokenType::Doctype => "#doctype".into(),
+            TokenType::PresumptuousTag => "#presumptuous-tag".into(),
+            TokenType::FunkyComment => "#funky-comment".into(),
+        }
+    }
+}
+
+impl Into<Box<str>> for TokenType {
+    fn into(self) -> Box<str> {
+        match self {
+            TokenType::Tag => "#tag".into(),
+            TokenType::Text => "#text".into(),
+            TokenType::CdataSection => "#cdata-section".into(),
+            TokenType::Comment => "#comment".into(),
+            TokenType::Doctype => "#doctype".into(),
+            TokenType::PresumptuousTag => "#presumptuous-tag".into(),
+            TokenType::FunkyComment => "#funky-comment".into(),
+        }
+    }
 }
 
 struct AttributeToken {
