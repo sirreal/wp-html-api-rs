@@ -1185,8 +1185,20 @@ impl HtmlProcessor {
         false
     }
 
-    fn skip_rawtext(&self, tag_name: &str) -> bool {
-        todo!()
+    ///
+    /// Skips contents of generic rawtext elements.
+    ///
+    /// @see https://html.spec.whatwg.org/#generic-raw-text-element-parsing-algorithm
+    ///
+    /// @param string $tag_name The uppercase tag name which will close the RAWTEXT region.
+    /// @return bool Whether an end to the RAWTEXT region was found before the end of the document.
+    fn skip_rawtext(&mut self, tag_name: &str) -> bool {
+        /*
+         * These two functions distinguish themselves on whether character references are
+         * decoded, and since functionality to read the inner markup isn't supported, it's
+         * not necessary to implement these two functions separately.
+         */
+        return self.skip_rcdata(tag_name);
     }
 
     fn skip_whitespace(&mut self) {
