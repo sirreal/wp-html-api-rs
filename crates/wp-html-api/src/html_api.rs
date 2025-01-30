@@ -78,10 +78,42 @@ impl HtmlProcessor {
         }
     }
 
+    /// Finds the next token in the HTML document.
+    ///
+    /// An HTML document can be viewed as a stream of tokens,
+    /// where tokens are things like HTML tags, HTML comments,
+    /// text nodes, etc. This method finds the next token in
+    /// the HTML document and returns whether it found one.
+    ///
+    /// If it starts parsing a token and reaches the end of the
+    /// document then it will seek to the start of the last
+    /// token and pause, returning `false` to indicate that it
+    /// failed to find a complete token.
+    ///
+    /// Possible token types, based on the HTML specification:
+    ///
+    ///  - an HTML tag, whether opening, closing, or void.
+    ///  - a text node - the plaintext inside tags.
+    ///  - an HTML comment.
+    ///  - a DOCTYPE declaration.
+    ///  - a processing instruction, e.g. `<?xml version="1.0" ?>`.
+    ///
+    /// The Tag Processor currently only supports the tag token.
+    ///
+    /// @return bool Whether a token was parsed.
     pub fn next_token(&mut self) -> bool {
         self.base_class_next_token()
     }
 
+    /// Internal method which finds the next token in the HTML document.
+    ///
+    /// This method is a protected internal function which implements the logic for
+    /// finding the next token in a document. It exists so that the parser can update
+    /// its state without affecting the location of the cursor in the document and
+    /// without triggering subclass methods for things like `next_token()`, e.g. when
+    /// applying patches before searching for the next token.
+    ///
+    /// @return bool Whether a token was parsed.
     fn base_class_next_token(&mut self) -> bool {
         let was_at = self.bytes_already_parsed;
         self.after_tag();
@@ -956,6 +988,9 @@ impl HtmlProcessor {
         }
     }
 
+    /// Skips contents of script tags.
+    ///
+    /// @return bool Whether the script tag was closed before the end of the document.
     fn skip_script_data(&mut self) -> bool {
         let mut state = ScriptState::Unescaped;
         let doc_length = self.html_bytes.len();
@@ -1185,7 +1220,6 @@ impl HtmlProcessor {
         false
     }
 
-    ///
     /// Skips contents of generic rawtext elements.
     ///
     /// @see https://html.spec.whatwg.org/#generic-raw-text-element-parsing-algorithm
@@ -1201,6 +1235,7 @@ impl HtmlProcessor {
         return self.skip_rcdata(tag_name);
     }
 
+    /// Move the internal cursor past any immediate successive whitespace.
     fn skip_whitespace(&mut self) {
         self.bytes_already_parsed += strspn!(
             &self.html_bytes,
