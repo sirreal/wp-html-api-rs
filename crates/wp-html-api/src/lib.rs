@@ -1,5 +1,5 @@
 #![allow(non_camel_case_types)]
-mod html_api;
+mod tag_processor;
 use ext_php_rs::{builders::ModuleBuilder, prelude::*, types::ZendClassObject};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
