@@ -1,6 +1,7 @@
 #![allow(non_camel_case_types)]
 mod tag_processor;
 use ext_php_rs::{builders::ModuleBuilder, prelude::*, types::ZendClassObject};
+use tag_processor::TagProcessor;
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -12,17 +13,13 @@ extern "C" fn request_shutdown(_ty: i32, _module_number: i32) -> i32 {
 
 #[php_class]
 pub struct WP_HTML_Tag_Processor {
-    processor: html_api::HtmlProcessor,
+    processor: TagProcessor,
 }
 
 #[php_impl(rename_methods = "none")]
 impl WP_HTML_Tag_Processor {
     pub fn __construct(html: &str) -> Self {
-        Self::create_fragment(html)
-    }
-
-    pub fn create_fragment(html: &str) -> Self {
-        let processor = html_api::HtmlProcessor::create_fragment(html);
+        let processor = TagProcessor::new(html);
         Self { processor }
     }
 

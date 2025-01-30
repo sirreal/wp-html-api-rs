@@ -20,7 +20,7 @@ macro_rules! strcspn {
     }};
 }
 
-pub struct HtmlProcessor {
+pub struct TagProcessor {
     attributes: HashMap<Box<[u8]>, AttributeToken>,
     bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
@@ -80,8 +80,8 @@ impl HtmlTextReplacement {
     }
 }
 
-impl HtmlProcessor {
-    pub fn create_fragment(html: &str) -> Self {
+impl TagProcessor {
+    pub fn new(html: &str) -> Self {
         let html_bytes = html.as_bytes().to_vec().into_boxed_slice();
         Self {
             html_bytes,
@@ -1495,7 +1495,7 @@ impl Into<String> for TagName {
     }
 }
 
-impl Default for HtmlProcessor {
+impl Default for TagProcessor {
     fn default() -> Self {
         Self {
             attributes: HashMap::new(),
@@ -1709,7 +1709,7 @@ mod test {
 
     #[test]
     fn test_base_next_token() {
-        let mut processor = HtmlProcessor::create_fragment("<p>Hello world!</p>");
+        let mut processor = TagProcessor::new("<p>Hello world!</p>");
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
         assert_eq!(processor.get_token_name().unwrap(), "P".into());
