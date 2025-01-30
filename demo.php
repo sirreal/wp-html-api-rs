@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 $html = <<<'HTML'
+<title> <titl> foo bar & great <titl></tItLe>
 <p>Hello world!</p>
 <script>
 a script

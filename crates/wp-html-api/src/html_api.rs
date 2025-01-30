@@ -1095,8 +1095,94 @@ impl HtmlProcessor {
         false
     }
 
-    fn skip_rcdata(&self, tag_name: &str) -> bool {
-        todo!()
+    /// Skips contents of RCDATA elements, namely title and textarea tags.
+    ///
+    /// @see https://html.spec.whatwg.org/multipage/parsing.html#rcdata-state
+    ///
+    /// @param string $tag_name The uppercase tag name which will close the RCDATA region.
+    /// @return bool Whether an end to the RCDATA region was found before the end of the document.
+    fn skip_rcdata(&mut self, tag_name: &str) -> bool {
+        let doc_length = self.html_bytes.len();
+        let tag_name = tag_name.as_bytes();
+        let tag_length = tag_name.len();
+
+        let mut at = self.bytes_already_parsed;
+
+        'closer_search: while at < doc_length {
+            // Find next potential closing tag
+            match strpos(&self.html_bytes, b"</", at) {
+                Some(pos) => {
+                    at = pos;
+                    self.tag_name_starts_at = Some(at);
+                }
+                None => return false,
+            }
+
+            // Fail if there is no possible tag closer
+            if at + tag_length >= doc_length {
+                return false;
+            }
+
+            at += 2;
+
+            /*
+             * Find a case-insensitive match to the tag name.
+             *
+             * Because tag names are limited to US-ASCII there is no
+             * need to perform any kind of Unicode normalization when
+             * comparing; any character which could be impacted by such
+             * normalization could not be part of a tag name.
+             */
+            if !tag_name.iter().enumerate().all(|(offset, &char)| {
+                char == self.html_bytes[at + offset]
+                    || char == self.html_bytes[at + offset].to_ascii_uppercase()
+            }) {
+                continue 'closer_search;
+            }
+
+            at += tag_length;
+            self.bytes_already_parsed = at;
+
+            if at >= self.html_bytes.len() {
+                return false;
+            }
+
+            /*
+             * Ensure that the tag name terminates to avoid matching on
+             * substrings of a longer tag name. For example, the sequence
+             * "</textarearug" should not match for "</textarea" even
+             * though "textarea" is found within the text.
+             */
+            if !matches!(
+                self.html_bytes[at],
+                b' ' | b'\t' | b'\r' | b'\n' | b'/' | b'>'
+            ) {
+                continue;
+            }
+
+            while self.parse_next_attribute() {}
+
+            at = self.bytes_already_parsed;
+            if at >= self.html_bytes.len() {
+                return false;
+            }
+
+            if self.html_bytes[at] == b'>' {
+                self.bytes_already_parsed = at + 1;
+                return true;
+            }
+
+            if at + 1 >= self.html_bytes.len() {
+                return false;
+            }
+
+            if self.html_bytes[at] == b'/' && self.html_bytes[at + 1] == b'>' {
+                self.bytes_already_parsed = at + 2;
+                return true;
+            }
+        }
+
+        false
     }
 
     fn skip_rawtext(&self, tag_name: &str) -> bool {
