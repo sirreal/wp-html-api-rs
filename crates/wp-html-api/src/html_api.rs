@@ -954,8 +954,143 @@ impl HtmlProcessor {
         }
     }
 
-    fn skip_script_data(&self) -> bool {
-        todo!()
+    fn skip_script_data(&mut self) -> bool {
+        let mut state = ScriptState::Unescaped;
+        let doc_length = self.html_bytes.len();
+        let mut at = self.bytes_already_parsed;
+
+        while at < doc_length {
+            at += strcspn!(self.html_bytes, b'-' | b'<', at);
+
+            /*
+             * For all script states a "-->"  transitions
+             * back into the normal unescaped script mode,
+             * even if that's the current state.
+             */
+            if at + 2 < doc_length
+                && self.html_bytes[at] == b'-'
+                && self.html_bytes[at + 1] == b'-'
+                && self.html_bytes[at + 2] == b'>'
+            {
+                at += 3;
+                state = ScriptState::Unescaped;
+                continue;
+            }
+
+            if at + 1 >= doc_length {
+                return false;
+            }
+
+            /*
+             * Everything of interest past here starts with "<".
+             * Check this character and advance position regardless.
+             */
+            at += 1;
+            if self.html_bytes[at - 1] != b'<' {
+                continue;
+            }
+
+            /*
+             * Unlike with "-->", the "<!--" only transitions
+             * into the escaped mode if not already there.
+             *
+             * Inside the escaped modes it will be ignored; and
+             * should never break out of the double-escaped
+             * mode and back into the escaped mode.
+             *
+             * While this requires a mode change, it does not
+             * impact the parsing otherwise, so continue
+             * parsing after updating the state.
+             */
+            if at + 2 < doc_length
+                && self.html_bytes[at] == b'!'
+                && self.html_bytes[at + 1] == b'-'
+                && self.html_bytes[at + 2] == b'-'
+            {
+                at += 3;
+                if state == ScriptState::Unescaped {
+                    state = ScriptState::Escaped;
+                }
+                continue;
+            }
+
+            let is_closing = if self.html_bytes[at] == b'/' {
+                let closer_potentially_starts_at = at - 1;
+                at += 1;
+                Some(closer_potentially_starts_at)
+            } else {
+                None
+            };
+
+            /*
+             * At this point the only remaining state-changes occur with the
+             * <script> and </script> tags; unless one of these appears next,
+             * proceed scanning to the next potential token in the text.
+             */
+            if !(at + 6 < doc_length
+                && (b's' == self.html_bytes[at] || b'S' == self.html_bytes[at])
+                && (b'c' == self.html_bytes[at + 1] || b'C' == self.html_bytes[at + 1])
+                && (b'r' == self.html_bytes[at + 2] || b'R' == self.html_bytes[at + 2])
+                && (b'i' == self.html_bytes[at + 3] || b'I' == self.html_bytes[at + 3])
+                && (b'p' == self.html_bytes[at + 4] || b'P' == self.html_bytes[at + 4])
+                && (b't' == self.html_bytes[at + 5] || b'T' == self.html_bytes[at + 5]))
+            {
+                at += 1;
+                continue;
+            }
+
+            /*
+             * Ensure that the script tag terminates to avoid matching on
+             * substrings of a non-match. For example, the sequence
+             * "<script123" should not end a script region even though
+             * "<script" is found within the text.
+             */
+            if at + 6 >= doc_length {
+                continue;
+            }
+            at += 6;
+            if !matches!(
+                self.html_bytes[at],
+                b' ' | b'\t' | b'\r' | b'\n' | b'/' | b'>'
+            ) {
+                at += 1;
+                continue;
+            }
+
+            if state == ScriptState::Escaped && is_closing.is_none() {
+                state = ScriptState::DoubleEscaped;
+                continue;
+            }
+
+            if state == ScriptState::DoubleEscaped && is_closing.is_some() {
+                state = ScriptState::Escaped;
+                continue;
+            }
+
+            if let Some(closer_starts_at) = is_closing {
+                self.bytes_already_parsed = closer_starts_at;
+                self.tag_name_starts_at = Some(closer_starts_at);
+                if (self.bytes_already_parsed >= doc_length) {
+                    return false;
+                }
+
+                while self.parse_next_attribute() {}
+
+                if (self.bytes_already_parsed >= doc_length) {
+                    self.parser_state = ProcessorState::IncompleteInput;
+                    return false;
+                }
+
+                if b'>' == self.html_bytes[self.bytes_already_parsed] {
+                    self.bytes_already_parsed += 1;
+                    return true;
+                }
+            }
+
+            at += 1;
+        }
+
+        false
     }
 
     fn skip_rcdata(&self, tag_name: &str) -> bool {
@@ -1194,4 +1329,11 @@ struct AttributeToken {
 
     /// Whether the attribute is a boolean attribute with value `true`.
     pub is_true: bool,
+}
+
+#[derive(PartialEq)]
+enum ScriptState {
+    Unescaped,
+    Escaped,
+    DoubleEscaped,
 }
