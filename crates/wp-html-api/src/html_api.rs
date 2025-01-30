@@ -776,7 +776,9 @@ impl HtmlProcessor {
         }
 
         let attribute_start = self.bytes_already_parsed;
-        let attribute_name = substr(&self.html_bytes, attribute_start, name_length);
+        let attribute_name = substr(&self.html_bytes, attribute_start, name_length)
+            .to_vec()
+            .into_boxed_slice();
         self.bytes_already_parsed += name_length;
         if self.bytes_already_parsed >= doc_length {
             self.parser_state = ProcessorState::IncompleteInput;
@@ -850,7 +852,7 @@ impl HtmlProcessor {
         // If an attribute is listed many times, only use the first declaration and ignore the rest.
         if !self.attributes.contains_key(&comparable_name) {
             let attribute_token = AttributeToken {
-                name: attribute_name.to_vec().into_boxed_slice(),
+                name: attribute_name,
                 value_starts_at: value_start,
                 value_length,
                 start: attribute_start,
@@ -1101,8 +1103,12 @@ impl HtmlProcessor {
         todo!()
     }
 
-    fn skip_whitespace(&self) -> () {
-        todo!()
+    fn skip_whitespace(&mut self) {
+        self.bytes_already_parsed += strspn!(
+            &self.html_bytes,
+            b' ' | b'\t' | b'\x0C' | b'\r' | b'\n',
+            self.bytes_already_parsed
+        );
     }
 
     /// Indicates if the current tag token is a tag closer.
