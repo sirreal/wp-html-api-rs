@@ -21,10 +21,9 @@ macro_rules! strcspn {
 }
 
 pub struct TagProcessor {
-    attributes: HashMap<Box<[u8]>, AttributeToken>,
+    attributes: Vec<AttributeToken>,
     bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
-    duplicate_attributes: Option<HashMap<Box<[u8]>, Vec<HtmlSpan>>>,
     html_bytes: Box<[u8]>,
     is_closing_tag: Option<bool>,
     lexical_updates: Vec<HtmlTextReplacement>,
@@ -340,10 +339,9 @@ impl TagProcessor {
         self.text_starts_at = None;
         self.text_length = None;
         self.is_closing_tag = None;
-        self.attributes = HashMap::new();
+        self.attributes = vec![];
         self.comment_type = None;
         self.text_node_classification = TextNodeClassification::Generic;
-        self.duplicate_attributes = None;
     }
 
     fn class_name_updates_to_attributes_updates(&self) {
@@ -885,56 +883,16 @@ impl TagProcessor {
             return true;
         }
 
-        /*
-         * > There must never be two or more attributes on
-         * > the same start tag whose names are an ASCII
-         * > case-insensitive match for each other.
-         *     - HTML 5 spec
-         *
-         * @see https://html.spec.whatwg.org/multipage/syntax.html#attributes-2:ascii-case-insensitive
-         */
-        let comparable_name = attribute_name.to_ascii_lowercase().into_boxed_slice();
-
-        // If an attribute is listed many times, only use the first declaration and ignore the rest.
-        if !self.attributes.contains_key(&comparable_name) {
-            let attribute_token = AttributeToken {
-                name: attribute_name,
-                value_starts_at: value_start,
-                value_length,
-                start: attribute_start,
-                length: attribute_end - attribute_start,
-                is_true: !has_value,
-            };
-            self.attributes.insert(comparable_name, attribute_token);
-            return true;
-        }
-
-        /*
-         * Track the duplicate attributes so if we remove it, all disappear together.
-         *
-         * While `$this->duplicated_attributes` could always be stored as an `array()`,
-         * which would simplify the logic here, storing a `null` and only allocating
-         * an array when encountering duplicates avoids needless allocations in the
-         * normative case of parsing tags with no duplicate attributes.
-         */
-        let duplicate_span = HtmlSpan {
+        self.attributes.push(AttributeToken {
+            name: attribute_name,
+            value_starts_at: value_start,
+            value_length,
             start: attribute_start,
             length: attribute_end - attribute_start,
-        };
-        if self.duplicate_attributes.is_none() {
-            let mut duplicate_attributes = HashMap::new();
-            duplicate_attributes.insert(comparable_name, vec![duplicate_span]);
-            self.duplicate_attributes = Some(duplicate_attributes);
-        } else {
-            let dupes = self.duplicate_attributes.as_mut().unwrap();
-            if let Some(v) = dupes.get_mut(&comparable_name) {
-                v.push(duplicate_span);
-            } else {
-                dupes.insert(comparable_name, vec![duplicate_span]);
-            }
-        }
+            is_true: !has_value,
+        });
 
-        return true;
+        true
     }
 
     pub fn get_tag(&self) -> Option<TagName> {
@@ -1498,10 +1456,9 @@ impl Into<String> for TagName {
 impl Default for TagProcessor {
     fn default() -> Self {
         Self {
-            attributes: HashMap::new(),
+            attributes: vec![],
             bytes_already_parsed: 0,
             comment_type: None,
-            duplicate_attributes: None,
             html_bytes: Box::new([]),
             is_closing_tag: None,
             lexical_updates: Vec::new(),
