@@ -45,6 +45,17 @@ enum ParsingNamespace {
     #[default]
     Html,
     Svg,
+    MathML,
+}
+impl Into<String> for ParsingNamespace {
+    fn into(self) -> String {
+        match self {
+            ParsingNamespace::Html => "html",
+            ParsingNamespace::Svg => "svg",
+            ParsingNamespace::MathML => "math",
+        }
+        .to_string()
+    }
 }
 
 struct HtmlTextReplacement {
@@ -1266,6 +1277,197 @@ impl HtmlProcessor {
                 .map(|TagName(tag_name)| tag_name.as_ref() != "BR")
                 .unwrap_or(false)
     }
+
+    /// Returns if a matched tag contains the given ASCII case-insensitive class name.
+    ///
+    /// @param string $wanted_class Look for this CSS class name, ASCII case-insensitive.
+    /// @return bool|null Whether the matched tag contains the given class name, or null if not matched.
+    pub fn has_class(&self, wanted_class: &str) -> Option<bool> {
+        todo!()
+    }
+
+    /// Adds a new class name to the currently matched tag.
+    ///
+    /// @param class_name The class name to add.
+    /// @return bool Whether the class was set to be added.
+    pub fn add_class(&mut self, class_name: &str) -> bool {
+        todo!()
+    }
+
+    /// Removes a class name from the currently matched tag.
+    ///
+    /// @param class_name The class name to remove.
+    /// @return bool Whether the class was set to be removed.
+    pub fn remove_class(&mut self, class_name: &str) -> bool {
+        todo!()
+    }
+
+    /// Generator for a foreach loop to step through each class name for the matched tag.
+    ///
+    /// This generator function is designed to be used inside a "foreach" loop.
+    ///
+    /// Example:
+    ///
+    ///     $p = new WP_HTML_Tag_Processor( "<div class='free &lt;egg&lt;\tlang-en'>" );
+    ///     $p->next_tag();
+    ///     foreach ( $p->class_list() as $class_name ) {
+    ///         echo "{$class_name} ";
+    ///     }
+    ///     // Outputs: "free <egg> lang-en "
+    pub fn class_list(&self) -> () {
+        todo!()
+    }
+
+    /// Removes an attribute from the currently matched tag.
+    ///
+    /// @param name The attribute name to remove.
+    /// @return bool Whether the attribute was set to be removed.
+    pub fn remove_attribute(&mut self, name: &str) -> bool {
+        todo!()
+    }
+
+    /// Sets a bookmark in the HTML document.
+    ///
+    /// Bookmarks represent specific places or tokens in the HTML
+    /// document, such as a tag opener or closer. When applying
+    /// edits to a document, such as setting an attribute, the
+    /// text offsets of that token may shift; the bookmark is
+    /// kept updated with those shifts and remains stable unless
+    /// the entire span of text in which the token sits is removed.
+    ///
+    /// Release bookmarks when they are no longer needed.
+    ///
+    /// Example:
+    ///
+    ///     <main><h2>Surprising fact you may not know!</h2></main>
+    ///           ^  ^
+    ///            \-|-- this `H2` opener bookmark tracks the token
+    ///
+    ///     <main class="clickbait"><h2>Surprising fact you may no…
+    ///                             ^  ^
+    ///                              \-|-- it shifts with edits
+    ///
+    /// Bookmarks provide the ability to seek to a previously-scanned
+    /// place in the HTML document. This avoids the need to re-scan
+    /// the entire document.
+    ///
+    /// Example:
+    ///
+    ///     <ul><li>One</li><li>Two</li><li>Three</li></ul>
+    ///                                 ^^^^
+    ///                                 want to note this last item
+    ///
+    ///     $p = new WP_HTML_Tag_Processor( $html );
+    ///     $in_list = false;
+    ///     while ( $p->next_tag( array( 'tag_closers' => $in_list ? 'visit' : 'skip' ) ) ) {
+    ///         if ( 'UL' === $p->get_tag() ) {
+    ///             if ( $p->is_tag_closer() ) {
+    ///                 $in_list = false;
+    ///                 $p->set_bookmark( 'resume' );
+    ///                 if ( $p->seek( 'last-li' ) ) {
+    ///                     $p->add_class( 'last-li' );
+    ///                 }
+    ///                 $p->seek( 'resume' );
+    ///                 $p->release_bookmark( 'last-li' );
+    ///                 $p->release_bookmark( 'resume' );
+    ///             } else {
+    ///                 $in_list = true;
+    ///             }
+    ///         }
+    ///
+    ///         if ( 'LI' === $p->get_tag() ) {
+    ///             $p->set_bookmark( 'last-li' );
+    ///         }
+    ///     }
+    ///
+    /// Bookmarks intentionally hide the internal string offsets
+    /// to which they refer. They are maintained internally as
+    /// updates are applied to the HTML document and therefore
+    /// retain their "position" - the location to which they
+    /// originally pointed. The inability to use bookmarks with
+    /// functions like `substr` is therefore intentional to guard
+    /// against accidentally breaking the HTML.
+    ///
+    /// Because bookmarks allocate memory and require processing
+    /// for every applied update, they are limited and require
+    /// a name. They should not be created with programmatically-made
+    /// names, such as "li_{$index}" with some loop. As a general
+    /// rule they should only be created with string-literal names
+    /// like "start-of-section" or "last-paragraph".
+    ///
+    /// Bookmarks are a powerful tool to enable complicated behavior.
+    /// Consider double-checking that you need this tool if you are
+    /// reaching for it, as inappropriate use could lead to broken
+    /// HTML structure or unwanted processing overhead.
+    ///
+    /// @param string $name Identifies this particular bookmark.
+    /// @return bool Whether the bookmark was successfully created.
+    ///
+    pub fn set_bookmark(&mut self, name: &str) -> bool {
+        todo!()
+    }
+
+    /// Removes a bookmark that is no longer needed.
+    ///
+    /// Releasing a bookmark frees up the small
+    /// performance overhead it requires.
+    ///
+    /// @param name Name of the bookmark to remove.
+    /// @return bool Whether the bookmark already existed before removal.
+    pub fn release_bookmark(&mut self, name: &str) -> bool {
+        todo!()
+    }
+
+    /// Gets lowercase names of all attributes matching a given prefix in the current tag.
+    ///
+    /// Note that matching is case-insensitive. This is in accordance with the spec:
+    ///
+    /// > There must never be two or more attributes on
+    /// > the same start tag whose names are an ASCII
+    /// > case-insensitive match for each other.
+    ///     - HTML 5 spec
+    ///
+    /// Example:
+    ///
+    ///     $p = new WP_HTML_Tag_Processor( '<div data-ENABLED class="test" DATA-test-id="14">Test</div>' );
+    ///     $p->next_tag( array( 'class_name' => 'test' ) ) === true;
+    ///     $p->get_attribute_names_with_prefix( 'data-' ) === array( 'data-enabled', 'data-test-id' );
+    ///
+    ///     $p->next_tag() === false;
+    ///     $p->get_attribute_names_with_prefix( 'data-' ) === null;
+    pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Box<str>>> {
+        todo!()
+    }
+
+    /// Returns the namespace of the matched token.
+    pub fn get_namespace(&self) -> &str {
+        todo!()
+    }
+
+    /// Returns the adjusted tag name for a given token, taking into
+    /// account the current parsing context, whether HTML, SVG, or MathML.
+    pub fn get_qualified_tag_name(&self) -> Option<Box<str>> {
+        todo!()
+    }
+
+    /// Checks whether a bookmark with the given name exists.
+    ///
+    /// @param bookmark_name Name to identify a bookmark that potentially exists.
+    /// @return Whether that bookmark exists.
+    pub fn has_bookmark(&self, bookmark_name: &str) -> bool {
+        todo!()
+    }
+
+    /// Move the internal cursor in the Tag Processor to a given bookmark's location.
+    ///
+    /// In order to prevent accidental infinite loops, there's a
+    /// maximum limit on the number of times seek() can be called.
+    ///
+    /// @param bookmark_name Jump to the place in the document identified by this bookmark name.
+    /// @return Whether the internal cursor was successfully moved to the bookmark's location.
+    pub fn seek(&mut self, bookmark_name: &str) -> bool {
+        todo!()
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -1347,8 +1549,6 @@ enum CommentType {
      *
      *     <!-->
      *     <!--->
-     *
-     * @since 6.5.0
      */
     AbruptlyClosedComment,
 
@@ -1361,8 +1561,6 @@ enum CommentType {
      *     <![CDATA[This is a CDATA node.]]>
      *
      * This is an HTML comment, but it looks like a CDATA node.
-     *
-     * @since 6.5.0
      */
     CdataLookalike,
 
@@ -1373,8 +1571,6 @@ enum CommentType {
      * Example:
      *
      *     <!-- this is a comment -->
-     *
-     * @since 6.5.0
      */
     HtmlComment,
 
@@ -1387,8 +1583,6 @@ enum CommentType {
      *     <?wp __( 'Like' ) ?>
      *
      * This is an HTML comment, but it looks like a CDATA node.
-     *
-     * @since 6.5.0
      */
     PiNodeLookalike,
 
@@ -1400,8 +1594,6 @@ enum CommentType {
      *
      *     <?nothing special>
      *     <!{nothing special}>
-     *
-     * @since 6.5.0
      */
     InvalidHtml,
 }
