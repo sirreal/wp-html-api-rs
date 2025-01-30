@@ -339,7 +339,10 @@ impl HtmlProcessor {
         // Implement me!
     }
 
-    fn get_updated_html(&self) {
+    /// Returns the string representation of the HTML Tag Processor.
+    ///
+    /// @return string The processed HTML.
+    fn get_updated_html(&self) -> Box<str> {
         unimplemented!()
     }
 
