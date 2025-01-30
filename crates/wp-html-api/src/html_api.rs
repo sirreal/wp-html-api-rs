@@ -86,8 +86,8 @@ impl HtmlProcessor {
         let was_at = self.bytes_already_parsed;
         self.after_tag();
 
-        if self.parser_state == ProcessorState::Complete
-            || self.parser_state == ProcessorState::IncompleteInput
+        if ProcessorState::Complete == self.parser_state
+            || ProcessorState::IncompleteInput == self.parser_state
         {
             return false;
         }
@@ -143,11 +143,11 @@ impl HtmlProcessor {
         if tag_ends_at.is_none() {
             self.parser_state = ProcessorState::IncompleteInput;
             self.bytes_already_parsed = was_at;
-
             return false;
         }
+        let tag_ends_at = tag_ends_at.unwrap();
         self.parser_state = ProcessorState::MatchedTag;
-        self.bytes_already_parsed = tag_ends_at.unwrap() + 1;
+        self.bytes_already_parsed = tag_ends_at + 1;
         self.token_length = Some(
             self.bytes_already_parsed
                 - self
@@ -181,7 +181,8 @@ impl HtmlProcessor {
             return true;
         }
 
-        let tag_name = self.get_tag().unwrap();
+        let TagName(tag_name) = self.get_tag().unwrap();
+        let tag_name = tag_name.deref();
 
         /*
          * For LISTING, PRE, and TEXTAREA, the first linefeed of an immediately-following
@@ -212,9 +213,8 @@ impl HtmlProcessor {
         let tag_name_starts_at = self.tag_name_starts_at.unwrap();
         let tag_name_length = self.tag_name_length.unwrap();
         let tag_ends_at = self.token_starts_at.unwrap() + self.token_length.unwrap();
-        let duplicate_attributes = self.duplicate_attributes.clone();
 
-        let found_closer = match tag_name.deref() {
+        let found_closer = match tag_name {
             "SCRIPT" => self.skip_script_data(),
 
             "TEXTAREA" | "TITLE" => self.skip_rcdata(&tag_name),
@@ -233,7 +233,7 @@ impl HtmlProcessor {
             "IFRAME" | "NOEMBED" | "NOFRAMES" | "STYLE" | "XMP" => self.skip_rawtext(&tag_name),
 
             // No other tags should be treated in their entirety here.
-            _ => true,
+            _ => return true,
         };
 
         if !found_closer {
@@ -255,7 +255,6 @@ impl HtmlProcessor {
         self.text_length = Some(self.tag_name_starts_at.unwrap() - self.text_starts_at.unwrap());
         self.tag_name_starts_at = Some(tag_name_starts_at);
         self.tag_name_length = Some(tag_name_length);
-        self.duplicate_attributes = duplicate_attributes;
 
         return true;
     }
@@ -319,12 +318,12 @@ impl HtmlProcessor {
         let was_at = self.bytes_already_parsed;
         let mut at = was_at;
 
-        while at < self.html_bytes.len() {
+        while at < doc_length {
             let next_at = strpos(&self.html_bytes, b"<", at);
             if next_at.is_none() {
                 break;
             }
-            at = at + next_at.unwrap();
+            at = next_at.unwrap();
 
             if at > was_at {
                 /*
@@ -339,7 +338,8 @@ impl HtmlProcessor {
                  *
                  * @see https://html.spec.whatwg.org/#tag-open-state
                  */
-                if matches!( self.html_bytes[at + 1], b'!'| b'/'| b'?'| b'a'..=b'z' | b'A'..=b'Z') {
+                if !matches!( self.html_bytes[at + 1], b'!'| b'/'| b'?'| b'a'..=b'z' | b'A'..=b'Z')
+                {
                     at += 1;
                     continue;
                 }
@@ -355,7 +355,7 @@ impl HtmlProcessor {
 
             self.token_starts_at = Some(at);
 
-            if at + 1 < self.html_bytes.len() && b'/' == self.html_bytes[at + 1] {
+            if at + 1 < doc_length && b'/' == self.html_bytes[at + 1] {
                 self.is_closing_tag = Some(true);
                 at += 1;
             } else {
@@ -1070,13 +1070,13 @@ impl HtmlProcessor {
             if let Some(closer_starts_at) = is_closing {
                 self.bytes_already_parsed = closer_starts_at;
                 self.tag_name_starts_at = Some(closer_starts_at);
-                if (self.bytes_already_parsed >= doc_length) {
+                if self.bytes_already_parsed >= doc_length {
                     return false;
                 }
 
                 while self.parse_next_attribute() {}
 
-                if (self.bytes_already_parsed >= doc_length) {
+                if self.bytes_already_parsed >= doc_length {
                     self.parser_state = ProcessorState::IncompleteInput;
                     return false;
                 }
@@ -1104,8 +1104,29 @@ impl HtmlProcessor {
     fn skip_whitespace(&self) -> () {
         todo!()
     }
+
+    /// Indicates if the current tag token is a tag closer.
+    ///
+    /// # Example:
+    ///
+    ///     $p = new WP_HTML_Tag_Processor( '<div></div>' );
+    ///     $p->next_tag( array( 'tag_name' => 'div', 'tag_closers' => 'visit' ) );
+    ///     $p->is_tag_closer() === false;
+    ///
+    ///     $p->next_tag( array( 'tag_name' => 'div', 'tag_closers' => 'visit' ) );
+    ///     $p->is_tag_closer() === true;
+    ///
+    pub fn is_tag_closer(&self) -> bool {
+        self.parser_state == ProcessorState::MatchedTag
+            && self.is_closing_tag.unwrap_or(false)
+            && self
+                .get_tag()
+                .map(|TagName(tag_name)| tag_name.as_ref() != "BR")
+                .unwrap_or(false)
+    }
 }
 
+#[derive(Debug, PartialEq)]
 pub(crate) struct TagName(Box<str>);
 impl Deref for TagName {
     type Target = str;
@@ -1154,7 +1175,7 @@ impl Default for HtmlProcessor {
     }
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Debug)]
 enum ProcessorState {
     #[default]
     Ready,
@@ -1252,8 +1273,10 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     s[offset..]
         .windows(window_size)
         .position(|bytes| bytes == pattern)
+        .map(|pos| pos + offset)
 }
 
+#[derive(Debug, PartialEq)]
 pub(crate) enum TokenType {
     Tag,
     Text,
@@ -1336,4 +1359,33 @@ enum ScriptState {
     Unescaped,
     Escaped,
     DoubleEscaped,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_strpos() {
+        assert_eq!(strpos(b"0123456789", b"5", 0), Some(5));
+        assert_eq!(strpos(b"0123456789", b"5", 4), Some(5));
+        assert_eq!(strpos(b"0123456789", b"5", 5), Some(5));
+        assert_eq!(strpos(b"0123456789", b"5", 6), None);
+        assert_eq!(strpos(b"0123456789", b"1", 2), None);
+    }
+
+    #[test]
+    fn test_base_next_token() {
+        let mut processor = HtmlProcessor::create_fragment("<p>Hello world!</p>");
+        assert!(processor.base_class_next_token());
+        assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
+        assert_eq!(processor.get_token_name().unwrap(), "P".into());
+        assert_eq!(processor.get_tag().unwrap(), TagName("P".into()));
+        assert!(processor.base_class_next_token());
+        assert_eq!(processor.get_token_type().unwrap(), TokenType::Text);
+        assert_eq!(processor.get_token_name().unwrap(), "#text".into());
+        assert!(processor.base_class_next_token());
+        assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
+        assert_eq!(processor.get_token_name().unwrap(), "P".into());
+        assert_eq!(processor.is_tag_closer(), true);
+    }
 }
