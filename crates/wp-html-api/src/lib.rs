@@ -49,7 +49,10 @@ impl WP_HTML_Tag_Processor {
         this.processor.get_modifiable_text().into()
     }
 
-    pub fn set_modifiable_text(#[this] this: &mut ZendClassObject<Self>, updated_text: String) -> bool {
+    pub fn set_modifiable_text(
+        #[this] this: &mut ZendClassObject<Self>,
+        updated_text: String,
+    ) -> bool {
         this.processor.set_modifiable_text(updated_text.as_str())
     }
 }
@@ -61,9 +64,20 @@ pub struct WP_HTML_Processor {
 
 #[php_impl(rename_methods = "none")]
 impl WP_HTML_Processor {
-    pub fn create_fragment(html: &str) -> Self {
-        let processor = HtmlProcessor::create_fragment(html);
-        Self { processor }
+    pub fn create_fragment(
+        html: &str,
+        context: Option<&str>,
+        encoding: Option<&str>,
+    ) -> Option<Self> {
+        let context = context.unwrap_or("<body>");
+        let encoding = encoding.unwrap_or("UTF-8");
+        HtmlProcessor::create_fragment(html, context, encoding).map(|processor| Self { processor })
+    }
+
+    pub fn create_full_parser(html: &str, known_definite_encoding: Option<&str>) -> Option<Self> {
+        let known_definite_encoding = known_definite_encoding.unwrap_or("UTF-8");
+        HtmlProcessor::create_full_parser(html, known_definite_encoding)
+            .map(|processor| Self { processor })
     }
 
     //pub fn next_token(#[this] this: &mut ZendClassObject<Self>) -> bool {

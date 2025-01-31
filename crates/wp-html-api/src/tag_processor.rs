@@ -352,7 +352,9 @@ impl TagProcessor {
     ///
     /// @return string The processed HTML.
     pub fn get_updated_html(&self) -> Box<str> {
-        String::from_utf8(self.html_bytes.to_vec()).expect("Invalid UTF-8").into()
+        String::from_utf8(self.html_bytes.to_vec())
+            .expect("Invalid UTF-8")
+            .into()
     }
 
     fn parse_next_tag(&mut self) -> bool {
@@ -1411,7 +1413,10 @@ impl TagProcessor {
     pub fn get_modifiable_text(&self) -> Box<str> {
         match (self.text_starts_at, self.text_length) {
             (Some(at), Some(length)) => {
-                String::from_utf8(self.html_bytes[at..(at + length)].to_vec()).unwrap().as_str().into()
+                String::from_utf8(self.html_bytes[at..(at + length)].to_vec())
+                    .unwrap()
+                    .as_str()
+                    .into()
             }
             _ => "".into(),
         }
@@ -1441,10 +1446,6 @@ impl TagProcessor {
     }
 
     pub fn get_comment_type(&self) -> Option<CommentType> {
-        todo!()
-    }
-
-    pub fn get_modifiable_text(&self) -> Box<str> {
         todo!()
     }
 
