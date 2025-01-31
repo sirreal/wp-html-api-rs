@@ -452,7 +452,7 @@ impl HtmlProcessor {
         &self.unsupported_exception
     }
 
-    /// Finds the next tag matching the $query.
+    /// Finds the next tag matching the query.
     ///
     /// @todo Support matching the class name and tag name.
     ///
@@ -505,12 +505,7 @@ impl HtmlProcessor {
     /// this method similarly to how {@see WP_HTML_Tag_Processor::next_token()}
     /// calls the {@see WP_HTML_Tag_Processor::base_class_next_token()} method.
     ///
-    /// @since 6.7.1 Added for internal support.
-    ///
-    /// @access private
-    ///
     /// @return bool
-
     fn next_visitable_token(&mut self) -> bool {
         todo!()
     }
