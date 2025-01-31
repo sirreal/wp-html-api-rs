@@ -300,6 +300,7 @@ pub struct HtmlProcessor {
     unsupported_exception: Option<String>,
     element_queue: VecDeque<HTMLStackEvent>,
     current_element: Option<HTMLStackEvent>,
+    breadcrumbs: Vec<TagName>,
 }
 
 impl HtmlProcessor {
@@ -377,6 +378,7 @@ impl HtmlProcessor {
             last_error: None,
             unsupported_exception: None,
             current_element: None,
+            breadcrumbs: Vec::new(),
         }
     }
 
