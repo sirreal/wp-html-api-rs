@@ -1,4 +1,4 @@
-use crate::tag_processor::{ParsingNamespace, TagName, TokenType};
+use crate::tag_processor::{NodeName, ParsingNamespace};
 
 pub(crate) struct HTMLToken {
     ///
@@ -72,7 +72,7 @@ impl HTMLToken {
     /// @param callable|null $on_destroy            Optional. Function to call when destroying token, useful for releasing the bookmark.
     ///
     pub fn new(
-        bookmark_name: Option<&str>,
+        bookmark_name: Option<Box<str>>,
         node_name: NodeName,
         has_self_closing_flag: bool,
     ) -> Self {
@@ -86,12 +86,7 @@ impl HTMLToken {
     }
 }
 
-#[derive(Clone)]
-pub(crate) enum NodeName {
-    Tag(TagName),
-    Token(TokenType),
-}
-
+#[derive(PartialEq)]
 pub(super) enum IntegrationNodeType {
     HTML,
     MathML,

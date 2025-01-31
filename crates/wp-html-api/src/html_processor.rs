@@ -9,12 +9,15 @@ mod stack_of_open_elements;
 
 use std::collections::VecDeque;
 
-use crate::tag_processor::{CommentType, ParsingNamespace, TagName, TagProcessor, TokenType};
+use crate::tag_processor::{
+    CommentType, NodeName, ParserState, ParsingNamespace, TagName, TagProcessor, TokenType,
+};
 use active_formatting_elements::*;
 use html_stack_event::*;
 use html_token::*;
 use stack_of_open_elements::*;
 
+#[derive(PartialEq)]
 enum NodeToProcess {
     ProcessNextNode,
     ReprocessCurrentNode,
@@ -296,11 +299,12 @@ enum InsertionMode {
 pub struct HtmlProcessor {
     tag_processor: TagProcessor,
     state: ProcessorState,
-    last_error: Option<String>,
+    last_error: Option<HtmlProcessorError>,
     unsupported_exception: Option<String>,
     element_queue: VecDeque<HTMLStackEvent>,
     current_element: Option<HTMLStackEvent>,
     breadcrumbs: Vec<NodeName>,
+    bookmark_counter: u32,
 }
 
 impl HtmlProcessor {
@@ -379,6 +383,7 @@ impl HtmlProcessor {
             unsupported_exception: None,
             current_element: None,
             breadcrumbs: Vec::new(),
+            bookmark_counter: 0,
         }
     }
 
@@ -457,8 +462,8 @@ impl HtmlProcessor {
     /// @see self::ERROR_EXCEEDED_MAX_BOOKMARKS
     ///
     /// @return string|null The last error, if one exists, otherwise null.
-    pub fn get_last_error(&self) -> Option<&str> {
-        self.last_error.as_ref().map(|s| s.as_str())
+    pub fn get_last_error(&self) -> Option<&HtmlProcessorError> {
+        self.last_error.as_ref()
     }
 
     /// Returns context for why the parser aborted due to unsupported HTML, if it did.
@@ -471,8 +476,11 @@ impl HtmlProcessor {
     ///
     /// @return WP_HTML_Unsupported_Exception|null
 
-    pub fn get_unsupported_exception(&self) -> Option<&str> {
-        self.last_error.as_ref().map(|s| s.as_str())
+    pub fn get_unsupported_exception(&self) -> Option<&UnsupportedException> {
+        match &self.last_error {
+            Some(HtmlProcessorError::UnsupportedException(e)) => Some(e),
+            _ => None,
+        }
     }
 
     /// Finds the next tag matching the query.
@@ -768,7 +776,109 @@ impl HtmlProcessor {
     /// @param string $node_to_process Whether to parse the next node or reprocess the current node.
     /// @return bool Whether a tag was matched.
     fn step(&mut self, node_to_process: NodeToProcess) -> bool {
-        todo!()
+        // Refuse to proceed if there was a previous error.
+        if self.last_error.is_some() {
+            return false;
+        }
+
+        if node_to_process != NodeToProcess::ReprocessCurrentNode {
+            /*
+             * Void elements still hop onto the stack of open elements even though
+             * there's no corresponding closing tag. This is important for managing
+             * stack-based operations such as "navigate to parent node" or checking
+             * on an element's breadcrumbs.
+             *
+             * When moving on to the next node, therefore, if the bottom-most element
+             * on the stack is a void element, it must be closed.
+             */
+            if let Some(top_node) = self.state.stack_of_open_elements.current_node() {
+                if !self.expects_closer(Some(top_node)) {
+                    self.state.stack_of_open_elements.pop();
+                }
+            }
+        }
+
+        if node_to_process == NodeToProcess::ProcessNextNode {
+            self.tag_processor.next_token();
+            if self.tag_processor.parser_state == ParserState::TextNode {
+                self.tag_processor.subdivide_text_appropriately();
+            }
+        }
+
+        // Finish stepping when there are no more tokens in the document.
+        if matches!(
+            self.tag_processor.parser_state,
+            ParserState::IncompleteInput | ParserState::Complete
+        ) {
+            return false;
+        }
+
+        let token_name = self.get_token_name().unwrap().to_owned();
+        if node_to_process != NodeToProcess::ReprocessCurrentNode {
+            if let Ok(bookmark) = self.bookmark_token() {
+                self.state.current_token = Some(HTMLToken::new(
+                    Some(bookmark),
+                    token_name.clone(),
+                    self.has_self_closing_flag(),
+                ));
+            } else {
+                return false;
+            }
+        }
+
+        let adjusted_current_node = self.get_adjusted_current_node().unwrap();
+        let is_closer = self.is_tag_closer();
+        let is_start_tag = self.tag_processor.parser_state == ParserState::MatchedTag && !is_closer;
+
+        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0
+            || adjusted_current_node.namespace == ParsingNamespace::Html
+            || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::MathML)
+                && ((is_start_tag
+                    && (token_name != TagName("MGLYPH".into()).into()
+                        && token_name != TagName("MALIGNMARK".into()).into()))
+                    || token_name == TokenType::Text.into()))
+            || (adjusted_current_node.namespace == ParsingNamespace::MathML
+                && adjusted_current_node.node_name == TagName("ANNOTATION-XML".into()).into()
+                && is_start_tag
+                && token_name == TagName("SVG".into()).into())
+            || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::HTML)
+                && (is_start_tag || token_name == TokenType::Text.into()));
+
+        let step_result = if !parse_in_current_insertion_mode {
+            self.step_in_foreign_content()
+        } else {
+            match self.state.insertion_mode {
+                InsertionMode::INITIAL => self.step_initial(),
+                InsertionMode::BEFORE_HTML => self.step_before_html(),
+                InsertionMode::BEFORE_HEAD => self.step_before_head(),
+                InsertionMode::IN_HEAD => self.step_in_head(),
+                InsertionMode::IN_HEAD_NOSCRIPT => self.step_in_head_noscript(),
+                InsertionMode::AFTER_HEAD => self.step_after_head(),
+                InsertionMode::IN_BODY => self.step_in_body(),
+                InsertionMode::IN_TABLE => self.step_in_table(),
+                InsertionMode::IN_TABLE_TEXT => self.step_in_table_text(),
+                InsertionMode::IN_CAPTION => self.step_in_caption(),
+                InsertionMode::IN_COLUMN_GROUP => self.step_in_column_group(),
+                InsertionMode::IN_TABLE_BODY => self.step_in_table_body(),
+                InsertionMode::IN_ROW => self.step_in_row(),
+                InsertionMode::IN_CELL => self.step_in_cell(),
+                InsertionMode::IN_SELECT => self.step_in_select(),
+                InsertionMode::IN_SELECT_IN_TABLE => self.step_in_select_in_table(),
+                InsertionMode::IN_TEMPLATE => self.step_in_template(),
+                InsertionMode::AFTER_BODY => self.step_after_body(),
+                InsertionMode::IN_FRAMESET => self.step_in_frameset(),
+                InsertionMode::AFTER_FRAMESET => self.step_after_frameset(),
+                InsertionMode::AFTER_AFTER_BODY => self.step_after_after_body(),
+                InsertionMode::AFTER_AFTER_FRAMESET => self.step_after_after_frameset(),
+            }
+        };
+
+        // @todo use Results
+        step_result
+        //match step_result {
+        //    Ok(result) => result,
+        //    Err(_) => false,
+        //}
     }
 
     /// Computes the HTML breadcrumbs for the currently-matched node, if matched.
@@ -1077,12 +1187,8 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
 
-    fn step_in_table_text(&mut self) -> () {
-        todo!("should become a result");
-        self.bail(format!(
-            "No support for parsing in the {:?} state.",
-            InsertionMode::IN_TABLE_TEXT
-        ))
+    fn step_in_table_text(&mut self) -> bool {
+        todo!()
     }
 
     /// Parses next element in the 'in caption' insertion mode.
@@ -1347,9 +1453,15 @@ impl HtmlProcessor {
     /// @throws Exception When unable to allocate requested bookmark.
     ///
     /// @return string|false Name of created bookmark, or false if unable to create.
-
-    fn bookmark_token(&mut self) {
-        todo!()
+    fn bookmark_token(&mut self) -> Result<Box<str>, HtmlProcessorError> {
+        let bookmark = format!("{}", self.bookmark_counter + 1).into_boxed_str();
+        self.tag_processor
+            .set_bookmark(&bookmark)
+            .map(|_| {
+                self.bookmark_counter += 1;
+                bookmark
+            })
+            .map_err(|_| HtmlProcessorError::ExceededMaxBookmarks)
     }
 
     /// HTML semantic overrides for Tag Processor
@@ -1452,8 +1564,19 @@ impl HtmlProcessor {
     ///
     /// @return string|null Name of the matched token.
 
-    pub fn get_token_name(&self) {
-        todo!()
+    pub fn get_token_name(&self) -> Option<NodeName> {
+        if self.is_virtual() {
+            Some(
+                self.current_element
+                    .as_ref()
+                    .unwrap()
+                    .token
+                    .node_name
+                    .to_owned(),
+            )
+        } else {
+            self.tag_processor.get_token_name()
+        }
     }
 
     /// Indicates the kind of matched token, if any.
@@ -1899,7 +2022,7 @@ impl HtmlProcessor {
     /// @since 6.7.0
     ///
     /// @return WP_HTML_Token|null The adjusted current node.
-    fn get_adjusted_current_node(&self) -> Option<HTMLToken> {
+    fn get_adjusted_current_node(&self) -> Option<&HTMLToken> {
         todo!()
     }
 
@@ -2089,3 +2212,11 @@ impl HtmlProcessor {
         todo!()
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+enum HtmlProcessorError {
+    ExceededMaxBookmarks,
+    UnsupportedException(UnsupportedException),
+}
+#[derive(Clone, Copy, Debug)]
+enum UnsupportedException {}

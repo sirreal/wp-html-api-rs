@@ -15,4 +15,12 @@ impl StackOfOpenElements {
     pub fn pop(&mut self) -> Option<HTMLToken> {
         self.stack.pop()
     }
+
+    pub(crate) fn current_node(&self) -> Option<&HTMLToken> {
+        self.stack.last()
+    }
+
+    pub(crate) fn count(&self) -> usize {
+        self.stack.len()
+    }
 }

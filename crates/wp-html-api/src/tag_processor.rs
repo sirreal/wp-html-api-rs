@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(unused_variables)]
 
 use std::ops::Deref;
 
@@ -27,7 +28,7 @@ pub struct TagProcessor {
     html_bytes: Box<[u8]>,
     is_closing_tag: Option<bool>,
     lexical_updates: Vec<HtmlTextReplacement>,
-    parser_state: ProcessorState,
+    pub(crate) parser_state: ParserState,
     parsing_namespace: ParsingNamespace,
     skip_newline_at: Option<usize>,
     tag_name_length: Option<usize>,
@@ -128,8 +129,8 @@ impl TagProcessor {
         let was_at = self.bytes_already_parsed;
         self.after_tag();
 
-        if ProcessorState::Complete == self.parser_state
-            || ProcessorState::IncompleteInput == self.parser_state
+        if ParserState::Complete == self.parser_state
+            || ParserState::IncompleteInput == self.parser_state
         {
             return false;
         }
@@ -138,16 +139,16 @@ impl TagProcessor {
          * The next step in the parsing loop determines the parsing state;
          * clear it so that state doesn't linger from the previous step.
          */
-        self.parser_state = ProcessorState::Ready;
+        self.parser_state = ParserState::Ready;
 
         if self.bytes_already_parsed >= self.html_bytes.len() {
-            self.parser_state = ProcessorState::Complete;
+            self.parser_state = ParserState::Complete;
             return false;
         }
 
         // Find the next tag if it exists.
         if false == self.parse_next_tag() {
-            if self.parser_state == ProcessorState::IncompleteInput {
+            if self.parser_state == ParserState::IncompleteInput {
                 self.bytes_already_parsed = was_at;
             }
 
@@ -160,9 +161,9 @@ impl TagProcessor {
          * or if it matched any other token then it should return here to avoid
          * attempting to process tag-specific syntax.
          */
-        if ProcessorState::IncompleteInput != self.parser_state
-            && ProcessorState::Complete != self.parser_state
-            && ProcessorState::MatchedTag != self.parser_state
+        if ParserState::IncompleteInput != self.parser_state
+            && ParserState::Complete != self.parser_state
+            && ParserState::MatchedTag != self.parser_state
         {
             return true;
         }
@@ -171,11 +172,11 @@ impl TagProcessor {
         while self.parse_next_attribute() {}
 
         // Ensure that the tag closes before the end of the document.
-        if ProcessorState::IncompleteInput == self.parser_state
+        if ParserState::IncompleteInput == self.parser_state
             || self.bytes_already_parsed >= self.html_bytes.len()
         {
             // Does this appropriately clear state (parsed attributes)?
-            self.parser_state = ProcessorState::IncompleteInput;
+            self.parser_state = ParserState::IncompleteInput;
             self.bytes_already_parsed = was_at;
 
             return false;
@@ -183,12 +184,12 @@ impl TagProcessor {
 
         let tag_ends_at = strpos(&self.html_bytes, b">", self.bytes_already_parsed);
         if tag_ends_at.is_none() {
-            self.parser_state = ProcessorState::IncompleteInput;
+            self.parser_state = ParserState::IncompleteInput;
             self.bytes_already_parsed = was_at;
             return false;
         }
         let tag_ends_at = tag_ends_at.unwrap();
-        self.parser_state = ProcessorState::MatchedTag;
+        self.parser_state = ParserState::MatchedTag;
         self.bytes_already_parsed = tag_ends_at + 1;
         self.token_length = Some(
             self.bytes_already_parsed
@@ -279,7 +280,7 @@ impl TagProcessor {
         };
 
         if !found_closer {
-            self.parser_state = ProcessorState::IncompleteInput;
+            self.parser_state = ParserState::IncompleteInput;
             self.bytes_already_parsed = was_at;
             return false;
         }
@@ -390,7 +391,7 @@ impl TagProcessor {
                     continue;
                 }
 
-                self.parser_state = ProcessorState::TextNode;
+                self.parser_state = ParserState::TextNode;
                 self.token_starts_at = Some(was_at);
                 self.token_length = Some(at - was_at);
                 self.text_starts_at = Some(was_at);
@@ -427,7 +428,7 @@ impl TagProcessor {
 
             if tag_name_prefix_length > 0 {
                 at += 1;
-                self.parser_state = ProcessorState::MatchedTag;
+                self.parser_state = ParserState::MatchedTag;
                 self.tag_name_starts_at = Some(at);
                 self.tag_name_length = Some(
                     tag_name_prefix_length
@@ -446,7 +447,7 @@ impl TagProcessor {
              * the document. There is nothing left to parse.
              */
             if at + 1 >= self.html_bytes.len() {
-                self.parser_state = ProcessorState::IncompleteInput;
+                self.parser_state = ParserState::IncompleteInput;
                 return false;
             }
 
@@ -463,7 +464,7 @@ impl TagProcessor {
                     let mut closer_at = at + 4;
                     // If it's not possible to close the comment then there is nothing more to scan.
                     if self.html_bytes.len() <= closer_at {
-                        self.parser_state = ProcessorState::IncompleteInput;
+                        self.parser_state = ParserState::IncompleteInput;
                         return false;
                     }
 
@@ -478,7 +479,7 @@ impl TagProcessor {
                          *       `?` as the modifiable text, the `<!--->` needs to become `<!--?-->`, which
                          *       involves inserting an additional `-` into the token after the modifiable text.
                          */
-                        self.parser_state = ProcessorState::Comment;
+                        self.parser_state = ParserState::Comment;
                         self.comment_type = Some(CommentType::AbruptlyClosedComment);
                         self.token_length =
                             Some(closer_at + span_of_dashes + 1 - self.token_starts_at.unwrap());
@@ -508,7 +509,7 @@ impl TagProcessor {
                     {
                         let next_closer = strpos(&self.html_bytes, b"--", closer_at);
                         if next_closer.is_none() {
-                            self.parser_state = ProcessorState::IncompleteInput;
+                            self.parser_state = ParserState::IncompleteInput;
                             return false;
                         }
                         closer_at = next_closer.unwrap();
@@ -516,7 +517,7 @@ impl TagProcessor {
                         if closer_at + 2 < self.html_bytes.len()
                             && b'>' == self.html_bytes[closer_at + 2]
                         {
-                            self.parser_state = ProcessorState::Comment;
+                            self.parser_state = ParserState::Comment;
                             self.comment_type = Some(CommentType::HtmlComment);
                             self.token_length = Some(closer_at + 3 - self.token_starts_at.unwrap());
                             self.text_starts_at = Some(self.token_starts_at.unwrap() + 4);
@@ -529,7 +530,7 @@ impl TagProcessor {
                             && b'!' == self.html_bytes[closer_at + 2]
                             && b'>' == self.html_bytes[closer_at + 3]
                         {
-                            self.parser_state = ProcessorState::Comment;
+                            self.parser_state = ParserState::Comment;
                             self.comment_type = Some(CommentType::HtmlComment);
                             self.token_length = Some(closer_at + 4 - self.token_starts_at.unwrap());
                             self.text_starts_at = Some(self.token_starts_at.unwrap() + 4);
@@ -556,13 +557,13 @@ impl TagProcessor {
                 {
                     let closer_at = strpos(&self.html_bytes, b">", at + 9);
                     if closer_at.is_none() {
-                        self.parser_state = ProcessorState::IncompleteInput;
+                        self.parser_state = ParserState::IncompleteInput;
                         return false;
                     }
                     let closer_at = closer_at.unwrap();
 
                     let token_starts_at = self.token_starts_at.unwrap();
-                    self.parser_state = ProcessorState::Doctype;
+                    self.parser_state = ParserState::Doctype;
                     self.token_length = Some(closer_at + 1 - token_starts_at);
                     self.text_starts_at = Some(token_starts_at + 9);
                     self.text_length = Some(closer_at - self.text_starts_at.unwrap());
@@ -576,12 +577,12 @@ impl TagProcessor {
                 {
                     let closer_at = strpos(&self.html_bytes, b"]]>", at + 9);
                     if closer_at.is_none() {
-                        self.parser_state = ProcessorState::IncompleteInput;
+                        self.parser_state = ParserState::IncompleteInput;
                         return false;
                     }
                     let closer_at = closer_at.unwrap();
 
-                    self.parser_state = ProcessorState::CDATANode;
+                    self.parser_state = ParserState::CDATANode;
                     self.text_starts_at = Some(at + 9);
                     self.text_length = Some(closer_at - self.text_starts_at.unwrap());
                     self.token_length = Some(closer_at + 3 - self.token_starts_at.unwrap());
@@ -596,12 +597,12 @@ impl TagProcessor {
                  */
                 let closer_at = strpos(&self.html_bytes, b">", at + 1);
                 if closer_at.is_none() {
-                    self.parser_state = ProcessorState::IncompleteInput;
+                    self.parser_state = ParserState::IncompleteInput;
                     return false;
                 }
                 let closer_at = closer_at.unwrap();
 
-                self.parser_state = ProcessorState::Comment;
+                self.parser_state = ParserState::Comment;
                 self.comment_type = Some(CommentType::InvalidHtml);
                 self.token_length = Some(closer_at + 1 - self.token_starts_at.unwrap());
                 self.text_starts_at = Some(self.token_starts_at.unwrap() + 2);
@@ -634,7 +635,7 @@ impl TagProcessor {
                     && b']' == self.html_bytes[closer_at - 1]
                     && b']' == self.html_bytes[closer_at - 2]
                 {
-                    self.parser_state = ProcessorState::Comment;
+                    self.parser_state = ParserState::Comment;
                     self.comment_type = Some(CommentType::CdataLookalike);
                     self.text_starts_at = Some(self.text_starts_at.unwrap() + 7);
                     self.text_length = Some(self.text_length.unwrap() - 9);
@@ -659,7 +660,7 @@ impl TagProcessor {
                     continue;
                 }
 
-                self.parser_state = ProcessorState::PresumptuousTag;
+                self.parser_state = ParserState::PresumptuousTag;
                 self.token_length = Some(at + 2 - self.token_starts_at.unwrap());
                 self.bytes_already_parsed = at + 2;
                 return true;
@@ -672,12 +673,12 @@ impl TagProcessor {
             if !self.is_closing_tag.unwrap() && b'?' == self.html_bytes[at + 1] {
                 let closer_at = strpos(&self.html_bytes, b">", at + 2);
                 if closer_at.is_none() {
-                    self.parser_state = ProcessorState::IncompleteInput;
+                    self.parser_state = ParserState::IncompleteInput;
                     return false;
                 }
                 let closer_at = closer_at.unwrap();
 
-                self.parser_state = ProcessorState::Comment;
+                self.parser_state = ParserState::Comment;
                 self.comment_type = Some(CommentType::InvalidHtml);
                 self.token_length = Some(closer_at + 1 - self.token_starts_at.unwrap());
                 self.text_starts_at = Some(self.token_starts_at.unwrap() + 2);
@@ -746,18 +747,18 @@ impl TagProcessor {
             if self.is_closing_tag.unwrap() {
                 // No chance of finding a closer.
                 if at + 3 > doc_length {
-                    self.parser_state = ProcessorState::IncompleteInput;
+                    self.parser_state = ParserState::IncompleteInput;
                     return false;
                 }
 
                 let closer_at = strpos(&self.html_bytes, b">", at + 2);
                 if closer_at.is_none() {
-                    self.parser_state = ProcessorState::IncompleteInput;
+                    self.parser_state = ParserState::IncompleteInput;
                     return false;
                 }
                 let closer_at = closer_at.unwrap();
 
-                self.parser_state = ProcessorState::FunkyComment;
+                self.parser_state = ParserState::FunkyComment;
                 self.token_length = Some(closer_at + 1 - self.token_starts_at.unwrap());
                 self.text_starts_at = Some(self.token_starts_at.unwrap() + 2);
                 self.text_length = Some(closer_at - self.text_starts_at.unwrap());
@@ -772,7 +773,7 @@ impl TagProcessor {
          * This does not imply an incomplete parse; it indicates that there
          * can be nothing left in the document other than a #text node.
          */
-        self.parser_state = ProcessorState::TextNode;
+        self.parser_state = ParserState::TextNode;
         self.token_starts_at = Some(was_at);
         self.token_length = Some(doc_length - was_at);
         self.text_starts_at = Some(was_at);
@@ -792,7 +793,7 @@ impl TagProcessor {
             self.bytes_already_parsed
         );
         if self.bytes_already_parsed >= doc_length {
-            self.parser_state = ProcessorState::IncompleteInput;
+            self.parser_state = ParserState::IncompleteInput;
             return false;
         }
 
@@ -827,13 +828,13 @@ impl TagProcessor {
             .into_boxed_slice();
         self.bytes_already_parsed += name_length;
         if self.bytes_already_parsed >= doc_length {
-            self.parser_state = ProcessorState::IncompleteInput;
+            self.parser_state = ParserState::IncompleteInput;
             return false;
         }
 
         self.skip_whitespace();
         if self.bytes_already_parsed >= doc_length {
-            self.parser_state = ProcessorState::IncompleteInput;
+            self.parser_state = ParserState::IncompleteInput;
             return false;
         }
 
@@ -842,7 +843,7 @@ impl TagProcessor {
             self.bytes_already_parsed += 1;
             self.skip_whitespace();
             if self.bytes_already_parsed >= doc_length {
-                self.parser_state = ProcessorState::IncompleteInput;
+                self.parser_state = ParserState::IncompleteInput;
                 return false;
             }
 
@@ -877,7 +878,7 @@ impl TagProcessor {
         };
 
         if attribute_end >= doc_length {
-            self.parser_state = ProcessorState::IncompleteInput;
+            self.parser_state = ParserState::IncompleteInput;
             return false;
         }
 
@@ -902,12 +903,12 @@ impl TagProcessor {
             .and_then(|start| {
                 self.tag_name_length
                     .and_then(|length| match self.parser_state {
-                        ProcessorState::MatchedTag => String::from_utf8(
+                        ParserState::MatchedTag => String::from_utf8(
                             substr(&self.html_bytes, start, length).to_ascii_uppercase(),
                         )
                         .ok()
                         .map(|s| s.into_boxed_str()),
-                        ProcessorState::Comment => self
+                        ParserState::Comment => self
                             .comment_type
                             .filter(|ct| ct == &CommentType::PiNodeLookalike)
                             .and_then(|_| {
@@ -940,25 +941,23 @@ impl TagProcessor {
     ///
     pub fn get_token_type(&self) -> Option<TokenType> {
         match self.parser_state {
-            ProcessorState::MatchedTag => Some(TokenType::Tag),
-            ProcessorState::Doctype => Some(TokenType::Doctype),
-            ProcessorState::TextNode => Some(TokenType::Text),
-            ProcessorState::CDATANode => Some(TokenType::CdataSection),
-            ProcessorState::Comment => Some(TokenType::Comment),
-            ProcessorState::PresumptuousTag => Some(TokenType::PresumptuousTag),
-            ProcessorState::FunkyComment => Some(TokenType::FunkyComment),
+            ParserState::MatchedTag => Some(TokenType::Tag),
+            ParserState::Doctype => Some(TokenType::Doctype),
+            ParserState::TextNode => Some(TokenType::Text),
+            ParserState::CDATANode => Some(TokenType::CdataSection),
+            ParserState::Comment => Some(TokenType::Comment),
+            ParserState::PresumptuousTag => Some(TokenType::PresumptuousTag),
+            ParserState::FunkyComment => Some(TokenType::FunkyComment),
 
-            ProcessorState::Ready | ProcessorState::Complete | ProcessorState::IncompleteInput => {
-                None
-            }
+            ParserState::Ready | ParserState::Complete | ParserState::IncompleteInput => None,
         }
     }
 
-    pub fn get_token_name(&self) -> Option<Box<str>> {
+    pub fn get_token_name(&self) -> Option<NodeName> {
         match self.parser_state {
-            ProcessorState::MatchedTag => self.get_tag().map(|t| t.0),
-            ProcessorState::Doctype => Some("html".into()),
-            _ => self.get_token_type().map(|t| t.into()),
+            ParserState::MatchedTag => Some(self.get_tag().unwrap().into()),
+            ParserState::Doctype => Some(TagName("html".into()).into()),
+            _ => self.get_token_type().map(|t| NodeName::Token(t)),
         }
     }
 
@@ -1088,7 +1087,7 @@ impl TagProcessor {
                 while self.parse_next_attribute() {}
 
                 if self.bytes_already_parsed >= doc_length {
-                    self.parser_state = ProcessorState::IncompleteInput;
+                    self.parser_state = ParserState::IncompleteInput;
                     return false;
                 }
 
@@ -1230,7 +1229,7 @@ impl TagProcessor {
     ///     $p->is_tag_closer() === true;
     ///
     pub fn is_tag_closer(&self) -> bool {
-        self.parser_state == ProcessorState::MatchedTag
+        self.parser_state == ParserState::MatchedTag
             && self.is_closing_tag.unwrap_or(false)
             && self
                 .get_tag()
@@ -1363,7 +1362,7 @@ impl TagProcessor {
     /// @param string $name Identifies this particular bookmark.
     /// @return bool Whether the bookmark was successfully created.
     ///
-    pub fn set_bookmark(&mut self, name: &str) -> bool {
+    pub fn set_bookmark(&mut self, name: &str) -> Result<(), ()> {
         todo!()
     }
 
@@ -1460,6 +1459,10 @@ impl TagProcessor {
     pub fn has_self_closing_flag(&self) -> bool {
         todo!()
     }
+
+    pub(crate) fn subdivide_text_appropriately(&mut self) -> bool {
+        todo!()
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -1516,7 +1519,7 @@ impl Default for TagProcessor {
 }
 
 #[derive(Default, PartialEq, Debug)]
-enum ProcessorState {
+pub(crate) enum ParserState {
     #[default]
     Ready,
     Complete,
@@ -1708,14 +1711,43 @@ mod test {
         let mut processor = TagProcessor::new("<p>Hello world!</p>");
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
-        assert_eq!(processor.get_token_name().unwrap(), "P".into());
+        assert_eq!(
+            processor.get_token_name().unwrap(),
+            TagName("P".into()).into()
+        );
         assert_eq!(processor.get_tag().unwrap(), TagName("P".into()));
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Text);
-        assert_eq!(processor.get_token_name().unwrap(), "#text".into());
+        assert_eq!(processor.get_token_name().unwrap(), TokenType::Text.into());
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
-        assert_eq!(processor.get_token_name().unwrap(), "P".into());
+        assert_eq!(
+            processor.get_token_name().unwrap(),
+            TagName("P".into()).into()
+        );
         assert_eq!(processor.is_tag_closer(), true);
+    }
+}
+#[derive(PartialEq, Clone, Debug)]
+pub(crate) enum NodeName {
+    Tag(TagName),
+    Token(TokenType),
+}
+impl Into<NodeName> for TagName {
+    fn into(self) -> NodeName {
+        NodeName::Tag(self)
+    }
+}
+impl Into<NodeName> for TokenType {
+    fn into(self) -> NodeName {
+        NodeName::Token(self)
+    }
+}
+impl Into<String> for NodeName {
+    fn into(self) -> String {
+        match self {
+            NodeName::Tag(tag_name) => tag_name.into(),
+            NodeName::Token(token_type) => token_type.into(),
+        }
     }
 }
