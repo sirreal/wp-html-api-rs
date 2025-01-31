@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, ops::Deref};
+use std::ops::Deref;
 
 macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
