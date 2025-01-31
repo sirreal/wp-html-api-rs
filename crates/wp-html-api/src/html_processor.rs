@@ -7,6 +7,8 @@ mod html_stack_event;
 mod html_token;
 mod stack_of_open_elements;
 
+use std::collections::VecDeque;
+
 use crate::tag_processor::{CommentType, ParsingNamespace, TagName, TagProcessor, TokenType};
 use active_formatting_elements::*;
 use html_stack_event::*;
@@ -296,7 +298,7 @@ pub struct HtmlProcessor {
     state: ProcessorState,
     last_error: Option<String>,
     unsupported_exception: Option<String>,
-    element_queue: Vec<HTMLStackEvent>,
+    element_queue: VecDeque<HTMLStackEvent>,
     current_element: Option<HTMLStackEvent>,
 }
 
@@ -371,7 +373,7 @@ impl HtmlProcessor {
         Self {
             tag_processor,
             state,
-            element_queue: Vec::new(),
+            element_queue: VecDeque::new(),
             last_error: None,
             unsupported_exception: None,
             current_element: None,
