@@ -13,6 +13,25 @@ use html_stack_event::*;
 use html_token::*;
 use stack_of_open_elements::*;
 
+enum NodeToProcess {
+    ProcessNextNode,
+    ReprocessCurrentNode,
+}
+
+#[derive(Default)]
+pub struct TagQuery<'a> {
+    tag_name: Option<TagName>,
+    tag_closers: VisitClosers,
+    match_offset: Option<usize>,
+    class_name: Option<&'a str>,
+    breadcrumbs: Option<Vec<&'a str>>,
+}
+#[derive(Default, PartialEq)]
+pub enum VisitClosers {
+    Visit,
+    #[default]
+    Skip,
+}
 pub struct ProcessorState {
     active_formatting_elements: ActiveFormattingElements,
     current_token: Option<HTMLToken>,
@@ -474,8 +493,74 @@ impl HtmlProcessor {
     ///                                     May also contain the wildcard `*` which matches a single element, e.g. `array( 'SECTION', '*' )`.
     /// }
     /// @return bool Whether a tag was matched.
-    pub fn next_tag(&mut self, query: ()) -> bool {
-        todo!()
+    pub fn next_tag(&mut self, query: Option<TagQuery>) -> bool {
+        // Handle null/None query case
+        if query.is_none() {
+            while self.next_token() {
+                if self.get_token_type() != Some(TokenType::Tag) {
+                    continue;
+                }
+
+                if !self.is_tag_closer() {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        let query = query.unwrap();
+        let visit_closers = query.tag_closers == VisitClosers::Visit;
+
+        if query.breadcrumbs.is_none() {
+            while self.next_token() {
+                if self.get_token_type() != Some(TokenType::Tag) {
+                    continue;
+                }
+
+                if let Some(tag_name) = &query.tag_name {
+                    if self.get_tag().unwrap() != *tag_name {
+                        continue;
+                    }
+                }
+
+                if let Some(class_name) = query.class_name {
+                    if !self.has_class(class_name).unwrap_or(false) {
+                        continue;
+                    }
+                }
+
+                if !self.is_tag_closer() || visit_closers {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        let breadcrumbs = &query.breadcrumbs;
+        let mut match_offset = query.match_offset.unwrap_or(0);
+
+        while match_offset > 0 && self.next_token() {
+            if self.get_token_type() != Some(TokenType::Tag) || self.is_tag_closer() {
+                continue;
+            }
+
+            if let Some(class_name) = query.class_name {
+                if !self.has_class(class_name).unwrap_or(false) {
+                    continue;
+                }
+            }
+
+            if self.matches_breadcrumbs(breadcrumbs) {
+                if match_offset < 1 {
+                    return true;
+                } else {
+                    match_offset -= 1;
+                }
+            }
+        }
+
+        false
     }
 
     /// Finds the next token in the HTML document.
@@ -579,7 +664,7 @@ impl HtmlProcessor {
     ///                              May also contain the wildcard `*` which matches a single element, e.g. `array( 'SECTION', '*' )`.
     /// @return bool Whether the currently-matched tag is found at the given nested structure.
 
-    pub fn matches_breadcrumbs(breadcrumbs: ()) -> bool {
+    pub fn matches_breadcrumbs(&self, breadcrumbs: &Option<Vec<&str>>) -> bool {
         todo!()
     }
 
@@ -1230,8 +1315,31 @@ impl HtmlProcessor {
     ///
     /// @return string|null Name of currently matched tag in input HTML, or `null` if none found.
 
-    pub fn get_tag(&self) -> Option<String> {
-        todo!()
+    pub fn get_tag(&self) -> Option<TagName> {
+        if self.last_error.is_some() {
+            return None;
+        }
+
+        if self.is_virtual() {
+            let node_name = &self.current_element.as_ref().unwrap().token.node_name;
+            debug_assert!(matches!(node_name, NodeName::Tag(_)));
+            return match node_name {
+                NodeName::Tag(tag_name) => Some(tag_name.clone()),
+                _ => unreachable!(),
+            };
+        }
+
+        /*
+         * > A start tag whose tag name is "image"
+         * > Change the token's tag name to "img" and reprocess it. (Don't ask.)
+         */
+        let option_tag_name = self.tag_processor.get_tag();
+        if let Some(tag_name) = &option_tag_name {
+            if self.get_namespace() == ParsingNamespace::Html && tag_name == "IMAGE" {
+                return Some(TagName("IMG".into()));
+            }
+        }
+        option_tag_name
     }
 
     /// Indicates if the currently matched tag contains the self-closing flag.
@@ -1310,14 +1418,9 @@ impl HtmlProcessor {
              * @todo It would be ideal not to repeat this here, but it's not clearly
              *       better to allow passing a token name to `get_token_type()`.
              */
-            let node_name = &self.current_element.as_ref().unwrap().token.node_name;
-            let starting_char = node_name.as_bytes()[0];
-            if b'A' <= starting_char && b'Z' >= starting_char {
-                Some(TokenType::Tag)
-            } else if node_name.as_ref() == "html" {
-                Some(TokenType::Doctype)
-            } else {
-                todo!("Implement other token types")
+            match &self.current_element.as_ref().unwrap().token.node_name {
+                NodeName::Tag(_) => Some(TokenType::Tag),
+                NodeName::Token(token_type) => Some(token_type.clone()),
             }
         } else {
             self.tag_processor.get_token_type()
@@ -1918,8 +2021,4 @@ impl HtmlProcessor {
     fn get_encoding(label: &str) -> Option<Box<str>> {
         todo!()
     }
-}
-enum NodeToProcess {
-    ProcessNextNode,
-    ReprocessCurrentNode,
 }

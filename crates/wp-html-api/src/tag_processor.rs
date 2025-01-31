@@ -1462,8 +1462,8 @@ impl TagProcessor {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub(crate) struct TagName(Box<str>);
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) struct TagName(pub Box<str>);
 impl Deref for TagName {
     type Target = str;
 
@@ -1474,6 +1474,11 @@ impl Deref for TagName {
 impl PartialEq<&str> for TagName {
     fn eq(&self, other: &&str) -> bool {
         self.0.deref() == *other
+    }
+}
+impl PartialEq<str> for TagName {
+    fn eq(&self, other: &str) -> bool {
+        self.0.deref() == other
     }
 }
 impl Into<Box<str>> for TagName {
@@ -1601,7 +1606,7 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
         .map(|pos| pos + offset)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum TokenType {
     Tag,
     Text,
