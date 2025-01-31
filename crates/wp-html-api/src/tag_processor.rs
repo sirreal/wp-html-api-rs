@@ -351,8 +351,8 @@ impl TagProcessor {
     /// Returns the string representation of the HTML Tag Processor.
     ///
     /// @return string The processed HTML.
-    fn get_updated_html(&self) -> Box<str> {
-        unimplemented!()
+    pub fn get_updated_html(&self) -> Box<str> {
+        String::from_utf8(self.html_bytes.to_vec()).expect("Invalid UTF-8").into()
     }
 
     fn parse_next_tag(&mut self) -> bool {
@@ -1406,6 +1406,19 @@ impl TagProcessor {
     /// account the current parsing context, whether HTML, SVG, or MathML.
     pub fn get_qualified_tag_name(&self) -> Option<Box<str>> {
         todo!()
+    }
+
+    pub fn get_modifiable_text(&self) -> Box<str> {
+        match (self.text_starts_at, self.text_length) {
+            (Some(at), Some(length)) => {
+                String::from_utf8(self.html_bytes[at..(at + length)].to_vec()).unwrap().as_str().into()
+            }
+            _ => "".into(),
+        }
+    }
+
+    pub fn set_modifiable_text(&self, updated_text: &str) -> bool {
+        false
     }
 
     /// Checks whether a bookmark with the given name exists.

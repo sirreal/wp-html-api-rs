@@ -25,6 +25,10 @@ impl WP_HTML_Tag_Processor {
         Self { processor }
     }
 
+    pub fn get_updated_html(#[this] this: &mut ZendClassObject<Self>) -> String {
+        this.processor.get_updated_html().into()
+    }
+
     pub fn next_token(#[this] this: &mut ZendClassObject<Self>) -> bool {
         this.processor.next_token()
     }
@@ -39,6 +43,14 @@ impl WP_HTML_Tag_Processor {
 
     pub fn get_token_name(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
         this.processor.get_token_name().map(|t| t.into())
+    }
+
+    pub fn get_modifiable_text(#[this] this: &mut ZendClassObject<Self>) -> String {
+        this.processor.get_modifiable_text().into()
+    }
+
+    pub fn set_modifiable_text(#[this] this: &mut ZendClassObject<Self>, updated_text: String) -> bool {
+        this.processor.set_modifiable_text(updated_text.as_str())
     }
 }
 
