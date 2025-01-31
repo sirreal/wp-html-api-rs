@@ -40,7 +40,7 @@ pub struct TagProcessor {
 }
 
 #[derive(Default, PartialEq)]
-enum ParsingNamespace {
+pub enum ParsingNamespace {
     #[default]
     Html,
     Svg,
@@ -1439,6 +1439,26 @@ impl TagProcessor {
     pub fn seek(&mut self, bookmark_name: &str) -> bool {
         todo!()
     }
+
+    pub fn get_comment_type(&self) -> Option<CommentType> {
+        todo!()
+    }
+
+    pub fn get_modifiable_text(&self) -> Box<str> {
+        todo!()
+    }
+
+    pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {
+        todo!()
+    }
+
+    pub fn get_attribute(&self, name: &str) -> Option<String> {
+        todo!()
+    }
+
+    pub fn has_self_closing_flag(&self) -> bool {
+        todo!()
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -1511,7 +1531,7 @@ enum TextNodeClassification {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-enum CommentType {
+pub enum CommentType {
     /**
      * Indicates that a comment was created when encountering abruptly-closed HTML comment.
      *
