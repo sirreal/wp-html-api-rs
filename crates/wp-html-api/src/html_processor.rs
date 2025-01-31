@@ -300,7 +300,7 @@ pub struct HtmlProcessor {
     unsupported_exception: Option<String>,
     element_queue: VecDeque<HTMLStackEvent>,
     current_element: Option<HTMLStackEvent>,
-    breadcrumbs: Vec<TagName>,
+    breadcrumbs: Vec<NodeName>,
 }
 
 impl HtmlProcessor {
@@ -457,8 +457,8 @@ impl HtmlProcessor {
     /// @see self::ERROR_EXCEEDED_MAX_BOOKMARKS
     ///
     /// @return string|null The last error, if one exists, otherwise null.
-    pub fn get_last_error(&self) -> &Option<String> {
-        &self.last_error
+    pub fn get_last_error(&self) -> Option<&str> {
+        self.last_error.as_ref().map(|s| s.as_str())
     }
 
     /// Returns context for why the parser aborted due to unsupported HTML, if it did.
@@ -471,8 +471,8 @@ impl HtmlProcessor {
     ///
     /// @return WP_HTML_Unsupported_Exception|null
 
-    pub fn get_unsupported_exception(&self) -> &Option<String> {
-        &self.unsupported_exception
+    pub fn get_unsupported_exception(&self) -> Option<&str> {
+        self.last_error.as_ref().map(|s| s.as_str())
     }
 
     /// Finds the next tag matching the query.
@@ -555,7 +555,7 @@ impl HtmlProcessor {
                 }
             }
 
-            if self.matches_breadcrumbs(breadcrumbs) {
+            if self.matches_breadcrumbs(breadcrumbs.as_ref()) {
                 if match_offset < 1 {
                     return true;
                 } else {
@@ -596,7 +596,70 @@ impl HtmlProcessor {
     ///
     /// @return bool
     fn next_visitable_token(&mut self) -> bool {
-        todo!()
+        self.current_element = None;
+
+        if self.last_error.is_some() {
+            return false;
+        }
+
+        /*
+         * Prime the events if there are none.
+         *
+         * @todo In some cases, probably related to the adoption agency
+         *       algorithm, this call to step() doesn't create any new
+         *       events. Calling it again creates them. Figure out why
+         *       this is and if it's inherent or if it's a bug. Looping
+         *       until there are events or until there are no more
+         *       tokens works in the meantime and isn't obviously wrong.
+         */
+        if self.element_queue.is_empty() && self.step(NodeToProcess::ProcessNextNode) {
+            return self.next_visitable_token();
+        }
+
+        // Process the next event on the queue
+        self.current_element = self.element_queue.pop_front();
+        if self.current_element.is_none() {
+            // There are no tokens left, so close all remaining open elements
+            while self.state.stack_of_open_elements.pop().is_some() {
+                continue;
+            }
+
+            return if self.element_queue.is_empty() {
+                false
+            } else {
+                self.next_visitable_token()
+            };
+        }
+
+        let current_element = self.current_element.as_ref().unwrap();
+        let is_pop = current_element.operation == StackOperation::Pop;
+
+        // The root node only exists in the fragment parser, and closing it
+        // indicates that the parse is complete. Stop before popping it from
+        // the breadcrumbs.
+        if current_element
+            .token
+            .bookmark_name
+            .as_ref()
+            .map_or(false, |name| name.as_ref() == "root-node")
+        {
+            return self.next_visitable_token();
+        }
+
+        // Adjust the breadcrumbs for this event
+        if is_pop {
+            self.breadcrumbs.pop();
+        } else {
+            self.breadcrumbs
+                .push(current_element.token.node_name.clone());
+        }
+
+        // Avoid sending close events for elements which don't expect a closing
+        if is_pop && !self.expects_closer(Some(&current_element.token)) {
+            return self.next_visitable_token();
+        }
+
+        true
     }
 
     /// Indicates if the current tag token is a tag closer.
@@ -668,7 +731,7 @@ impl HtmlProcessor {
     ///                              May also contain the wildcard `*` which matches a single element, e.g. `array( 'SECTION', '*' )`.
     /// @return bool Whether the currently-matched tag is found at the given nested structure.
 
-    pub fn matches_breadcrumbs(&self, breadcrumbs: &Option<Vec<&str>>) -> bool {
+    pub fn matches_breadcrumbs(&self, breadcrumbs: Option<&Vec<&str>>) -> bool {
         todo!()
     }
 
@@ -689,7 +752,7 @@ impl HtmlProcessor {
     /// @return bool|null Whether to expect a closer for the currently-matched node,
     ///                   or `null` if not matched on any token.
 
-    pub fn expects_closer(node: Option<HTMLToken>) -> bool {
+    pub fn expects_closer(&self, node: Option<&HTMLToken>) -> bool {
         todo!()
     }
 
@@ -704,7 +767,7 @@ impl HtmlProcessor {
     ///
     /// @param string $node_to_process Whether to parse the next node or reprocess the current node.
     /// @return bool Whether a tag was matched.
-    fn step(node_to_process: NodeToProcess) -> bool {
+    fn step(&mut self, node_to_process: NodeToProcess) -> bool {
         todo!()
     }
 
