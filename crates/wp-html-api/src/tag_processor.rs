@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::ops::Deref;
+use std::{ops::Deref, rc::Rc};
 
 macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
@@ -25,7 +25,7 @@ pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
     bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
-    html_bytes: Box<[u8]>,
+    html_bytes: Rc<[u8]>,
     is_closing_tag: Option<bool>,
     lexical_updates: Vec<HtmlTextReplacement>,
     pub(crate) parser_state: ParserState,
@@ -61,7 +61,7 @@ impl Into<String> for ParsingNamespace {
 struct HtmlTextReplacement {
     start: usize,
     length: usize,
-    text: Box<str>,
+    text: Rc<str>,
 }
 
 #[derive(Clone)]
@@ -71,18 +71,18 @@ struct HtmlSpan {
 }
 
 impl HtmlTextReplacement {
-    pub fn new(start: usize, length: usize, text: Box<str>) -> Self {
+    pub fn new(start: usize, length: usize, text: &str) -> Self {
         Self {
             start,
             length,
-            text,
+            text: text.into(),
         }
     }
 }
 
 impl TagProcessor {
     pub fn new(html: &str) -> Self {
-        let html_bytes = html.as_bytes().to_vec().into_boxed_slice();
+        let html_bytes = html.as_bytes().into();
         Self {
             html_bytes,
             ..Default::default()
@@ -352,7 +352,7 @@ impl TagProcessor {
     /// Returns the string representation of the HTML Tag Processor.
     ///
     /// @return string The processed HTML.
-    pub fn get_updated_html(&self) -> Box<str> {
+    pub fn get_updated_html(&self) -> Rc<str> {
         String::from_utf8(self.html_bytes.to_vec())
             .expect("Invalid UTF-8")
             .into()
@@ -823,9 +823,7 @@ impl TagProcessor {
         }
 
         let attribute_start = self.bytes_already_parsed;
-        let attribute_name = substr(&self.html_bytes, attribute_start, name_length)
-            .to_vec()
-            .into_boxed_slice();
+        let attribute_name = substr(&self.html_bytes, attribute_start, name_length).into();
         self.bytes_already_parsed += name_length;
         if self.bytes_already_parsed >= doc_length {
             self.parser_state = ParserState::IncompleteInput;
@@ -907,14 +905,14 @@ impl TagProcessor {
                             substr(&self.html_bytes, start, length).to_ascii_uppercase(),
                         )
                         .ok()
-                        .map(|s| s.into_boxed_str()),
+                        .map(|s| s.into()),
                         ParserState::Comment => self
                             .comment_type
                             .filter(|ct| ct == &CommentType::PiNodeLookalike)
                             .and_then(|_| {
                                 String::from_utf8(substr(&self.html_bytes, start, length).to_vec())
                                     .ok()
-                                    .map(|s| s.into_boxed_str())
+                                    .map(|s| s.into())
                             }),
                         _ => None,
                     })
@@ -1394,7 +1392,7 @@ impl TagProcessor {
     ///
     ///     $p->next_tag() === false;
     ///     $p->get_attribute_names_with_prefix( 'data-' ) === null;
-    pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Box<str>>> {
+    pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Rc<str>>> {
         todo!()
     }
 
@@ -1405,11 +1403,11 @@ impl TagProcessor {
 
     /// Returns the adjusted tag name for a given token, taking into
     /// account the current parsing context, whether HTML, SVG, or MathML.
-    pub fn get_qualified_tag_name(&self) -> Option<Box<str>> {
+    pub fn get_qualified_tag_name(&self) -> Option<Rc<str>> {
         todo!()
     }
 
-    pub fn get_modifiable_text(&self) -> Box<str> {
+    pub fn get_modifiable_text(&self) -> Rc<str> {
         match (self.text_starts_at, self.text_length) {
             (Some(at), Some(length)) => {
                 String::from_utf8(self.html_bytes[at..(at + length)].to_vec())
@@ -1466,7 +1464,7 @@ impl TagProcessor {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) struct TagName(pub Box<str>);
+pub(crate) struct TagName(pub Rc<str>);
 impl Deref for TagName {
     type Target = str;
 
@@ -1484,14 +1482,14 @@ impl PartialEq<str> for TagName {
         self.0.deref() == other
     }
 }
-impl Into<Box<str>> for TagName {
-    fn into(self) -> Box<str> {
+impl Into<Rc<str>> for TagName {
+    fn into(self) -> Rc<str> {
         self.0
     }
 }
 impl Into<String> for TagName {
     fn into(self) -> String {
-        self.0.into()
+        self.0.as_ref().into()
     }
 }
 
@@ -1501,7 +1499,7 @@ impl Default for TagProcessor {
             attributes: vec![],
             bytes_already_parsed: 0,
             comment_type: None,
-            html_bytes: Box::new([]),
+            html_bytes: Rc::new([]),
             is_closing_tag: None,
             lexical_updates: Vec::new(),
             parser_state: Default::default(),
@@ -1634,8 +1632,8 @@ impl Into<String> for TokenType {
     }
 }
 
-impl Into<Box<str>> for TokenType {
-    fn into(self) -> Box<str> {
+impl Into<Rc<str>> for TokenType {
+    fn into(self) -> Rc<str> {
         match self {
             TokenType::Tag => "#tag".into(),
             TokenType::Text => "#text".into(),
@@ -1650,7 +1648,7 @@ impl Into<Box<str>> for TokenType {
 
 struct AttributeToken {
     /// The attribute name.
-    pub name: Box<[u8]>,
+    pub name: Rc<[u8]>,
 
     /// The byte offset where the attribute value starts.
     pub value_starts_at: usize,

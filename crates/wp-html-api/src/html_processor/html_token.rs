@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::tag_processor::{NodeName, ParsingNamespace};
 
 pub(crate) struct HTMLToken {
@@ -12,7 +14,7 @@ pub(crate) struct HTMLToken {
     ///
     /// @var string
     ///
-    pub bookmark_name: Option<Box<str>>,
+    pub bookmark_name: Option<Rc<str>>,
 
     /**
      * Name of node; lowercase names such as "marker" are not HTML elements.
@@ -72,7 +74,7 @@ impl HTMLToken {
     /// @param callable|null $on_destroy            Optional. Function to call when destroying token, useful for releasing the bookmark.
     ///
     pub fn new(
-        bookmark_name: Option<Box<str>>,
+        bookmark_name: Option<&str>,
         node_name: NodeName,
         has_self_closing_flag: bool,
     ) -> Self {

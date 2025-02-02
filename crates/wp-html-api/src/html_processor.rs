@@ -7,7 +7,7 @@ mod html_stack_event;
 mod html_token;
 mod stack_of_open_elements;
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, rc::Rc};
 
 use crate::tag_processor::{
     CommentType, NodeName, ParserState, ParsingNamespace, TagName, TagProcessor, TokenType,
@@ -40,7 +40,7 @@ pub enum VisitClosers {
 pub struct ProcessorState {
     active_formatting_elements: ActiveFormattingElements,
     current_token: Option<HTMLToken>,
-    encoding: Box<str>,
+    encoding: Rc<str>,
     encoding_confidence: EncodingConfidence,
     form_element: Option<HTMLToken>,
     frameset_ok: bool,
@@ -817,7 +817,7 @@ impl HtmlProcessor {
         if node_to_process != NodeToProcess::ReprocessCurrentNode {
             if let Ok(bookmark) = self.bookmark_token() {
                 self.state.current_token = Some(HTMLToken::new(
-                    Some(bookmark),
+                    Some(bookmark.as_ref()),
                     token_name.clone(),
                     self.has_self_closing_flag(),
                 ));
@@ -1453,13 +1453,13 @@ impl HtmlProcessor {
     /// @throws Exception When unable to allocate requested bookmark.
     ///
     /// @return string|false Name of created bookmark, or false if unable to create.
-    fn bookmark_token(&mut self) -> Result<Box<str>, HtmlProcessorError> {
-        let bookmark = format!("{}", self.bookmark_counter + 1).into_boxed_str();
+    fn bookmark_token(&mut self) -> Result<Rc<str>, HtmlProcessorError> {
+        let bookmark = format!("{}", self.bookmark_counter + 1);
         self.tag_processor
             .set_bookmark(&bookmark)
             .map(|_| {
                 self.bookmark_counter += 1;
-                bookmark
+                bookmark.into()
             })
             .map_err(|_| HtmlProcessorError::ExceededMaxBookmarks)
     }
@@ -1705,7 +1705,7 @@ impl HtmlProcessor {
     /// @param string $prefix Prefix of requested attribute names.
     /// @return array|null List of attribute names, or `null` when no tag opener is matched.
 
-    pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Box<str>>> {
+    pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Rc<str>>> {
         if self.is_virtual() {
             None
         } else {
@@ -1804,7 +1804,7 @@ impl HtmlProcessor {
     /// @since 6.6.0 Subclassed for the HTML Processor.
     ///
     /// @return string
-    pub fn get_modifiable_text(&self) -> Box<str> {
+    pub fn get_modifiable_text(&self) -> Rc<str> {
         if self.is_virtual() {
             "".into()
         } else {
@@ -2208,7 +2208,7 @@ impl HtmlProcessor {
     /// @return string|null Known encoding if matched, otherwise null.
     ///
     /// @todo What do wo with this _protected_ function?
-    fn get_encoding(label: &str) -> Option<Box<str>> {
+    fn get_encoding(label: &str) -> Option<Rc<str>> {
         todo!()
     }
 }
