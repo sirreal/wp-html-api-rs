@@ -813,7 +813,7 @@ impl HtmlProcessor {
             return false;
         }
 
-        let token_name = self.get_token_name().unwrap().to_owned();
+        let token_name = self.get_token_name().unwrap();
         if node_to_process != NodeToProcess::ReprocessCurrentNode {
             if let Ok(bookmark) = self.bookmark_token() {
                 self.state.current_token = Some(HTMLToken::new(
@@ -1572,7 +1572,7 @@ impl HtmlProcessor {
                     .unwrap()
                     .token
                     .node_name
-                    .to_owned(),
+                    .clone(),
             )
         } else {
             self.tag_processor.get_token_name()
