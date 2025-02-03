@@ -34,10 +34,49 @@ pub struct TagProcessor {
     tag_name_length: Option<usize>,
     tag_name_starts_at: Option<usize>,
     text_length: Option<usize>,
-    text_node_classification: TextNodeClassification,
+    pub(crate) text_node_classification: TextNodeClassification,
     text_starts_at: Option<usize>,
     token_length: Option<usize>,
     token_starts_at: Option<usize>,
+
+    ///
+    /// indicates if the document is in quirks mode or no-quirks mode.
+    ///
+    ///  impact on html parsing:
+    ///
+    ///   - in `no_quirks_mode` (also known as "standard mode"):
+    ///       - css class and id selectors match byte-for-byte (case-sensitively).
+    ///       - a table start tag `<table>` implicitly closes any open `p` element.
+    ///
+    ///   - in `quirks_mode`:
+    ///       - css class and id selectors match match in an ascii case-insensitive manner.
+    ///       - a table start tag `<table>` opens a `table` element as a child of a `p`
+    ///         element if one is open.
+    ///
+    /// quirks and no-quirks mode are thus mostly about styling, but have an impact when
+    /// tables are found inside paragraph elements.
+    pub(crate) compat_mode: CompatMode,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum CompatMode {
+    /// No-quirks mode document compatability mode.
+    ///
+    /// > In no-quirks mode, the behavior is (hopefully) the desired behavior
+    /// > described by the modern HTML and CSS specifications.
+    ///
+    /// @see https://developer.mozilla.org/en-US/docs/Web/HTML/Quirks_Mode_and_Standards_Mode
+    #[default]
+    NoQuirks,
+
+    /// Quirks mode document compatability mode.
+    ///
+    /// > In quirks mode, layout emulates behavior in Navigator 4 and Internet
+    /// > Explorer 5. This is essential in order to support websites that were
+    /// > built before the widespread adoption of web standards.
+    ///
+    /// @see https://developer.mozilla.org/en-US/docs/Web/HTML/Quirks_Mode_and_Standards_Mode
+    Quirks,
 }
 
 #[derive(Default, PartialEq)]
@@ -1512,6 +1551,7 @@ impl Default for TagProcessor {
             text_starts_at: None,
             token_length: None,
             token_starts_at: None,
+            compat_mode: Default::default(),
         }
     }
 }
@@ -1531,7 +1571,8 @@ pub(crate) enum ParserState {
     FunkyComment,
 }
 
-enum TextNodeClassification {
+#[derive(PartialEq)]
+pub(crate) enum TextNodeClassification {
     Generic,
     NullSequence,
     Whitespace,
