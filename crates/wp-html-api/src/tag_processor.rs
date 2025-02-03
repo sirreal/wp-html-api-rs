@@ -58,7 +58,7 @@ pub struct TagProcessor {
     pub(crate) compat_mode: CompatMode,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub enum CompatMode {
     /// No-quirks mode document compatability mode.
     ///
@@ -79,7 +79,7 @@ pub enum CompatMode {
     Quirks,
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Debug, Clone)]
 pub enum ParsingNamespace {
     #[default]
     Html,
@@ -947,6 +947,7 @@ impl TagProcessor {
                         .map(|s| s.into()),
                         ParserState::Comment => self
                             .comment_type
+                            .clone()
                             .filter(|ct| ct == &CommentType::PiNodeLookalike)
                             .and_then(|_| {
                                 String::from_utf8(substr(&self.html_bytes, start, length).to_vec())
@@ -1578,7 +1579,7 @@ pub(crate) enum TextNodeClassification {
     Whitespace,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum CommentType {
     /**
      * Indicates that a comment was created when encountering abruptly-closed HTML comment.

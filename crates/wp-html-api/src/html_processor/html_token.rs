@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use crate::tag_processor::{NodeName, ParsingNamespace};
 
+#[derive(Debug, Clone)]
 pub(crate) struct HTMLToken {
     ///
     /// Name of bookmark corresponding to source of token in input HTML string.
@@ -88,7 +89,7 @@ impl HTMLToken {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(super) enum IntegrationNodeType {
     HTML,
     MathML,

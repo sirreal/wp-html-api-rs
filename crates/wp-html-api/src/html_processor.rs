@@ -10,7 +10,8 @@ mod stack_of_open_elements;
 use std::{collections::VecDeque, rc::Rc};
 
 use crate::tag_processor::{
-    CommentType, NodeName, ParserState, ParsingNamespace, TagName, TagProcessor, TokenType,
+    CommentType, CompatMode, NodeName, ParserState, ParsingNamespace, TagName, TagProcessor,
+    TextNodeClassification, TokenType,
 };
 use active_formatting_elements::*;
 use html_stack_event::*;
@@ -2211,12 +2212,33 @@ impl HtmlProcessor {
     fn get_encoding(label: &str) -> Option<Rc<str>> {
         todo!()
     }
+
+    fn make_op(&self) -> Op {
+        match self.get_token_name() {
+            Some(NodeName::Tag(tag_name)) => {
+                if self.is_tag_closer() {
+                    Op::TagPop(tag_name)
+                } else {
+                    Op::TagPush(tag_name)
+                }
+            }
+            Some(NodeName::Token(token_type)) => Op::Token(token_type),
+            None => unreachable!("Op should never be made when no token is available."),
+        }
+    }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 enum HtmlProcessorError {
     ExceededMaxBookmarks,
     UnsupportedException(UnsupportedException),
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 enum UnsupportedException {}
+
+#[derive(Debug, PartialEq)]
+enum Op {
+    TagPush(TagName),
+    TagPop(TagName),
+    Token(TokenType),
+}
