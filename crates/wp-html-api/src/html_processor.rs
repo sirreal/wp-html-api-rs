@@ -361,7 +361,7 @@ impl HtmlProcessor {
     /// @param string|null $known_definite_encoding Optional. If provided, specifies the charset used
     ///                                             in the input byte stream. Currently must be UTF-8.
     /// @return static|null The created processor if successful, otherwise null.
-    pub fn create_full_parser(html: &str, known_definite_encoding: &str) -> Option<Self> {
+    pub fn create_full_parser(html: &[u8], known_definite_encoding: &str) -> Option<Self> {
         if "UTF-8" != known_definite_encoding {
             return None;
         }
@@ -373,7 +373,7 @@ impl HtmlProcessor {
         Some(processor)
     }
 
-    fn new(html: &str) -> Self {
+    fn new(html: &[u8]) -> Self {
         let tag_processor = TagProcessor::new(html);
         let state = ProcessorState::new();
 

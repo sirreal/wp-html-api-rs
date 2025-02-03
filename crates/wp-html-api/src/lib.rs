@@ -1,7 +1,9 @@
 #![allow(non_camel_case_types)]
 mod html_processor;
 mod tag_processor;
-use ext_php_rs::{builders::ModuleBuilder, prelude::*, types::ZendClassObject};
+use ext_php_rs::{
+    binary_slice::BinarySlice, builders::ModuleBuilder, prelude::*, types::ZendClassObject,
+};
 use html_processor::HtmlProcessor;
 use tag_processor::TagProcessor;
 
@@ -20,8 +22,8 @@ pub struct WP_HTML_Tag_Processor {
 
 #[php_impl(rename_methods = "none")]
 impl WP_HTML_Tag_Processor {
-    pub fn __construct(html: &str) -> Self {
-        let processor = TagProcessor::new(html);
+    pub fn __construct(html: BinarySlice<u8>) -> Self {
+        let processor = TagProcessor::new(html.clone());
         Self { processor }
     }
 
@@ -74,9 +76,12 @@ impl WP_HTML_Processor {
         HtmlProcessor::create_fragment(html, context, encoding).map(|processor| Self { processor })
     }
 
-    pub fn create_full_parser(html: &str, known_definite_encoding: Option<&str>) -> Option<Self> {
+    pub fn create_full_parser(
+        html: BinarySlice<u8>,
+        known_definite_encoding: Option<&str>,
+    ) -> Option<Self> {
         let known_definite_encoding = known_definite_encoding.unwrap_or("UTF-8");
-        HtmlProcessor::create_full_parser(html, known_definite_encoding)
+        HtmlProcessor::create_full_parser(html.clone(), known_definite_encoding)
             .map(|processor| Self { processor })
     }
 

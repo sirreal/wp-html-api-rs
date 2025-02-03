@@ -129,8 +129,8 @@ impl HtmlTextReplacement {
 }
 
 impl TagProcessor {
-    pub fn new(html: &str) -> Self {
-        let html_bytes = html.as_bytes().into();
+    pub fn new(html: &[u8]) -> Self {
+        let html_bytes = html.into();
         Self {
             html_bytes,
             ..Default::default()
