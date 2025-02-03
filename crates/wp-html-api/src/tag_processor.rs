@@ -272,8 +272,7 @@ impl TagProcessor {
             return true;
         }
 
-        let TagName(tag_name) = self.get_tag().unwrap();
-        let tag_name = tag_name.deref();
+        let tag = self.get_tag().unwrap();
 
         /*
          * For LISTING, PRE, and TEXTAREA, the first linefeed of an immediately-following
@@ -281,7 +280,7 @@ impl TagProcessor {
          *
          * @see static::skip_newline_at
          */
-        if tag_name == "LISTING" || tag_name == "PRE" {
+        if tag == "LISTING" || tag == "PRE" {
             self.skip_newline_at = Some(self.bytes_already_parsed);
             return true;
         }
@@ -305,10 +304,10 @@ impl TagProcessor {
         let tag_name_length = self.tag_name_length.unwrap();
         let tag_ends_at = self.token_starts_at.unwrap() + self.token_length.unwrap();
 
-        let found_closer = match tag_name {
-            "SCRIPT" => self.skip_script_data(),
+        let found_closer = match tag.0.deref() {
+            b"SCRIPT" => self.skip_script_data(),
 
-            "TEXTAREA" | "TITLE" => self.skip_rcdata(&tag_name),
+            b"TEXTAREA" | b"TITLE" => self.skip_rcdata(&tag),
 
             /*
              * In the browser this list would include the NOSCRIPT element,
@@ -321,7 +320,7 @@ impl TagProcessor {
              * because the parsing of this token depends on client application.
              * The NOSCRIPT element cannot be represented in the XHTML syntax.
              */
-            "IFRAME" | "NOEMBED" | "NOFRAMES" | "STYLE" | "XMP" => self.skip_rawtext(&tag_name),
+            b"IFRAME" | b"NOEMBED" | b"NOFRAMES" | b"STYLE" | b"XMP" => self.skip_rawtext(&tag),
 
             // No other tags should be treated in their entirety here.
             _ => return true,
@@ -400,10 +399,8 @@ impl TagProcessor {
     /// Returns the string representation of the HTML Tag Processor.
     ///
     /// @return string The processed HTML.
-    pub fn get_updated_html(&self) -> Rc<str> {
-        String::from_utf8(self.html_bytes.to_vec())
-            .expect("Invalid UTF-8")
-            .into()
+    pub fn get_updated_html(&self) -> Rc<[u8]> {
+        self.html_bytes.clone()
     }
 
     fn parse_next_tag(&mut self) -> bool {
@@ -945,28 +942,20 @@ impl TagProcessor {
     }
 
     pub fn get_tag(&self) -> Option<TagName> {
-        self.tag_name_starts_at
-            .and_then(|start| {
-                self.tag_name_length
-                    .and_then(|length| match self.parser_state {
-                        ParserState::MatchedTag => String::from_utf8(
-                            substr(&self.html_bytes, start, length).to_ascii_uppercase(),
-                        )
-                        .ok()
-                        .map(|s| s.into()),
-                        ParserState::Comment => self
-                            .comment_type
-                            .clone()
-                            .filter(|ct| ct == &CommentType::PiNodeLookalike)
-                            .and_then(|_| {
-                                String::from_utf8(substr(&self.html_bytes, start, length).to_vec())
-                                    .ok()
-                                    .map(|s| s.into())
-                            }),
-                        _ => None,
-                    })
-            })
-            .map(|s| TagName(s))
+        if !matches!(self.parser_state, ParserState::MatchedTag | ParserState::Comment) {
+            return None
+        }
+
+        let at = self.tag_name_starts_at.unwrap();
+        let length = self.tag_name_length.unwrap();
+
+        if ParserState::Comment == self.parser_state
+            && Some(CommentType::PiNodeLookalike) != self.comment_type
+        {
+            return None;
+        }
+
+        Some(TagName(substr(&self.html_bytes, at, length).to_ascii_uppercase().into()))
     }
 
     /// Indicates the kind of matched token, if any.
@@ -1002,8 +991,8 @@ impl TagProcessor {
 
     pub fn get_token_name(&self) -> Option<NodeName> {
         match self.parser_state {
-            ParserState::MatchedTag => Some(self.get_tag().unwrap().into()),
-            ParserState::Doctype => Some(TagName("html".into()).into()),
+            ParserState::MatchedTag => Some(NodeName::Tag(self.get_tag().unwrap())),
+            ParserState::Doctype => Some(NodeName::Tag(TagName("html".as_bytes().into()))),
             _ => self.get_token_type().map(|t| NodeName::Token(t)),
         }
     }
@@ -1156,9 +1145,9 @@ impl TagProcessor {
     ///
     /// @param string $tag_name The uppercase tag name which will close the RCDATA region.
     /// @return bool Whether an end to the RCDATA region was found before the end of the document.
-    fn skip_rcdata(&mut self, tag_name: &str) -> bool {
+    fn skip_rcdata(&mut self, tag: &TagName) -> bool {
         let doc_length = self.html_bytes.len();
-        let tag_name = tag_name.as_bytes();
+        let TagName(tag_name) = tag;
         let tag_length = tag_name.len();
 
         let mut at = self.bytes_already_parsed;
@@ -1246,7 +1235,7 @@ impl TagProcessor {
     ///
     /// @param string $tag_name The uppercase tag name which will close the RAWTEXT region.
     /// @return bool Whether an end to the RAWTEXT region was found before the end of the document.
-    fn skip_rawtext(&mut self, tag_name: &str) -> bool {
+    fn skip_rawtext(&mut self, tag_name: &TagName) -> bool {
         /*
          * These two functions distinguish themselves on whether character references are
          * decoded, and since functionality to read the inner markup isn't supported, it's
@@ -1280,7 +1269,7 @@ impl TagProcessor {
             && self.is_closing_tag.unwrap_or(false)
             && self
                 .get_tag()
-                .map(|TagName(tag_name)| tag_name.as_ref() != "BR")
+                .map(|t| t != "BR")
                 .unwrap_or(false)
     }
 
@@ -1552,32 +1541,20 @@ impl TagProcessor {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) struct TagName(pub Rc<str>);
-impl Deref for TagName {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.as_ref()
-    }
-}
+pub(crate) struct TagName(pub Rc<[u8]>);
 impl PartialEq<&str> for TagName {
     fn eq(&self, other: &&str) -> bool {
-        self.0.deref() == *other
+        self.0.as_ref() == other.as_bytes()
     }
 }
 impl PartialEq<str> for TagName {
     fn eq(&self, other: &str) -> bool {
-        self.0.deref() == other
+        self.0.as_ref() == other.as_bytes()
     }
 }
-impl Into<Rc<str>> for TagName {
-    fn into(self) -> Rc<str> {
+impl Into<Rc<[u8]>> for TagName {
+    fn into(self) -> Rc<[u8]> {
         self.0
-    }
-}
-impl Into<String> for TagName {
-    fn into(self) -> String {
-        self.0.as_ref().into()
     }
 }
 
@@ -1797,14 +1774,14 @@ mod test {
 
     #[test]
     fn test_base_next_token() {
-        let mut processor = TagProcessor::new("<p>Hello world!</p>");
+        let mut processor = TagProcessor::new(b"<p>Hello world!</p>");
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
         assert_eq!(
             processor.get_token_name().unwrap(),
-            TagName("P".into()).into()
+            TagName("P".as_bytes().into()).into()
         );
-        assert_eq!(processor.get_tag().unwrap(), TagName("P".into()));
+        assert_eq!(processor.get_tag().unwrap(), TagName("P".as_bytes().into()));
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Text);
         assert_eq!(processor.get_token_name().unwrap(), TokenType::Text.into());
@@ -1812,7 +1789,7 @@ mod test {
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
         assert_eq!(
             processor.get_token_name().unwrap(),
-            TagName("P".into()).into()
+            TagName("P".as_bytes().into()).into()
         );
         assert_eq!(processor.is_tag_closer(), true);
     }
@@ -1830,13 +1807,5 @@ impl Into<NodeName> for TagName {
 impl Into<NodeName> for TokenType {
     fn into(self) -> NodeName {
         NodeName::Token(self)
-    }
-}
-impl Into<String> for NodeName {
-    fn into(self) -> String {
-        match self {
-            NodeName::Tag(tag_name) => tag_name.into(),
-            NodeName::Token(token_type) => token_type.into(),
-        }
     }
 }

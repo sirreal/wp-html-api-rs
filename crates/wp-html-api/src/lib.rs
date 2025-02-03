@@ -2,7 +2,7 @@
 mod html_processor;
 mod tag_processor;
 use ext_php_rs::{
-    binary_slice::BinarySlice, builders::ModuleBuilder, prelude::*, types::ZendClassObject,
+    binary::Binary, binary_slice::BinarySlice, builders::ModuleBuilder, prelude::*, types::ZendClassObject
 };
 use html_processor::HtmlProcessor;
 use tag_processor::TagProcessor;
@@ -27,24 +27,24 @@ impl WP_HTML_Tag_Processor {
         Self { processor }
     }
 
-    pub fn get_updated_html(#[this] this: &mut ZendClassObject<Self>) -> String {
-        this.processor.get_updated_html().as_ref().into()
+    pub fn get_updated_html(#[this] this: &mut ZendClassObject<Self>) -> Binary<u8> {
+        Binary::from(this.processor.get_updated_html().as_ref().to_vec())
     }
 
     pub fn next_token(#[this] this: &mut ZendClassObject<Self>) -> bool {
         this.processor.next_token()
     }
 
-    pub fn get_tag(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
-        this.processor.get_tag().map(|t| t.into())
+    pub fn get_tag(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
+        this.processor.get_tag().map(|t| Binary::from(t.0.to_vec()))
     }
 
     pub fn get_token_type(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
         this.processor.get_token_type().map(|t| t.into())
     }
 
-    pub fn get_token_name(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
-        this.processor.get_token_name().map(|t| t.into())
+    pub fn get_token_name(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
+        todo!();
     }
 
     pub fn get_modifiable_text(#[this] this: &mut ZendClassObject<Self>) -> String {
@@ -89,16 +89,16 @@ impl WP_HTML_Processor {
         this.processor.next_token()
     }
 
-    pub fn get_tag(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
-        this.processor.get_tag().map(|t| t.into())
+    pub fn get_tag(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
+        todo!();
     }
 
     pub fn get_token_type(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
         this.processor.get_token_type().map(|t| t.into())
     }
 
-    pub fn get_token_name(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
-        this.processor.get_token_name().map(|t| t.into())
+    pub fn get_token_name(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
+        todo!();
     }
 }
 

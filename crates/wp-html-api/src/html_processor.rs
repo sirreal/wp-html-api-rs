@@ -841,13 +841,13 @@ impl HtmlProcessor {
                 || (adjusted_current_node.integration_node_type
                     == Some(IntegrationNodeType::MathML)
                     && ((is_start_tag
-                        && (token_name != TagName("MGLYPH".into()).into()
-                            && token_name != TagName("MALIGNMARK".into()).into()))
+                        && (token_name != TagName("MGLYPH".as_bytes().into()).into()
+                            && token_name != TagName("MALIGNMARK".as_bytes().into()).into()))
                         || token_name == TokenType::Text.into()))
                 || (adjusted_current_node.namespace == ParsingNamespace::MathML
-                    && adjusted_current_node.node_name == TagName("ANNOTATION-XML".into()).into()
+                    && adjusted_current_node.node_name == TagName("ANNOTATION-XML".as_bytes().into()).into()
                     && is_start_tag
-                    && token_name == TagName("SVG".into()).into())
+                    && token_name == TagName("SVG".as_bytes().into()).into())
                 || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::HTML)
                     && (is_start_tag || token_name == TokenType::Text.into()))
         };
@@ -1575,7 +1575,7 @@ impl HtmlProcessor {
         let option_tag_name = self.tag_processor.get_tag();
         if let Some(tag_name) = &option_tag_name {
             if self.get_namespace() == ParsingNamespace::Html && tag_name == "IMAGE" {
-                return Some(TagName("IMG".into()));
+                return Some(TagName("IMG".as_bytes().into()));
             }
         }
         option_tag_name
