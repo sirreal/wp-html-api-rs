@@ -1045,7 +1045,59 @@ impl HtmlProcessor {
     /// @return bool Whether an element was found.
 
     fn step_initial(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * Parse error: ignore the token.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                return self.step(NodeToProcess::ProcessNextNode).into();
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                let token: HTMLToken = self.state.current_token.clone().unwrap();
+                self.insert_html_element(token);
+                return true;
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                todo!("Doctype token handling");
+
+                // $doctype = $this->get_doctype_info();
+                // if ( null !== $doctype && 'quirks' === $doctype->indicated_compatability_mode ) {
+                // 	$this->compat_mode = WP_HTML_Tag_Processor::QUIRKS_MODE;
+                // }
+
+                // /*
+                //  * > Then, switch the insertion mode to "before html".
+                //  */
+                // $this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_BEFORE_HTML;
+                // $this->insert_html_element( $this->state->current_token );
+                // return true;
+            }
+            /*
+             * > Anything else
+             */
+            _ => {
+                self.tag_processor.compat_mode = CompatMode::Quirks;
+                self.state.insertion_mode = InsertionMode::BEFORE_HTML;
+                self.step(NodeToProcess::ReprocessCurrentNode).into()
+            }
+        }
     }
 
     /// Parses next element in the 'before html' insertion mode.
