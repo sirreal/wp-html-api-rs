@@ -831,8 +831,7 @@ impl HtmlProcessor {
             }
         }
 
-        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0;
-        let parse_in_current_insertion_mode = parse_in_current_insertion_mode || {
+        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0 || {
             let adjusted_current_node = self.get_adjusted_current_node().unwrap();
             let is_closer = self.is_tag_closer();
             let is_start_tag =
