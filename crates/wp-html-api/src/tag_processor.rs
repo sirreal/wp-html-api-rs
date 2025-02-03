@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::{ops::Deref, rc::Rc};
+use std::{collections::HashMap, ops::Deref, rc::Rc};
 
 macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
@@ -20,6 +20,8 @@ macro_rules! strcspn {
             .count()
     }};
 }
+
+const MAX_BOOKMARKS: usize = 10;
 
 pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
@@ -56,6 +58,8 @@ pub struct TagProcessor {
     /// quirks and no-quirks mode are thus mostly about styling, but have an impact when
     /// tables are found inside paragraph elements.
     pub(crate) compat_mode: CompatMode,
+
+    pub(crate) bookmarks: HashMap<Box<str>, HtmlSpan>,
 }
 
 #[derive(Debug, PartialEq, Default)]
@@ -107,6 +111,11 @@ struct HtmlTextReplacement {
 struct HtmlSpan {
     start: usize,
     length: usize,
+}
+impl HtmlSpan {
+    pub fn new(start: usize, length: usize) -> Self {
+        Self { start, length }
+    }
 }
 
 impl HtmlTextReplacement {
@@ -1401,7 +1410,21 @@ impl TagProcessor {
     /// @return bool Whether the bookmark was successfully created.
     ///
     pub fn set_bookmark(&mut self, name: &str) -> Result<(), ()> {
-        todo!()
+        // It only makes sense to set a bookmark if the parser has paused on a concrete token.
+        if matches!(
+            self.parser_state,
+            ParserState::Complete | ParserState::IncompleteInput
+        ) {
+            return Err(());
+        }
+
+        if !self.bookmarks.contains_key(name) && self.bookmarks.len() >= MAX_BOOKMARKS {
+            return Err(());
+        }
+
+        let span = HtmlSpan::new(self.token_starts_at.unwrap(), self.token_length.unwrap());
+        self.bookmarks.insert(name.into(), span);
+        Ok(())
     }
 
     /// Removes a bookmark that is no longer needed.
@@ -1494,8 +1517,33 @@ impl TagProcessor {
         todo!()
     }
 
+    /// Indicates if the currently matched tag contains the self-closing flag.
+    ///
+    /// No HTML elements ought to have the self-closing flag and for those, the self-closing
+    /// flag will be ignored. For void elements this is benign because they "self close"
+    /// automatically. For non-void HTML elements though problems will appear if someone
+    /// intends to use a self-closing element in place of that element with an empty body.
+    /// For HTML foreign elements and custom elements the self-closing flag determines if
+    /// they self-close or not.
+    ///
+    /// This function does not determine if a tag is self-closing,
+    /// but only if the self-closing flag is present in the syntax.
+    ///
+    /// @return bool Whether the currently matched tag contains the self-closing flag.
     pub fn has_self_closing_flag(&self) -> bool {
-        todo!()
+        if self.parser_state != ParserState::MatchedTag {
+            return false;
+        }
+
+        /*
+         * The self-closing flag is the solidus at the _end_ of the tag, not the beginning.
+         *
+         * Example:
+         *
+         *     <figure />
+         *             ^ this appears one character before the end of the closing ">".
+         */
+        b'/' == self.html_bytes[self.token_starts_at.unwrap() + self.token_length.unwrap() - 2]
     }
 
     pub(crate) fn subdivide_text_appropriately(&mut self) -> bool {
@@ -1553,6 +1601,7 @@ impl Default for TagProcessor {
             token_length: None,
             token_starts_at: None,
             compat_mode: Default::default(),
+            bookmarks: HashMap::new(),
         }
     }
 }
