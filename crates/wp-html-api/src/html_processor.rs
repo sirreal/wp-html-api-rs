@@ -831,23 +831,27 @@ impl HtmlProcessor {
             }
         }
 
-        let adjusted_current_node = self.get_adjusted_current_node().unwrap();
-        let is_closer = self.is_tag_closer();
-        let is_start_tag = self.tag_processor.parser_state == ParserState::MatchedTag && !is_closer;
+        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0;
+        let parse_in_current_insertion_mode = parse_in_current_insertion_mode || {
+            let adjusted_current_node = self.get_adjusted_current_node().unwrap();
+            let is_closer = self.is_tag_closer();
+            let is_start_tag =
+                self.tag_processor.parser_state == ParserState::MatchedTag && !is_closer;
 
-        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0
-            || adjusted_current_node.namespace == ParsingNamespace::Html
-            || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::MathML)
-                && ((is_start_tag
-                    && (token_name != TagName("MGLYPH".into()).into()
-                        && token_name != TagName("MALIGNMARK".into()).into()))
-                    || token_name == TokenType::Text.into()))
-            || (adjusted_current_node.namespace == ParsingNamespace::MathML
-                && adjusted_current_node.node_name == TagName("ANNOTATION-XML".into()).into()
-                && is_start_tag
-                && token_name == TagName("SVG".into()).into())
-            || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::HTML)
-                && (is_start_tag || token_name == TokenType::Text.into()));
+            adjusted_current_node.namespace == ParsingNamespace::Html
+                || (adjusted_current_node.integration_node_type
+                    == Some(IntegrationNodeType::MathML)
+                    && ((is_start_tag
+                        && (token_name != TagName("MGLYPH".into()).into()
+                            && token_name != TagName("MALIGNMARK".into()).into()))
+                        || token_name == TokenType::Text.into()))
+                || (adjusted_current_node.namespace == ParsingNamespace::MathML
+                    && adjusted_current_node.node_name == TagName("ANNOTATION-XML".into()).into()
+                    && is_start_tag
+                    && token_name == TagName("SVG".into()).into())
+                || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::HTML)
+                    && (is_start_tag || token_name == TokenType::Text.into()))
+        };
 
         let step_result = if !parse_in_current_insertion_mode {
             self.step_in_foreign_content()
