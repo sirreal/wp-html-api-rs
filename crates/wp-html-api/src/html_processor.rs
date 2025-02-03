@@ -2290,12 +2290,12 @@ impl HtmlProcessor {
 }
 
 #[derive(Clone, Debug)]
-enum HtmlProcessorError {
+pub(crate) enum HtmlProcessorError {
     ExceededMaxBookmarks,
     UnsupportedException(UnsupportedException),
 }
 #[derive(Clone, Debug)]
-enum UnsupportedException {}
+pub(crate) enum UnsupportedException {}
 
 #[derive(Debug, PartialEq)]
 enum Op {

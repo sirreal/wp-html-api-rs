@@ -108,7 +108,7 @@ struct HtmlTextReplacement {
 }
 
 #[derive(Clone)]
-struct HtmlSpan {
+pub(crate) struct HtmlSpan {
     start: usize,
     length: usize,
 }

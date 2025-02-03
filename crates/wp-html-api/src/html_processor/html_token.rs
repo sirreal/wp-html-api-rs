@@ -90,7 +90,7 @@ impl HTMLToken {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub(super) enum IntegrationNodeType {
+pub(crate) enum IntegrationNodeType {
     HTML,
     MathML,
 }
