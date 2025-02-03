@@ -306,6 +306,9 @@ pub struct HtmlProcessor {
     current_element: Option<HTMLStackEvent>,
     breadcrumbs: Vec<NodeName>,
     bookmark_counter: u32,
+
+    /// Context node if created as a fragment parser.
+    context_node: Option<HTMLToken>,
 }
 
 impl HtmlProcessor {
@@ -385,6 +388,7 @@ impl HtmlProcessor {
             current_element: None,
             breadcrumbs: Vec::new(),
             bookmark_counter: 0,
+            context_node: None,
         }
     }
 
@@ -2072,11 +2076,13 @@ impl HtmlProcessor {
     ///
     /// @see https://html.spec.whatwg.org/#adjusted-current-node
     ///
-    /// @since 6.7.0
-    ///
     /// @return WP_HTML_Token|null The adjusted current node.
     fn get_adjusted_current_node(&self) -> Option<&HTMLToken> {
-        todo!()
+        if self.context_node.is_some() && self.state.stack_of_open_elements.count() == 1 {
+            self.context_node.as_ref()
+        } else {
+            self.state.stack_of_open_elements.current_node()
+        }
     }
 
     /// Reconstructs the active formatting elements.
