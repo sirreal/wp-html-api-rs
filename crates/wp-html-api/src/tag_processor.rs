@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::{collections::HashMap, ops::Deref, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
 
 macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
@@ -280,7 +280,7 @@ impl TagProcessor {
          *
          * @see static::skip_newline_at
          */
-        if tag == "LISTING" || tag == "PRE" {
+        if tag == TagName::LISTING || tag == TagName::PRE {
             self.skip_newline_at = Some(self.bytes_already_parsed);
             return true;
         }
@@ -304,10 +304,10 @@ impl TagProcessor {
         let tag_name_length = self.tag_name_length.unwrap();
         let tag_ends_at = self.token_starts_at.unwrap() + self.token_length.unwrap();
 
-        let found_closer = match tag.0.deref() {
-            b"SCRIPT" => self.skip_script_data(),
+        let found_closer = match tag {
+            TagName::SCRIPT => self.skip_script_data(),
 
-            b"TEXTAREA" | b"TITLE" => self.skip_rcdata(&tag),
+            TagName::TEXTAREA | TagName::TITLE => self.skip_rcdata(&tag),
 
             /*
              * In the browser this list would include the NOSCRIPT element,
@@ -320,7 +320,11 @@ impl TagProcessor {
              * because the parsing of this token depends on client application.
              * The NOSCRIPT element cannot be represented in the XHTML syntax.
              */
-            b"IFRAME" | b"NOEMBED" | b"NOFRAMES" | b"STYLE" | b"XMP" => self.skip_rawtext(&tag),
+            TagName::IFRAME
+            | TagName::NOEMBED
+            | TagName::NOFRAMES
+            | TagName::STYLE
+            | TagName::XMP => self.skip_rawtext(&tag),
 
             // No other tags should be treated in their entirety here.
             _ => return true,
@@ -952,11 +956,7 @@ impl TagProcessor {
             return None;
         }
 
-        Some(TagName(
-            substr(&self.html_bytes, at, length)
-                .to_ascii_uppercase()
-                .into(),
-        ))
+        Some(substr(&self.html_bytes, at, length).into())
     }
 
     /// Indicates the kind of matched token, if any.
@@ -993,7 +993,7 @@ impl TagProcessor {
     pub fn get_token_name(&self) -> Option<NodeName> {
         match self.parser_state {
             ParserState::MatchedTag => Some(NodeName::Tag(self.get_tag().unwrap())),
-            ParserState::Doctype => Some(NodeName::Tag(TagName("html".as_bytes().into()))),
+            ParserState::Doctype => Some(NodeName::Tag(TagName::Doctype)),
             _ => self.get_token_type().map(|t| NodeName::Token(t)),
         }
     }
@@ -1146,51 +1146,31 @@ impl TagProcessor {
     ///
     /// @param string $tag_name The uppercase tag name which will close the RCDATA region.
     /// @return bool Whether an end to the RCDATA region was found before the end of the document.
-    fn skip_rcdata(&mut self, tag: &TagName) -> bool {
+    fn skip_rcdata(&mut self, tag_name: &TagName) -> bool {
         let doc_length = self.html_bytes.len();
-        let TagName(tag_name) = tag;
-        let tag_length = tag_name.len();
+        let tag_length = self.tag_name_length.unwrap();
 
         let mut at = self.bytes_already_parsed;
 
-        'closer_search: while at < doc_length {
-            // Find next potential closing tag
-            match strpos(&self.html_bytes, b"</", at) {
-                Some(pos) => {
-                    at = pos;
-                    self.tag_name_starts_at = Some(at);
-                }
-                None => return false,
-            }
+        let match_end_tag: Box<[u8]> = match tag_name {
+            TagName::IFRAME => Box::new(*b"</IFRAME"),
+            TagName::NOEMBED => Box::new(*b"</NOEMBED"),
+            TagName::NOFRAMES => Box::new(*b"</NOFRAMES"),
+            TagName::STYLE => Box::new(*b"</STYLE"),
+            TagName::TEXTAREA => Box::new(*b"</TEXTAREA"),
+            TagName::TITLE => Box::new(*b"</TITLE"),
+            TagName::XMP => Box::new(*b"</XMP"),
+            _ => unreachable!("skip_rcdata must receive and allowed tag_name"),
+        };
 
-            // Fail if there is no possible tag closer
-            if at + tag_length >= doc_length {
+        while at + match_end_tag.len() + 1 < doc_length {
+            at = if let Some(end_candidate_pos) = stripos(&self.html_bytes, &match_end_tag, at) {
+                end_candidate_pos
+            } else {
                 return false;
-            }
-
-            at += 2;
-
-            /*
-             * Find a case-insensitive match to the tag name.
-             *
-             * Because tag names are limited to US-ASCII there is no
-             * need to perform any kind of Unicode normalization when
-             * comparing; any character which could be impacted by such
-             * normalization could not be part of a tag name.
-             */
-            if !tag_name.iter().enumerate().all(|(offset, &char)| {
-                char == self.html_bytes[at + offset]
-                    || char == self.html_bytes[at + offset].to_ascii_uppercase()
-            }) {
-                continue 'closer_search;
-            }
-
-            at += tag_length;
+            };
+            at += match_end_tag.len();
             self.bytes_already_parsed = at;
-
-            if at >= self.html_bytes.len() {
-                return false;
-            }
 
             /*
              * Ensure that the tag name terminates to avoid matching on
@@ -1221,7 +1201,7 @@ impl TagProcessor {
                 return false;
             }
 
-            if self.html_bytes[at] == b'/' && self.html_bytes[at + 1] == b'>' {
+            if &self.html_bytes[at..at + 2] == b"/>" {
                 self.bytes_already_parsed = at + 2;
                 return true;
             }
@@ -1268,7 +1248,7 @@ impl TagProcessor {
     pub fn is_tag_closer(&self) -> bool {
         self.parser_state == ParserState::MatchedTag
             && self.is_closing_tag.unwrap_or(false)
-            && self.get_tag().map(|t| t != "BR").unwrap_or(false)
+            && self.get_tag().map(|t| t != TagName::BR).unwrap_or(false)
     }
 
     /// Returns if a matched tag contains the given ASCII case-insensitive class name.
@@ -1538,23 +1518,23 @@ impl TagProcessor {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub(crate) struct TagName(pub Rc<[u8]>);
-impl PartialEq<&str> for TagName {
-    fn eq(&self, other: &&str) -> bool {
-        self.0.as_ref() == other.as_bytes()
-    }
-}
-impl PartialEq<str> for TagName {
-    fn eq(&self, other: &str) -> bool {
-        self.0.as_ref() == other.as_bytes()
-    }
-}
-impl Into<Rc<[u8]>> for TagName {
-    fn into(self) -> Rc<[u8]> {
-        self.0
-    }
-}
+//#[derive(Debug, PartialEq, Clone)]
+//pub(crate) struct TagName(pub Rc<[u8]>);
+//impl PartialEq<&str> for TagName {
+//    fn eq(&self, other: &&str) -> bool {
+//        self.0.as_ref() == other.as_bytes()
+//    }
+//}
+//impl PartialEq<str> for TagName {
+//    fn eq(&self, other: &str) -> bool {
+//        self.0.as_ref() == other.as_bytes()
+//    }
+//}
+//impl Into<Rc<[u8]>> for TagName {
+//    fn into(self) -> Rc<[u8]> {
+//        self.0
+//    }
+//}
 
 impl Default for TagProcessor {
     fn default() -> Self {
@@ -1693,8 +1673,36 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     None
 }
 
+fn stripos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
+    let p_len = pattern.len();
+
+    if p_len == 0 {
+        return Some(offset);
+    }
+
+    if (offset + p_len) > s.len() {
+        return None;
+    }
+
+    let p_end = pattern.get(p_len - 1).unwrap();
+
+    for at in offset..s.len() {
+        let c = s.get(at + p_len - 1).unwrap();
+
+        if !p_end.eq_ignore_ascii_case(&c) {
+            continue;
+        }
+
+        if pattern.eq_ignore_ascii_case(&s[at..(at + p_len)]) {
+            return Some(at);
+        }
+    }
+
+    None
+}
+
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) enum TokenType {
+pub enum TokenType {
     Tag,
     Text,
     CdataSection,
@@ -1795,25 +1803,19 @@ mod test {
         let mut processor = TagProcessor::new(b"<p>Hello world!</p>");
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
-        assert_eq!(
-            processor.get_token_name().unwrap(),
-            TagName("P".as_bytes().into()).into()
-        );
-        assert_eq!(processor.get_tag().unwrap(), TagName("P".as_bytes().into()));
+        assert_eq!(processor.get_token_name().unwrap(), TagName::P.into());
+        assert_eq!(processor.get_tag().unwrap(), TagName::P);
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Text);
         assert_eq!(processor.get_token_name().unwrap(), TokenType::Text.into());
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
-        assert_eq!(
-            processor.get_token_name().unwrap(),
-            TagName("P".as_bytes().into()).into()
-        );
+        assert_eq!(processor.get_token_name().unwrap(), TagName::P.into());
         assert_eq!(processor.is_tag_closer(), true);
     }
 }
 #[derive(PartialEq, Clone, Debug)]
-pub(crate) enum NodeName {
+pub enum NodeName {
     Tag(TagName),
     Token(TokenType),
 }
@@ -1825,5 +1827,234 @@ impl Into<NodeName> for TagName {
 impl Into<NodeName> for TokenType {
     fn into(self) -> NodeName {
         NodeName::Token(self)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TagName {
+    A,
+    ADDRESS,
+    APPLET,
+    AREA,
+    ARTICLE,
+    ASIDE,
+    B,
+    BASE,
+    BASEFONT,
+    BGSOUND,
+    BIG,
+    BLOCKQUOTE,
+    BODY,
+    BR,
+    BUTTON,
+    CAPTION,
+    CENTER,
+    CODE,
+    COL,
+    COLGROUP,
+    DD,
+    DETAILS,
+    DIALOG,
+    DIR,
+    DIV,
+    DL,
+    DT,
+    EM,
+    EMBED,
+    FIELDSET,
+    FIGCAPTION,
+    FIGURE,
+    FONT,
+    FOOTER,
+    FORM,
+    FRAME,
+    FRAMESET,
+    HEAD,
+    HEADER,
+    HGROUP,
+    HR,
+    HTML,
+    I,
+    IFRAME,
+    IMG,
+    INPUT,
+    KEYGEN,
+    LI,
+    LINK,
+    LISTING,
+    MAIN,
+    MARQUEE,
+    MATH,
+    MENU,
+    META,
+    NAV,
+    NOBR,
+    NOEMBED,
+    NOFRAMES,
+    NOSCRIPT,
+    OBJECT,
+    OL,
+    OPTGROUP,
+    OPTION,
+    P,
+    PARAM,
+    PLAINTEXT,
+    PRE,
+    RB,
+    RP,
+    RT,
+    RTC,
+    RUBY,
+    S,
+    SCRIPT,
+    SEARCH,
+    SECTION,
+    SELECT,
+    SMALL,
+    SOURCE,
+    SPAN,
+    STRIKE,
+    STRONG,
+    STYLE,
+    SUB,
+    SUMMARY,
+    SUP,
+    SVG,
+    TABLE,
+    TBODY,
+    TD,
+    TEMPLATE,
+    TEXTAREA,
+    TFOOT,
+    TH,
+    THEAD,
+    TITLE,
+    TR,
+    TRACK,
+    TT,
+    U,
+    UL,
+    VAR,
+    WBR,
+    XMP,
+
+    // Doctypes to align with PHP impl
+    Doctype,
+
+    // Some tags we're interested in for special parsing ru
+    Arbitrary(Rc<[u8]>),
+}
+
+impl From<&[u8]> for TagName {
+    fn from(value: &[u8]) -> Self {
+        let upper_cased = value.to_ascii_uppercase();
+        match upper_cased.as_slice() {
+            b"A" => Self::A,
+            b"ADDRESS" => Self::ADDRESS,
+            b"APPLET" => Self::APPLET,
+            b"AREA" => Self::AREA,
+            b"ARTICLE" => Self::ARTICLE,
+            b"ASIDE" => Self::ASIDE,
+            b"B" => Self::B,
+            b"BASE" => Self::BASE,
+            b"BASEFONT" => Self::BASEFONT,
+            b"BGSOUND" => Self::BGSOUND,
+            b"BIG" => Self::BIG,
+            b"BLOCKQUOTE" => Self::BLOCKQUOTE,
+            b"BODY" => Self::BODY,
+            b"BR" => Self::BR,
+            b"BUTTON" => Self::BUTTON,
+            b"CAPTION" => Self::CAPTION,
+            b"CENTER" => Self::CENTER,
+            b"CODE" => Self::CODE,
+            b"COL" => Self::COL,
+            b"COLGROUP" => Self::COLGROUP,
+            b"DD" => Self::DD,
+            b"DETAILS" => Self::DETAILS,
+            b"DIALOG" => Self::DIALOG,
+            b"DIR" => Self::DIR,
+            b"DIV" => Self::DIV,
+            b"DL" => Self::DL,
+            b"DT" => Self::DT,
+            b"EM" => Self::EM,
+            b"EMBED" => Self::EMBED,
+            b"FIELDSET" => Self::FIELDSET,
+            b"FIGCAPTION" => Self::FIGCAPTION,
+            b"FIGURE" => Self::FIGURE,
+            b"FONT" => Self::FONT,
+            b"FOOTER" => Self::FOOTER,
+            b"FORM" => Self::FORM,
+            b"FRAME" => Self::FRAME,
+            b"FRAMESET" => Self::FRAMESET,
+            b"HEAD" => Self::HEAD,
+            b"HEADER" => Self::HEADER,
+            b"HGROUP" => Self::HGROUP,
+            b"HR" => Self::HR,
+            b"HTML" => Self::HTML,
+            b"I" => Self::I,
+            b"IFRAME" => Self::IFRAME,
+            b"IMG" => Self::IMG,
+            b"INPUT" => Self::INPUT,
+            b"KEYGEN" => Self::KEYGEN,
+            b"LI" => Self::LI,
+            b"LINK" => Self::LINK,
+            b"LISTING" => Self::LISTING,
+            b"MAIN" => Self::MAIN,
+            b"MARQUEE" => Self::MARQUEE,
+            b"MATH" => Self::MATH,
+            b"MENU" => Self::MENU,
+            b"META" => Self::META,
+            b"NAV" => Self::NAV,
+            b"NOBR" => Self::NOBR,
+            b"NOEMBED" => Self::NOEMBED,
+            b"NOFRAMES" => Self::NOFRAMES,
+            b"NOSCRIPT" => Self::NOSCRIPT,
+            b"OBJECT" => Self::OBJECT,
+            b"OL" => Self::OL,
+            b"OPTGROUP" => Self::OPTGROUP,
+            b"OPTION" => Self::OPTION,
+            b"P" => Self::P,
+            b"PARAM" => Self::PARAM,
+            b"PLAINTEXT" => Self::PLAINTEXT,
+            b"PRE" => Self::PRE,
+            b"RB" => Self::RB,
+            b"RP" => Self::RP,
+            b"RT" => Self::RT,
+            b"RTC" => Self::RTC,
+            b"RUBY" => Self::RUBY,
+            b"S" => Self::S,
+            b"SCRIPT" => Self::SCRIPT,
+            b"SEARCH" => Self::SEARCH,
+            b"SECTION" => Self::SECTION,
+            b"SELECT" => Self::SELECT,
+            b"SMALL" => Self::SMALL,
+            b"SOURCE" => Self::SOURCE,
+            b"SPAN" => Self::SPAN,
+            b"STRIKE" => Self::STRIKE,
+            b"STRONG" => Self::STRONG,
+            b"STYLE" => Self::STYLE,
+            b"SUB" => Self::SUB,
+            b"SUMMARY" => Self::SUMMARY,
+            b"SUP" => Self::SUP,
+            b"SVG" => Self::SVG,
+            b"TABLE" => Self::TABLE,
+            b"TBODY" => Self::TBODY,
+            b"TD" => Self::TD,
+            b"TEMPLATE" => Self::TEMPLATE,
+            b"TEXTAREA" => Self::TEXTAREA,
+            b"TFOOT" => Self::TFOOT,
+            b"TH" => Self::TH,
+            b"THEAD" => Self::THEAD,
+            b"TITLE" => Self::TITLE,
+            b"TR" => Self::TR,
+            b"TRACK" => Self::TRACK,
+            b"TT" => Self::TT,
+            b"U" => Self::U,
+            b"UL" => Self::UL,
+            b"VAR" => Self::VAR,
+            b"WBR" => Self::WBR,
+            b"XMP" => Self::XMP,
+            _ => Self::Arbitrary(value.into()),
+        }
     }
 }
