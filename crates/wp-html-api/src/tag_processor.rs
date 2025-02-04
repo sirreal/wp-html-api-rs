@@ -7,8 +7,8 @@ macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
         $expression[$offset..]
             .iter()
-            .take_while(|&b| matches!(b, $pattern))
-            .count()
+            .position(|&b| !matches!(b, $pattern))
+            .unwrap_or(0)
     }};
 }
 
@@ -16,8 +16,8 @@ macro_rules! strcspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
         $expression[$offset..]
             .iter()
-            .take_while(|&b| !matches!(b, $pattern))
-            .count()
+            .position(|&b| matches!(b, $pattern))
+            .unwrap_or($expression.len() - $offset)
     }};
 }
 
