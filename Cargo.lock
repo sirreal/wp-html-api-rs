@@ -1637,8 +1637,13 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 [[package]]
 name = "wp-html-api"
 version = "0.1.0"
+
+[[package]]
+name = "wp-html-api-php-ext"
+version = "0.1.0"
 dependencies = [
  "ext-php-rs",
+ "wp-html-api",
 ]
 
 [[package]]

@@ -831,26 +831,29 @@ impl HtmlProcessor {
             }
         }
 
-        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0 || {
-            let adjusted_current_node = self.get_adjusted_current_node().unwrap();
-            let is_closer = self.is_tag_closer();
-            let is_start_tag =
-                self.tag_processor.parser_state == ParserState::MatchedTag && !is_closer;
+        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0
+            || {
+                let adjusted_current_node = self.get_adjusted_current_node().unwrap();
+                let is_closer = self.is_tag_closer();
+                let is_start_tag =
+                    self.tag_processor.parser_state == ParserState::MatchedTag && !is_closer;
 
-            adjusted_current_node.namespace == ParsingNamespace::Html
-                || (adjusted_current_node.integration_node_type
-                    == Some(IntegrationNodeType::MathML)
-                    && ((is_start_tag
-                        && (token_name != TagName("MGLYPH".as_bytes().into()).into()
-                            && token_name != TagName("MALIGNMARK".as_bytes().into()).into()))
-                        || token_name == TokenType::Text.into()))
-                || (adjusted_current_node.namespace == ParsingNamespace::MathML
-                    && adjusted_current_node.node_name == TagName("ANNOTATION-XML".as_bytes().into()).into()
-                    && is_start_tag
-                    && token_name == TagName("SVG".as_bytes().into()).into())
-                || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::HTML)
-                    && (is_start_tag || token_name == TokenType::Text.into()))
-        };
+                adjusted_current_node.namespace == ParsingNamespace::Html
+                    || (adjusted_current_node.integration_node_type
+                        == Some(IntegrationNodeType::MathML)
+                        && ((is_start_tag
+                            && (!matches!( &token_name, NodeName::Tag( TagName::Arbitrary(arbitrary_name) ) if &**arbitrary_name == b"MGLYPH" || &**arbitrary_name == b"MALIGNMARK"  )))
+                            || token_name == TokenType::Text.into()))
+                    || (adjusted_current_node.namespace == ParsingNamespace::MathML
+                        && matches!(
+                            &adjusted_current_node.node_name, NodeName::Tag(TagName::Arbitrary(arbitrary_name)) if &**arbitrary_name == b"ANNOTATION-XML")
+                        && is_start_tag
+                        && matches!(
+                            &adjusted_current_node.node_name, NodeName::Tag(TagName::Arbitrary(arbitrary_name)) if &**arbitrary_name == b"SVG"))
+                    || (adjusted_current_node.integration_node_type
+                        == Some(IntegrationNodeType::HTML)
+                        && (is_start_tag || token_name == TokenType::Text.into()))
+            };
 
         let step_result = if !parse_in_current_insertion_mode {
             self.step_in_foreign_content()
@@ -1574,8 +1577,10 @@ impl HtmlProcessor {
          */
         let option_tag_name = self.tag_processor.get_tag();
         if let Some(tag_name) = &option_tag_name {
-            if self.get_namespace() == ParsingNamespace::Html && tag_name == "IMAGE" {
-                return Some(TagName("IMG".as_bytes().into()));
+            if self.get_namespace() == ParsingNamespace::Html
+                && matches!(tag_name , TagName::Arbitrary(arbitrary_name) if &**arbitrary_name == b"IMAGE")
+            {
+                return Some(TagName::IMG);
             }
         }
         option_tag_name

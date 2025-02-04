@@ -3,8 +3,6 @@
 
 use std::{collections::HashMap, rc::Rc};
 
-use crate::tag_name::TagName;
-
 macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
         $expression[$offset..]
@@ -1160,55 +1158,25 @@ impl TagProcessor {
 
         let mut at = self.bytes_already_parsed;
 
-        debug_assert!(matches!(
-            tag_name,
-            TagName::IFRAME
-                | TagName::NOEMBED
-                | TagName::NOFRAMES
-                | TagName::STYLE
-                | TagName::TEXTAREA
-                | TagName::TITLE
-                | TagName::XMP
-        ));
+        let match_end_tag: Box<[u8]> = match tag_name {
+            TagName::IFRAME => Box::new(*b"</IFRAME"),
+            TagName::NOEMBED => Box::new(*b"</NOEMBED"),
+            TagName::NOFRAMES => Box::new(*b"</NOFRAMES"),
+            TagName::STYLE => Box::new(*b"</STYLE"),
+            TagName::TEXTAREA => Box::new(*b"</TEXTAREA"),
+            TagName::TITLE => Box::new(*b"</TITLE"),
+            TagName::XMP => Box::new(*b"</XMP"),
+            _ => unreachable!("skip_rcdata must receive and allowed tag_name"),
+        };
 
-        'closer_search: while at < doc_length {
-            // Find next potential closing tag
-            match strpos(&self.html_bytes, b"</", at) {
-                Some(pos) => {
-                    at = pos;
-                    self.tag_name_starts_at = Some(at);
-                }
-                None => return false,
-            }
-
-            // Fail if there is no possible tag closer
-            if at + tag_length >= doc_length {
+        while at + match_end_tag.len() + 1 < doc_length {
+            at = if let Some(end_candidate_pos) = stripos(&self.html_bytes, &match_end_tag, at) {
+                end_candidate_pos
+            } else {
                 return false;
-            }
-
-            at += 2;
-
-            /*
-             * Find a case-insensitive match to the tag name.
-             *
-             * Because tag names are limited to US-ASCII there is no
-             * need to perform any kind of Unicode normalization when
-             * comparing; any character which could be impacted by such
-             * normalization could not be part of a tag name.
-             */
-            if !tag_name.iter().enumerate().all(|(offset, &char)| {
-                char == self.html_bytes[at + offset]
-                    || char == self.html_bytes[at + offset].to_ascii_uppercase()
-            }) {
-                continue 'closer_search;
-            }
-
-            at += tag_length;
+            };
+            at += match_end_tag.len();
             self.bytes_already_parsed = at;
-
-            if at >= self.html_bytes.len() {
-                return false;
-            }
 
             /*
              * Ensure that the tag name terminates to avoid matching on
@@ -1239,7 +1207,7 @@ impl TagProcessor {
                 return false;
             }
 
-            if self.html_bytes[at] == b'/' && self.html_bytes[at + 1] == b'>' {
+            if &self.html_bytes[at..at + 2] == b"/>" {
                 self.bytes_already_parsed = at + 2;
                 return true;
             }
@@ -1701,8 +1669,26 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     }
 }
 
+fn stripos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
+    let window_size = pattern.len();
+    match window_size {
+        0 => Some(offset),
+        1 => {
+            let pattern = pattern[0];
+            s[offset..]
+                .iter()
+                .position(|&b| b.to_ascii_uppercase() == pattern)
+                .map(|pos| pos + offset)
+        }
+        _ => s[offset..]
+            .windows(window_size)
+            .position(|bytes| bytes.to_ascii_uppercase() == pattern)
+            .map(|pos| pos + offset),
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) enum TokenType {
+pub enum TokenType {
     Tag,
     Text,
     CdataSection,
@@ -1815,7 +1801,7 @@ mod test {
     }
 }
 #[derive(PartialEq, Clone, Debug)]
-pub(crate) enum NodeName {
+pub enum NodeName {
     Tag(TagName),
     Token(TokenType),
 }
@@ -1827,5 +1813,234 @@ impl Into<NodeName> for TagName {
 impl Into<NodeName> for TokenType {
     fn into(self) -> NodeName {
         NodeName::Token(self)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TagName {
+    A,
+    ADDRESS,
+    APPLET,
+    AREA,
+    ARTICLE,
+    ASIDE,
+    B,
+    BASE,
+    BASEFONT,
+    BGSOUND,
+    BIG,
+    BLOCKQUOTE,
+    BODY,
+    BR,
+    BUTTON,
+    CAPTION,
+    CENTER,
+    CODE,
+    COL,
+    COLGROUP,
+    DD,
+    DETAILS,
+    DIALOG,
+    DIR,
+    DIV,
+    DL,
+    DT,
+    EM,
+    EMBED,
+    FIELDSET,
+    FIGCAPTION,
+    FIGURE,
+    FONT,
+    FOOTER,
+    FORM,
+    FRAME,
+    FRAMESET,
+    HEAD,
+    HEADER,
+    HGROUP,
+    HR,
+    HTML,
+    I,
+    IFRAME,
+    IMG,
+    INPUT,
+    KEYGEN,
+    LI,
+    LINK,
+    LISTING,
+    MAIN,
+    MARQUEE,
+    MATH,
+    MENU,
+    META,
+    NAV,
+    NOBR,
+    NOEMBED,
+    NOFRAMES,
+    NOSCRIPT,
+    OBJECT,
+    OL,
+    OPTGROUP,
+    OPTION,
+    P,
+    PARAM,
+    PLAINTEXT,
+    PRE,
+    RB,
+    RP,
+    RT,
+    RTC,
+    RUBY,
+    S,
+    SCRIPT,
+    SEARCH,
+    SECTION,
+    SELECT,
+    SMALL,
+    SOURCE,
+    SPAN,
+    STRIKE,
+    STRONG,
+    STYLE,
+    SUB,
+    SUMMARY,
+    SUP,
+    SVG,
+    TABLE,
+    TBODY,
+    TD,
+    TEMPLATE,
+    TEXTAREA,
+    TFOOT,
+    TH,
+    THEAD,
+    TITLE,
+    TR,
+    TRACK,
+    TT,
+    U,
+    UL,
+    VAR,
+    WBR,
+    XMP,
+
+    // Doctypes to align with PHP impl
+    Doctype,
+
+    // Some tags we're interested in for special parsing ru
+    Arbitrary(Rc<[u8]>),
+}
+
+impl From<&[u8]> for TagName {
+    fn from(value: &[u8]) -> Self {
+        let upper_cased = value.to_ascii_uppercase();
+        match upper_cased.as_slice() {
+            b"A" => Self::A,
+            b"ADDRESS" => Self::ADDRESS,
+            b"APPLET" => Self::APPLET,
+            b"AREA" => Self::AREA,
+            b"ARTICLE" => Self::ARTICLE,
+            b"ASIDE" => Self::ASIDE,
+            b"B" => Self::B,
+            b"BASE" => Self::BASE,
+            b"BASEFONT" => Self::BASEFONT,
+            b"BGSOUND" => Self::BGSOUND,
+            b"BIG" => Self::BIG,
+            b"BLOCKQUOTE" => Self::BLOCKQUOTE,
+            b"BODY" => Self::BODY,
+            b"BR" => Self::BR,
+            b"BUTTON" => Self::BUTTON,
+            b"CAPTION" => Self::CAPTION,
+            b"CENTER" => Self::CENTER,
+            b"CODE" => Self::CODE,
+            b"COL" => Self::COL,
+            b"COLGROUP" => Self::COLGROUP,
+            b"DD" => Self::DD,
+            b"DETAILS" => Self::DETAILS,
+            b"DIALOG" => Self::DIALOG,
+            b"DIR" => Self::DIR,
+            b"DIV" => Self::DIV,
+            b"DL" => Self::DL,
+            b"DT" => Self::DT,
+            b"EM" => Self::EM,
+            b"EMBED" => Self::EMBED,
+            b"FIELDSET" => Self::FIELDSET,
+            b"FIGCAPTION" => Self::FIGCAPTION,
+            b"FIGURE" => Self::FIGURE,
+            b"FONT" => Self::FONT,
+            b"FOOTER" => Self::FOOTER,
+            b"FORM" => Self::FORM,
+            b"FRAME" => Self::FRAME,
+            b"FRAMESET" => Self::FRAMESET,
+            b"HEAD" => Self::HEAD,
+            b"HEADER" => Self::HEADER,
+            b"HGROUP" => Self::HGROUP,
+            b"HR" => Self::HR,
+            b"HTML" => Self::HTML,
+            b"I" => Self::I,
+            b"IFRAME" => Self::IFRAME,
+            b"IMG" => Self::IMG,
+            b"INPUT" => Self::INPUT,
+            b"KEYGEN" => Self::KEYGEN,
+            b"LI" => Self::LI,
+            b"LINK" => Self::LINK,
+            b"LISTING" => Self::LISTING,
+            b"MAIN" => Self::MAIN,
+            b"MARQUEE" => Self::MARQUEE,
+            b"MATH" => Self::MATH,
+            b"MENU" => Self::MENU,
+            b"META" => Self::META,
+            b"NAV" => Self::NAV,
+            b"NOBR" => Self::NOBR,
+            b"NOEMBED" => Self::NOEMBED,
+            b"NOFRAMES" => Self::NOFRAMES,
+            b"NOSCRIPT" => Self::NOSCRIPT,
+            b"OBJECT" => Self::OBJECT,
+            b"OL" => Self::OL,
+            b"OPTGROUP" => Self::OPTGROUP,
+            b"OPTION" => Self::OPTION,
+            b"P" => Self::P,
+            b"PARAM" => Self::PARAM,
+            b"PLAINTEXT" => Self::PLAINTEXT,
+            b"PRE" => Self::PRE,
+            b"RB" => Self::RB,
+            b"RP" => Self::RP,
+            b"RT" => Self::RT,
+            b"RTC" => Self::RTC,
+            b"RUBY" => Self::RUBY,
+            b"S" => Self::S,
+            b"SCRIPT" => Self::SCRIPT,
+            b"SEARCH" => Self::SEARCH,
+            b"SECTION" => Self::SECTION,
+            b"SELECT" => Self::SELECT,
+            b"SMALL" => Self::SMALL,
+            b"SOURCE" => Self::SOURCE,
+            b"SPAN" => Self::SPAN,
+            b"STRIKE" => Self::STRIKE,
+            b"STRONG" => Self::STRONG,
+            b"STYLE" => Self::STYLE,
+            b"SUB" => Self::SUB,
+            b"SUMMARY" => Self::SUMMARY,
+            b"SUP" => Self::SUP,
+            b"SVG" => Self::SVG,
+            b"TABLE" => Self::TABLE,
+            b"TBODY" => Self::TBODY,
+            b"TD" => Self::TD,
+            b"TEMPLATE" => Self::TEMPLATE,
+            b"TEXTAREA" => Self::TEXTAREA,
+            b"TFOOT" => Self::TFOOT,
+            b"TH" => Self::TH,
+            b"THEAD" => Self::THEAD,
+            b"TITLE" => Self::TITLE,
+            b"TR" => Self::TR,
+            b"TRACK" => Self::TRACK,
+            b"TT" => Self::TT,
+            b"U" => Self::U,
+            b"UL" => Self::UL,
+            b"VAR" => Self::VAR,
+            b"WBR" => Self::WBR,
+            b"XMP" => Self::XMP,
+            _ => Self::Arbitrary(value.into()),
+        }
     }
 }
