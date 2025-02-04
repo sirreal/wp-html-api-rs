@@ -1669,10 +1669,20 @@ fn substr(s: &[u8], offset: usize, length: usize) -> &[u8] {
 
 fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     let window_size = pattern.len();
-    s[offset..]
-        .windows(window_size)
-        .position(|bytes| bytes == pattern)
-        .map(|pos| pos + offset)
+    match window_size {
+        0 => Some(offset),
+        1 => {
+            let pattern = pattern[0];
+            s[offset..]
+                .iter()
+                .position(|&b| b == pattern)
+                .map(|pos| pos + offset)
+        }
+        _ => s[offset..]
+            .windows(window_size)
+            .position(|bytes| bytes == pattern)
+            .map(|pos| pos + offset),
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
