@@ -848,19 +848,14 @@ impl TagProcessor {
          *
          * @see https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
          */
-        let name_length = if b'=' == self.html_bytes[self.bytes_already_parsed] {
-            1 + strcspn!(
+        let starts_with_equal = self.html_bytes.get(self.bytes_already_parsed).unwrap() == &b'=';
+        let start_shift = if starts_with_equal { 1 } else { 0 };
+        let name_length = start_shift
+            + strcspn!(
                 self.html_bytes,
                 b'=' | b'/' | b'>' | b' ' | b'\t' | 0x0c | b'\r' | b'\n',
-                self.bytes_already_parsed + 1
-            )
-        } else {
-            strcspn!(
-                self.html_bytes,
-                b'=' | b'/' | b'>' | b' ' | b'\t' | 0x0c | b'\r' | b'\n',
-                self.bytes_already_parsed
-            )
-        };
+                self.bytes_already_parsed + start_shift
+            );
 
         // No attribute, just tag closer.
         if 0 == name_length || self.bytes_already_parsed + name_length >= doc_length {
@@ -868,7 +863,6 @@ impl TagProcessor {
         }
 
         let attribute_start = self.bytes_already_parsed;
-        let attribute_name = substr(&self.html_bytes, attribute_start, name_length).into();
         self.bytes_already_parsed += name_length;
         if self.bytes_already_parsed >= doc_length {
             self.parser_state = ParserState::IncompleteInput;
@@ -930,7 +924,7 @@ impl TagProcessor {
         }
 
         self.attributes.push(AttributeToken {
-            name: attribute_name,
+            name_length,
             value_starts_at: value_start,
             value_length,
             start: attribute_start,
@@ -942,8 +936,11 @@ impl TagProcessor {
     }
 
     pub fn get_tag(&self) -> Option<TagName> {
-        if !matches!(self.parser_state, ParserState::MatchedTag | ParserState::Comment) {
-            return None
+        if !matches!(
+            self.parser_state,
+            ParserState::MatchedTag | ParserState::Comment
+        ) {
+            return None;
         }
 
         let at = self.tag_name_starts_at.unwrap();
@@ -955,7 +952,11 @@ impl TagProcessor {
             return None;
         }
 
-        Some(TagName(substr(&self.html_bytes, at, length).to_ascii_uppercase().into()))
+        Some(TagName(
+            substr(&self.html_bytes, at, length)
+                .to_ascii_uppercase()
+                .into(),
+        ))
     }
 
     /// Indicates the kind of matched token, if any.
@@ -1267,10 +1268,7 @@ impl TagProcessor {
     pub fn is_tag_closer(&self) -> bool {
         self.parser_state == ParserState::MatchedTag
             && self.is_closing_tag.unwrap_or(false)
-            && self
-                .get_tag()
-                .map(|t| t != "BR")
-                .unwrap_or(false)
+            && self.get_tag().map(|t| t != "BR").unwrap_or(false)
     }
 
     /// Returns if a matched tag contains the given ASCII case-insensitive class name.
@@ -1675,7 +1673,7 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     }
 
     if (offset + p_len) > s.len() {
-        return None
+        return None;
     }
 
     let p_end = pattern.get(p_len - 1).unwrap();
@@ -1684,11 +1682,11 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
         let c = s.get(at + p_len - 1).unwrap();
 
         if c != p_end {
-            continue
+            continue;
         }
 
         if &s[at..(at + p_len)] == pattern {
-            return Some(at)
+            return Some(at);
         }
     }
 
@@ -1735,8 +1733,8 @@ impl Into<Rc<str>> for TokenType {
 }
 
 struct AttributeToken {
-    /// The attribute name.
-    pub name: Rc<[u8]>,
+    // The byte length of the name.
+    pub name_length: usize,
 
     /// The byte offset where the attribute value starts.
     pub value_starts_at: usize,
