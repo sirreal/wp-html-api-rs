@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::{collections::HashMap, ops::Deref, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
+
+use crate::tag_name::TagName;
 
 macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
@@ -280,7 +282,7 @@ impl TagProcessor {
          *
          * @see static::skip_newline_at
          */
-        if tag == "LISTING" || tag == "PRE" {
+        if tag == TagName::LISTING || tag == TagName::PRE {
             self.skip_newline_at = Some(self.bytes_already_parsed);
             return true;
         }
@@ -304,10 +306,10 @@ impl TagProcessor {
         let tag_name_length = self.tag_name_length.unwrap();
         let tag_ends_at = self.token_starts_at.unwrap() + self.token_length.unwrap();
 
-        let found_closer = match tag.0.deref() {
-            b"SCRIPT" => self.skip_script_data(),
+        let found_closer = match tag {
+            TagName::SCRIPT => self.skip_script_data(),
 
-            b"TEXTAREA" | b"TITLE" => self.skip_rcdata(&tag),
+            TagName::TEXTAREA | TagName::TITLE => self.skip_rcdata(&tag),
 
             /*
              * In the browser this list would include the NOSCRIPT element,
@@ -320,7 +322,11 @@ impl TagProcessor {
              * because the parsing of this token depends on client application.
              * The NOSCRIPT element cannot be represented in the XHTML syntax.
              */
-            b"IFRAME" | b"NOEMBED" | b"NOFRAMES" | b"STYLE" | b"XMP" => self.skip_rawtext(&tag),
+            TagName::IFRAME
+            | TagName::NOEMBED
+            | TagName::NOFRAMES
+            | TagName::STYLE
+            | TagName::XMP => self.skip_rawtext(&tag),
 
             // No other tags should be treated in their entirety here.
             _ => return true,
@@ -958,11 +964,7 @@ impl TagProcessor {
             return None;
         }
 
-        Some(TagName(
-            substr(&self.html_bytes, at, length)
-                .to_ascii_uppercase()
-                .into(),
-        ))
+        Some(substr(&self.html_bytes, at, length).into())
     }
 
     /// Indicates the kind of matched token, if any.
@@ -999,7 +1001,7 @@ impl TagProcessor {
     pub fn get_token_name(&self) -> Option<NodeName> {
         match self.parser_state {
             ParserState::MatchedTag => Some(NodeName::Tag(self.get_tag().unwrap())),
-            ParserState::Doctype => Some(NodeName::Tag(TagName("html".as_bytes().into()))),
+            ParserState::Doctype => Some(NodeName::Tag(TagName::Doctype)),
             _ => self.get_token_type().map(|t| NodeName::Token(t)),
         }
     }
@@ -1152,12 +1154,22 @@ impl TagProcessor {
     ///
     /// @param string $tag_name The uppercase tag name which will close the RCDATA region.
     /// @return bool Whether an end to the RCDATA region was found before the end of the document.
-    fn skip_rcdata(&mut self, tag: &TagName) -> bool {
+    fn skip_rcdata(&mut self, tag_name: &TagName) -> bool {
         let doc_length = self.html_bytes.len();
-        let TagName(tag_name) = tag;
-        let tag_length = tag_name.len();
+        let tag_length = self.tag_name_length.unwrap();
 
         let mut at = self.bytes_already_parsed;
+
+        debug_assert!(matches!(
+            tag_name,
+            TagName::IFRAME
+                | TagName::NOEMBED
+                | TagName::NOFRAMES
+                | TagName::STYLE
+                | TagName::TEXTAREA
+                | TagName::TITLE
+                | TagName::XMP
+        ));
 
         'closer_search: while at < doc_length {
             // Find next potential closing tag
@@ -1274,7 +1286,7 @@ impl TagProcessor {
     pub fn is_tag_closer(&self) -> bool {
         self.parser_state == ParserState::MatchedTag
             && self.is_closing_tag.unwrap_or(false)
-            && self.get_tag().map(|t| t != "BR").unwrap_or(false)
+            && self.get_tag().map(|t| t != TagName::BR).unwrap_or(false)
     }
 
     /// Returns if a matched tag contains the given ASCII case-insensitive class name.
@@ -1544,23 +1556,23 @@ impl TagProcessor {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub(crate) struct TagName(pub Rc<[u8]>);
-impl PartialEq<&str> for TagName {
-    fn eq(&self, other: &&str) -> bool {
-        self.0.as_ref() == other.as_bytes()
-    }
-}
-impl PartialEq<str> for TagName {
-    fn eq(&self, other: &str) -> bool {
-        self.0.as_ref() == other.as_bytes()
-    }
-}
-impl Into<Rc<[u8]>> for TagName {
-    fn into(self) -> Rc<[u8]> {
-        self.0
-    }
-}
+//#[derive(Debug, PartialEq, Clone)]
+//pub(crate) struct TagName(pub Rc<[u8]>);
+//impl PartialEq<&str> for TagName {
+//    fn eq(&self, other: &&str) -> bool {
+//        self.0.as_ref() == other.as_bytes()
+//    }
+//}
+//impl PartialEq<str> for TagName {
+//    fn eq(&self, other: &str) -> bool {
+//        self.0.as_ref() == other.as_bytes()
+//    }
+//}
+//impl Into<Rc<[u8]>> for TagName {
+//    fn into(self) -> Rc<[u8]> {
+//        self.0
+//    }
+//}
 
 impl Default for TagProcessor {
     fn default() -> Self {
@@ -1791,20 +1803,14 @@ mod test {
         let mut processor = TagProcessor::new(b"<p>Hello world!</p>");
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
-        assert_eq!(
-            processor.get_token_name().unwrap(),
-            TagName("P".as_bytes().into()).into()
-        );
-        assert_eq!(processor.get_tag().unwrap(), TagName("P".as_bytes().into()));
+        assert_eq!(processor.get_token_name().unwrap(), TagName::P.into());
+        assert_eq!(processor.get_tag().unwrap(), TagName::P);
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Text);
         assert_eq!(processor.get_token_name().unwrap(), TokenType::Text.into());
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
-        assert_eq!(
-            processor.get_token_name().unwrap(),
-            TagName("P".as_bytes().into()).into()
-        );
+        assert_eq!(processor.get_token_name().unwrap(), TagName::P.into());
         assert_eq!(processor.is_tag_closer(), true);
     }
 }
