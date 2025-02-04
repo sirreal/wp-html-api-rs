@@ -942,8 +942,11 @@ impl TagProcessor {
     }
 
     pub fn get_tag(&self) -> Option<TagName> {
-        if !matches!(self.parser_state, ParserState::MatchedTag | ParserState::Comment) {
-            return None
+        if !matches!(
+            self.parser_state,
+            ParserState::MatchedTag | ParserState::Comment
+        ) {
+            return None;
         }
 
         let at = self.tag_name_starts_at.unwrap();
@@ -955,7 +958,11 @@ impl TagProcessor {
             return None;
         }
 
-        Some(TagName(substr(&self.html_bytes, at, length).to_ascii_uppercase().into()))
+        Some(TagName(
+            substr(&self.html_bytes, at, length)
+                .to_ascii_uppercase()
+                .into(),
+        ))
     }
 
     /// Indicates the kind of matched token, if any.
@@ -1267,10 +1274,7 @@ impl TagProcessor {
     pub fn is_tag_closer(&self) -> bool {
         self.parser_state == ParserState::MatchedTag
             && self.is_closing_tag.unwrap_or(false)
-            && self
-                .get_tag()
-                .map(|t| t != "BR")
-                .unwrap_or(false)
+            && self.get_tag().map(|t| t != "BR").unwrap_or(false)
     }
 
     /// Returns if a matched tag contains the given ASCII case-insensitive class name.
