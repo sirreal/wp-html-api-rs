@@ -4,17 +4,16 @@ import * as htmlApi from './pkg/wp_html_api_wasm.js';
 
 const {WP_HTML_Tag_Processor} = htmlApi;
 
-const processor = new WP_HTML_Tag_Processor(new TextEncoder().encode(`<div></div><style>
-body>*::before {
-content: attr(fallback);
-}
-</style>
-`))
+import fs from 'node:fs';
+import { performance } from 'node:perf_hooks';
+const html = fs.readFileSync('../../html-standard.html','utf8');
 
-processor.print_bytes();
+const processor = new WP_HTML_Tag_Processor(new TextEncoder().encode(html))
 
+let c = 0;
+const start = performance.now();
 while ( processor.next_token() ) {
-  console.log( processor.get_token_type() );
-  console.log( new TextDecoder().decode(processor.token()) );
-  console.log( "%o", new TextDecoder().decode(processor.get_tag()) );
+  c++;
 }
+const done = performance.now();
+console.log(`Processed ${c} tokens in ${done-start}ms`);
