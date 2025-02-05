@@ -27,7 +27,7 @@ pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
     bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
-    html_bytes: Rc<[u8]>,
+    html_bytes: Box<[u8]>,
     is_closing_tag: Option<bool>,
     lexical_updates: Vec<HtmlTextReplacement>,
     pub(crate) parser_state: ParserState,
@@ -403,7 +403,7 @@ impl TagProcessor {
     /// Returns the string representation of the HTML Tag Processor.
     ///
     /// @return string The processed HTML.
-    pub fn get_updated_html(&self) -> Rc<[u8]> {
+    pub fn get_updated_html(&self) -> Box<[u8]> {
         self.html_bytes.clone()
     }
 
@@ -940,23 +940,11 @@ impl TagProcessor {
     }
 
     pub fn get_tag(&self) -> Option<TagName> {
-        if !matches!(
-            self.parser_state,
-            ParserState::MatchedTag | ParserState::Comment
-        ) {
-            return None;
+        if let (Some(at), Some(length)) = (self.tag_name_starts_at, self.tag_name_length) {
+            Some(substr(&self.html_bytes, at, length).into())
+        } else {
+            None
         }
-
-        let at = self.tag_name_starts_at.unwrap();
-        let length = self.tag_name_length.unwrap();
-
-        if ParserState::Comment == self.parser_state
-            && Some(CommentType::PiNodeLookalike) != self.comment_type
-        {
-            return None;
-        }
-
-        Some(substr(&self.html_bytes, at, length).into())
     }
 
     /// Indicates the kind of matched token, if any.
@@ -1165,11 +1153,11 @@ impl TagProcessor {
 
         while at + match_end_tag.len() + 1 < doc_length {
             at = if let Some(end_candidate_pos) = stripos(&self.html_bytes, &match_end_tag, at) {
-                end_candidate_pos
+                self.tag_name_starts_at = Some(end_candidate_pos);
+                end_candidate_pos + match_end_tag.len()
             } else {
                 return false;
             };
-            at += match_end_tag.len();
             self.bytes_already_parsed = at;
 
             /*
@@ -1542,7 +1530,7 @@ impl Default for TagProcessor {
             attributes: vec![],
             bytes_already_parsed: 0,
             comment_type: None,
-            html_bytes: Rc::new([]),
+            html_bytes: Box::new([]),
             is_closing_tag: None,
             lexical_updates: Vec::new(),
             parser_state: Default::default(),
