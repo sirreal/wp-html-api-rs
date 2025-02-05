@@ -1166,6 +1166,7 @@ impl TagProcessor {
 
         while at + match_end_tag.len() + 1 < doc_length {
             at = if let Some(end_candidate_pos) = stripos(&self.html_bytes, &match_end_tag, at) {
+                self.tag_name_starts_at = Some(end_candidate_pos);
                 end_candidate_pos + match_end_tag.len()
             } else {
                 return false;
