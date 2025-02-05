@@ -947,14 +947,6 @@ impl TagProcessor {
         }
     }
 
-    pub fn current_token(&self) -> Option<&[u8]> {
-        if let (Some(at), Some(length)) = (self.token_starts_at, self.token_length) {
-            Some(&self.html_bytes[at..at + length])
-        } else {
-            None
-        }
-    }
-
     /// Indicates the kind of matched token, if any.
     ///
     /// This differs from `get_token_name()` in that it always
@@ -1212,7 +1204,6 @@ impl TagProcessor {
     ///
     /// @param string $tag_name The uppercase tag name which will close the RAWTEXT region.
     /// @return bool Whether an end to the RAWTEXT region was found before the end of the document.
-    #[inline(never)]
     fn skip_rawtext(&mut self, tag_name: &TagName) -> bool {
         /*
          * These two functions distinguish themselves on whether character references are
