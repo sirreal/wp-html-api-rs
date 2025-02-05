@@ -27,7 +27,7 @@ pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
     bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
-    html_bytes: Rc<[u8]>,
+    pub html_bytes: Box<[u8]>,
     is_closing_tag: Option<bool>,
     lexical_updates: Vec<HtmlTextReplacement>,
     pub(crate) parser_state: ParserState,
@@ -335,6 +335,11 @@ impl TagProcessor {
             self.bytes_already_parsed = was_at;
             return false;
         }
+        println!("found closer");
+        println!(
+            "bap {:?} tsa {:?}",
+            &self.bytes_already_parsed, &self.token_starts_at
+        );
 
         /*
          * The values here look like they reference the opening tag but they reference
@@ -403,7 +408,7 @@ impl TagProcessor {
     /// Returns the string representation of the HTML Tag Processor.
     ///
     /// @return string The processed HTML.
-    pub fn get_updated_html(&self) -> Rc<[u8]> {
+    pub fn get_updated_html(&self) -> Box<[u8]> {
         self.html_bytes.clone()
     }
 
@@ -940,23 +945,19 @@ impl TagProcessor {
     }
 
     pub fn get_tag(&self) -> Option<TagName> {
-        if !matches!(
-            self.parser_state,
-            ParserState::MatchedTag | ParserState::Comment
-        ) {
-            return None;
+        if let (Some(at), Some(length)) = (self.tag_name_starts_at, self.tag_name_length) {
+            Some(substr(&self.html_bytes, at, length).into())
+        } else {
+            None
         }
+    }
 
-        let at = self.tag_name_starts_at.unwrap();
-        let length = self.tag_name_length.unwrap();
-
-        if ParserState::Comment == self.parser_state
-            && Some(CommentType::PiNodeLookalike) != self.comment_type
-        {
-            return None;
+    pub fn current_token(&self) -> Option<&[u8]> {
+        if let (Some(at), Some(length)) = (self.token_starts_at, self.token_length) {
+            Some(&self.html_bytes[at..at + length])
+        } else {
+            None
         }
-
-        Some(substr(&self.html_bytes, at, length).into())
     }
 
     /// Indicates the kind of matched token, if any.
@@ -1165,11 +1166,10 @@ impl TagProcessor {
 
         while at + match_end_tag.len() + 1 < doc_length {
             at = if let Some(end_candidate_pos) = stripos(&self.html_bytes, &match_end_tag, at) {
-                end_candidate_pos
+                end_candidate_pos + match_end_tag.len()
             } else {
                 return false;
             };
-            at += match_end_tag.len();
             self.bytes_already_parsed = at;
 
             /*
@@ -1216,6 +1216,7 @@ impl TagProcessor {
     ///
     /// @param string $tag_name The uppercase tag name which will close the RAWTEXT region.
     /// @return bool Whether an end to the RAWTEXT region was found before the end of the document.
+    #[inline(never)]
     fn skip_rawtext(&mut self, tag_name: &TagName) -> bool {
         /*
          * These two functions distinguish themselves on whether character references are
@@ -1542,7 +1543,7 @@ impl Default for TagProcessor {
             attributes: vec![],
             bytes_already_parsed: 0,
             comment_type: None,
-            html_bytes: Rc::new([]),
+            html_bytes: Box::new([]),
             is_closing_tag: None,
             lexical_updates: Vec::new(),
             parser_state: Default::default(),
@@ -1673,6 +1674,8 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     None
 }
 
+// remove all .unpack() and adjust until it compiles :)
+//
 fn stripos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     let p_len = pattern.len();
 
@@ -1684,21 +1687,10 @@ fn stripos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
         return None;
     }
 
-    let p_end = pattern.get(p_len - 1).unwrap();
-
-    for at in offset..s.len() {
-        let c = s.get(at + p_len - 1).unwrap();
-
-        if !p_end.eq_ignore_ascii_case(&c) {
-            continue;
-        }
-
-        if pattern.eq_ignore_ascii_case(&s[at..(at + p_len)]) {
-            return Some(at);
-        }
-    }
-
-    None
+    s[offset..]
+        .windows(p_len)
+        .position(|window| window.eq_ignore_ascii_case(pattern))
+        .map(|pos| offset + pos)
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -1798,6 +1790,7 @@ mod test {
         assert_eq!(strpos(b"0123456789", b"1", 2), None);
     }
 
+    // revert my substr search?
     #[test]
     fn test_base_next_token() {
         let mut processor = TagProcessor::new(b"<p>Hello world!</p>");

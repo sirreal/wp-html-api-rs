@@ -9,35 +9,37 @@ $use_color  = match ( $opts['color'] ?? null ) {
     'auto', null    => posix_isatty(STDOUT),
 };
 $input_file = $opts['i'] ?? null;
-$is_verbose = isset( $opts['v'] );
+$is_verbose = true || isset( $opts['v'] );
 
 if ( null === $input_file ) {
-    $html = <<<'HTML'
-        <title lang=en-US> <titl> foo bar & great <titl></tItLe>
-        <p class='separator introduction' =5>Hello world!</p>
-        <script>
-        a script
-        </script>
-        <h1 name="title">You made it!</h1>
-        <!-- look at this comment -->
-        HTML;
+$html = <<<'HTML'
+<div></div><style>
+body>*::before {
+content: attr(fallback);
+}
+</style>
+
+HTML;
 } else {
     $html = file_get_contents( $input_file );
 }
 
 $processor = new WP_HTML_Tag_Processor($html);
 
+$processor->print_bytes();
+
 $c = 0;
 $ns = -hrtime( true );
 if ( $is_verbose ) {
     while ($processor->next_token()) {
         $c++;
+        var_dump($processor->token());
 
         switch ( $processor->get_token_type() ) {
             case '#tag':
                 echo $use_color
-                    ? "\e[2;35m<\e[0;34m{$processor->get_token_name()}\e[2;35m>\e[m\n"
-                    : "<{$processor->get_token_name()}>\n";
+                    ? "\e[2;35m<\e[0;34m{$processor->get_tag()}\e[2;35m>\e[m\n"
+                    : "<{$processor->get_tag()}>\n";
                 break;
 
             case '#text':
