@@ -32,12 +32,6 @@ impl WP_HTML_Tag_Processor {
         Self { processor }
     }
 
-    pub fn print_bytes(&self) -> () {
-        for b in self.processor.html_bytes.iter() {
-            console_log!("{:?}", *b as char);
-        }
-    }
-
     pub fn get_updated_html(&self) -> () {
         todo!()
     }

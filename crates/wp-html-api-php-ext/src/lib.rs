@@ -46,12 +46,6 @@ impl WP_HTML_Tag_Processor {
         todo!();
     }
 
-    pub fn print_bytes(#[this] this: &mut ZendClassObject<Self>) -> () {
-        for b in this.processor.html_bytes.iter() {
-            println!("{:?}", *b as char);
-        }
-    }
-
     pub fn get_modifiable_text(#[this] this: &mut ZendClassObject<Self>) -> String {
         this.processor.get_modifiable_text().as_ref().into()
     }

@@ -27,7 +27,7 @@ pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
     bytes_already_parsed: usize,
     comment_type: Option<CommentType>,
-    pub html_bytes: Box<[u8]>,
+    html_bytes: Box<[u8]>,
     is_closing_tag: Option<bool>,
     lexical_updates: Vec<HtmlTextReplacement>,
     pub(crate) parser_state: ParserState,
