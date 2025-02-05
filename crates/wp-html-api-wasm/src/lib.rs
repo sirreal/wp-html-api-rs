@@ -42,10 +42,6 @@ impl WP_HTML_Tag_Processor {
         todo!()
     }
 
-    pub fn token(&self) -> Option<Box<[u8]>> {
-        self.processor.current_token().map(|t| t.into())
-    }
-
     pub fn next_token(&mut self) -> bool {
         self.processor.next_token()
     }

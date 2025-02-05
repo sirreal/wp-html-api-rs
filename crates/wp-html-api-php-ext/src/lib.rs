@@ -56,10 +56,6 @@ impl WP_HTML_Tag_Processor {
         this.processor.get_modifiable_text().as_ref().into()
     }
 
-    pub fn token(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor.current_token().map(|t| t.to_vec().into())
-    }
-
     pub fn set_modifiable_text(
         #[this] this: &mut ZendClassObject<Self>,
         updated_text: String,
