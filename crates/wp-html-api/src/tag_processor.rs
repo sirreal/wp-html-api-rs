@@ -1661,8 +1661,6 @@ fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     None
 }
 
-// remove all .unpack() and adjust until it compiles :)
-//
 fn stripos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     let p_len = pattern.len();
 
@@ -1674,10 +1672,21 @@ fn stripos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
         return None;
     }
 
-    s[offset..]
-        .windows(p_len)
-        .position(|window| window.eq_ignore_ascii_case(pattern))
-        .map(|pos| offset + pos)
+    let p_end = pattern.get(p_len - 1).unwrap();
+
+    for at in offset..s.len() {
+        let c = s.get(at + p_len - 1).unwrap();
+
+        if !p_end.eq_ignore_ascii_case(&c) {
+            continue;
+        }
+
+        if pattern.eq_ignore_ascii_case(&s[at..(at + p_len)]) {
+            return Some(at);
+        }
+    }
+
+    None
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -1777,7 +1786,6 @@ mod test {
         assert_eq!(strpos(b"0123456789", b"1", 2), None);
     }
 
-    // revert my substr search?
     #[test]
     fn test_base_next_token() {
         let mut processor = TagProcessor::new(b"<p>Hello world!</p>");
