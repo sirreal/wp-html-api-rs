@@ -335,11 +335,6 @@ impl TagProcessor {
             self.bytes_already_parsed = was_at;
             return false;
         }
-        println!("found closer");
-        println!(
-            "bap {:?} tsa {:?}",
-            &self.bytes_already_parsed, &self.token_starts_at
-        );
 
         /*
          * The values here look like they reference the opening tag but they reference
