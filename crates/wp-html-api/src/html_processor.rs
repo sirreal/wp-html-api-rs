@@ -10,8 +10,8 @@ mod stack_of_open_elements;
 use std::{collections::VecDeque, rc::Rc};
 
 use crate::tag_processor::{
-    CommentType, CompatMode, NodeName, ParserState, ParsingNamespace, TagName, TagProcessor,
-    TextNodeClassification, TokenType,
+    CommentType, CompatMode, HtmlSpan, NodeName, ParserState, ParsingNamespace, TagName,
+    TagProcessor, TextNodeClassification, TokenType,
 };
 use active_formatting_elements::*;
 use html_stack_event::*;
@@ -1125,7 +1125,74 @@ impl HtmlProcessor {
     /// @return bool Whether an element was found.
 
     fn step_before_html(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => return self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * Parse error: ignore the token.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::BEFORE_HEAD;
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "head", "body", "html", "br"
+             *   > Act as described in the "anything else" entry below.
+             * > Any other end tag
+             *
+             * Closing BR tags are always reported by the Tag Processor as opening tags.
+             */
+            Op::TagPop(tag_name)
+                if matches!(
+                    tag_name,
+                    TagName::HEAD | TagName::BODY | TagName::HTML | TagName::BR,
+                ) =>
+            {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Anything else.
+             *
+             * > Create an html element whose node document is the Document object.
+             * > Append it to the Document object. Put this element in the stack of open elements.
+             * > Switch the insertion mode to "before head", then reprocess the token.
+             */
+            _ => {
+                self.insert_virtual_node(TagName::HTML, None);
+                self.state.insertion_mode = InsertionMode::BEFORE_HEAD;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+        }
     }
 
     /// Parses next element in the 'before head' insertion mode.
@@ -1506,12 +1573,11 @@ impl HtmlProcessor {
         todo!()
     }
 
+    ///
     /// Internal helpers
+    ///
 
     /// Creates a new bookmark for the currently-matched token and returns the generated name.
-    ///
-    /// @since 6.4.0
-    /// @since 6.5.0 Renamed from bookmark_tag() to bookmark_token().
     ///
     /// @throws Exception When unable to allocate requested bookmark.
     ///
@@ -2184,8 +2250,29 @@ impl HtmlProcessor {
     /// @param string|null $bookmark_name Optional. Name to give bookmark for created virtual node.
     ///                                   Defaults to auto-creating a bookmark name.
     /// @return WP_HTML_Token Newly-created virtual token.
-    fn insert_virtual_node(&mut self, token_name: &str, bookmark_name: Option<&str>) -> HTMLToken {
-        todo!()
+    fn insert_virtual_node(
+        &mut self,
+        token_name: TagName,
+        bookmark_name: Option<&str>,
+    ) -> HTMLToken {
+        let current_bookmark = self
+            .state
+            .current_token
+            .clone()
+            .unwrap()
+            .bookmark_name
+            .unwrap();
+        let start = {
+            let here = self.tag_processor.bookmarks.get(&current_bookmark).unwrap();
+            here.start
+        };
+        let name = self.bookmark_token().unwrap();
+        self.tag_processor
+            .bookmarks
+            .insert(name.clone(), HtmlSpan::new(start, 0));
+        let token = HTMLToken::new(Some(name.as_ref()), token_name.into(), false);
+        self.insert_html_element(token.clone());
+        token
     }
 
     ///

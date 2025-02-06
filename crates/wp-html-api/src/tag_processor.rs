@@ -59,7 +59,7 @@ pub struct TagProcessor {
     /// tables are found inside paragraph elements.
     pub(crate) compat_mode: CompatMode,
 
-    pub(crate) bookmarks: HashMap<Box<str>, HtmlSpan>,
+    pub(crate) bookmarks: HashMap<Rc<str>, HtmlSpan>,
 }
 
 #[derive(Debug, PartialEq, Default)]
@@ -109,8 +109,8 @@ struct HtmlTextReplacement {
 
 #[derive(Clone)]
 pub(crate) struct HtmlSpan {
-    start: usize,
-    length: usize,
+    pub(crate) start: usize,
+    pub(crate) length: usize,
 }
 impl HtmlSpan {
     pub fn new(start: usize, length: usize) -> Self {
