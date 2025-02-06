@@ -1208,9 +1208,81 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_before_head(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * Parse error: ignore the token.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                let token: HTMLToken = self.state.current_token.clone().unwrap();
+                self.insert_html_element(token);
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > A start tag whose tag name is "head"
+             */
+            Op::TagPush(TagName::HEAD) => {
+                let token: HTMLToken = self.state.current_token.clone().unwrap();
+                self.insert_html_element(token.clone());
+                self.state.head_element = Some(token);
+                self.state.insertion_mode = InsertionMode::IN_HEAD;
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "head", "body", "html", "br"
+             *   > Act as described in the "anything else" entry below.
+             * > Any other end tag
+             *
+             * Closing BR tags are always reported by the Tag Processor as opening tags.
+             */
+            Op::TagPop(tag_name)
+                if matches!(
+                    tag_name,
+                    TagName::HEAD | TagName::BODY | TagName::HTML | TagName::BR,
+                ) =>
+            {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Anything else
+             *
+             * > Insert an HTML element for a "head" start tag token with no attributes.
+             */
+            _ => {
+                self.insert_virtual_node(TagName::HEAD, None);
+                self.state.insertion_mode = InsertionMode::IN_HEAD;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+        }
     }
 
     /// Parses next element in the 'in head' insertion mode.
