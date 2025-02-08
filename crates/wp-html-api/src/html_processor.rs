@@ -10,8 +10,8 @@ mod stack_of_open_elements;
 use std::{collections::VecDeque, rc::Rc};
 
 use crate::tag_processor::{
-    CommentType, CompatMode, HtmlSpan, NodeName, ParserState, ParsingNamespace, TagName,
-    TagProcessor, TextNodeClassification, TokenType,
+    AttributeValue, CommentType, CompatMode, HtmlSpan, NodeName, ParserState, ParsingNamespace,
+    TagName, TagProcessor, TextNodeClassification, TokenType,
 };
 use active_formatting_elements::*;
 use html_stack_event::*;
@@ -66,6 +66,8 @@ impl ProcessorState {
         }
     }
 }
+
+#[derive(PartialEq)]
 enum EncodingConfidence {
     Tentative,
     Certain,
@@ -1290,17 +1292,118 @@ impl HtmlProcessor {
     /// This internal function performs the 'in head' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inhead
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_head(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * Parse error: ignore the token.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                // Insert the character.
+                let token: HTMLToken = self.state.current_token.clone().unwrap();
+                self.insert_html_element(token.clone());
+                true
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             *
+            	* Parse error: ignore the token.
+             */
+            Op::Token(TokenType::Doctype) => self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > A start tag whose tag name is one of: "base", "basefont", "bgsound", "link"
+             */
+            Op::TagPush(TagName::BASE | TagName::BASEFONT | TagName::BGSOUND | TagName::LINK) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "meta"
+             */
+            Op::TagPush(TagName::META) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+
+                /*
+                 * > If the active speculative HTML parser is null, then:
+                 * >   - If the element has a charset attribute, and getting an encoding from
+                 * >     its value results in an encoding, and the confidence is currently
+                 * >     tentative, then change the encoding to the resulting encoding.
+                 */
+                if let AttributeValue::String(_) = self.get_attribute("charset") {
+                    if (EncodingConfidence::Tentative == self.state.encoding_confidence) {
+                        self.bail(
+                            "Cannot yet process META tags with charset to determine encoding."
+                                .to_string(),
+                        );
+                    }
+                    todo!()
+                }
+
+                /*
+                 * >   - Otherwise, if the element has an http-equiv attribute whose value is
+                 * >     an ASCII case-insensitive match for the string "Content-Type", and
+                 * >     the element has a content attribute, and applying the algorithm for
+                 * >     extracting a character encoding from a meta element to that attribute's
+                 * >     value returns an encoding, and the confidence is currently tentative,
+                 * >     then change the encoding to the extracted encoding.
+                 */
+
+                if let (AttributeValue::String(http_equiv), AttributeValue::String(_)) = (
+                    self.get_attribute("http-equiv"),
+                    self.get_attribute("content"),
+                ) {
+                    if http_equiv.eq_ignore_ascii_case(b"Content-Type")
+                        && self.state.encoding_confidence == EncodingConfidence::Tentative
+                    {
+                        self.bail( "Cannot yet process META tags with http-equiv Content-Type to determine encoding.".to_string() );
+                    }
+                }
+
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "title"
+             */
+            Op::TagPush(TagName::TITLE) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            _ => {
+                unimplemented!("Stopped ad +NOFRAMES +STYLE rule.")
+            }
+        }
     }
 
     /// Parses next element in the 'in head noscript' insertion mode.
@@ -1838,9 +1941,9 @@ impl HtmlProcessor {
     /// @param string $name Name of attribute whose value is requested.
     /// @return string|true|null Value of attribute or `null` if not available. Boolean attributes return `true`.
 
-    pub fn get_attribute(&self, name: &str) -> Option<String> {
+    pub fn get_attribute(&self, name: &str) -> AttributeValue {
         if self.is_virtual() {
-            None
+            AttributeValue::BooleanFalse
         } else {
             self.tag_processor.get_attribute(name)
         }

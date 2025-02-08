@@ -1468,7 +1468,7 @@ impl TagProcessor {
         todo!()
     }
 
-    pub fn get_attribute(&self, name: &str) -> Option<String> {
+    pub fn get_attribute(&self, name: &str) -> AttributeValue {
         todo!()
     }
 
@@ -2045,4 +2045,12 @@ impl From<&[u8]> for TagName {
             _ => Self::Arbitrary(value.into()),
         }
     }
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
+pub enum AttributeValue {
+    #[default]
+    BooleanFalse,
+    BooleanTrue,
+    String(Rc<[u8]>),
 }
