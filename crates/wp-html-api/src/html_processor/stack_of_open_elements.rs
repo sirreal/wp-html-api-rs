@@ -60,4 +60,12 @@ impl StackOfOpenElements {
     pub(crate) fn current_node_is(&self, tag_name: &TagName) -> bool {
         todo!()
     }
+
+    pub(crate) fn has_any_h1_to_h6_element_in_scope(&self) -> _ {
+        todo!()
+    }
+
+    pub(crate) fn pop_until_any_h1_to_h6(&self) -> _ {
+        todo!()
+    }
 }

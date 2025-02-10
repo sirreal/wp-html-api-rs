@@ -2230,6 +2230,51 @@ impl HtmlProcessor {
                 self.close_a_p_element();
                 true
             }
+
+            /*
+             * > An end tag whose tag name is "li"
+             * > An end tag whose tag name is one of: "dd", "dt"
+             */
+            Op::TagPop(tag_name @ (TagName::LI | TagName::DD | TagName::DT)) => todo!(),
+
+            /*
+             * > An end tag whose tag name is one of: "h1", "h2", "h3", "h4", "h5", "h6"
+             */
+            Op::TagPop(
+                tag_name @ (TagName::H1
+                | TagName::H2
+                | TagName::H3
+                | TagName::H4
+                | TagName::H5
+                | TagName::H6),
+            ) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_any_h1_to_h6_element_in_scope()
+                {
+                    /*
+                     * This is a parse error; ignore the token.
+                     *
+                     * @todo Indicate a parse error once it's possible.
+                     */
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.generate_implied_end_tags(None);
+
+                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                        // Parse error: this error doesn't impact parsing.
+                    }
+
+                    self.state.stack_of_open_elements.pop_until_any_h1_to_h6();
+                    true
+                }
+            }
+
+            /*
+             * > A start tag whose tag name is "a"
+             */
+            Op::TagPush(TagName::A) => todo!(),
         }
     }
 
