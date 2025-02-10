@@ -2324,6 +2324,68 @@ impl HtmlProcessor {
                     .push(self.state.current_token.clone().unwrap());
                 true
             }
+
+            /*
+             * > An end tag whose tag name is one of: "a", "b", "big", "code", "em", "font", "i",
+             * > "nobr", "s", "small", "strike", "strong", "tt", "u"
+             */
+            Op::TagPop(
+                TagName::A
+                | TagName::B
+                | TagName::BIG
+                | TagName::CODE
+                | TagName::EM
+                | TagName::FONT
+                | TagName::I
+                | TagName::NOBR
+                | TagName::S
+                | TagName::SMALL
+                | TagName::STRIKE
+                | TagName::STRONG
+                | TagName::TT
+                | TagName::U,
+            ) => {
+                self.run_adoption_agency_algorithm();
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "applet", "marquee", "object"
+             */
+            Op::TagPush(TagName::APPLET | TagName::MARQUEE | TagName::OBJECT) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.active_formatting_elements.insert_marker();
+                self.state.frameset_ok = false;
+                true
+            }
+
+            /*
+             * > A end tag token whose tag name is one of: "applet", "marquee", "object"
+             */
+            Op::TagPop(tag_name @ (TagName::APPLET | TagName::MARQUEE | TagName::OBJECT)) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&tag_name)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.generate_implied_end_tags(None);
+                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                        // This is a parse error.
+                    }
+
+                    self.state
+                        .stack_of_open_elements
+                        .pop_until(&self.get_tag().unwrap());
+                    self.state
+                        .active_formatting_elements
+                        .clear_up_to_last_marker();
+                    true
+                }
+            }
         }
     }
 
