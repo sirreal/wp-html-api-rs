@@ -1501,8 +1501,82 @@ impl TagProcessor {
         b'/' == self.html_bytes[self.token_starts_at.unwrap() + self.token_length.unwrap() - 2]
     }
 
+    /**
+     * Subdivides a matched text node, splitting NULL byte sequences and decoded whitespace as
+     * distinct nodes prefixes.
+     *
+     * Note that once anything that's neither a NULL byte nor decoded whitespace is
+     * encountered, then the remainder of the text node is left intact as generic text.
+     *
+     *  - The HTML Processor uses this to apply distinct rules for different kinds of text.
+     *  - Inter-element whitespace can be detected and skipped with this method.
+     *
+     * Text nodes aren't eagerly subdivided because there's no need to split them unless
+     * decisions are being made on NULL byte sequences or whitespace-only text.
+     *
+     * Example:
+     *
+     *     $processor = new WP_HTML_Tag_Processor( "\x00Apples & Oranges" );
+     *     true  === $processor->next_token();                   // Text is "Apples & Oranges".
+     *     true  === $processor->subdivide_text_appropriately(); // Text is "".
+     *     true  === $processor->next_token();                   // Text is "Apples & Oranges".
+     *     false === $processor->subdivide_text_appropriately();
+     *
+     *     $processor = new WP_HTML_Tag_Processor( "&#x13; \r\n\tMore" );
+     *     true  === $processor->next_token();                   // Text is "␤ ␤␉More".
+     *     true  === $processor->subdivide_text_appropriately(); // Text is "␤ ␤␉".
+     *     true  === $processor->next_token();                   // Text is "More".
+     *     false === $processor->subdivide_text_appropriately();
+     *
+     * @return bool Whether the text node was subdivided.
+     */
     pub(crate) fn subdivide_text_appropriately(&mut self) -> bool {
-        todo!()
+        if self.parser_state != ParserState::TextNode {
+            return false;
+        }
+
+        self.text_node_classification = TextNodeClassification::Generic;
+
+        /*
+         * NULL bytes are treated categorically different than numeric character
+         * references whose number is zero. `&#x00;` is not the same as `"\x00"`.
+         */
+        let leading_nulls = strspn!(&self.html_bytes, b'\x00', self.text_starts_at.unwrap());
+        if leading_nulls > 0 {
+            self.token_length = Some(leading_nulls);
+            self.text_length = Some(leading_nulls);
+            self.bytes_already_parsed = self.token_length.unwrap() + leading_nulls;
+            self.text_node_classification = TextNodeClassification::NullSequence;
+            return true;
+        }
+
+        let mut at = self.text_starts_at.unwrap();
+        let end = self.text_starts_at.unwrap() + self.text_length.unwrap();
+        while at < end {
+            let skipped = strspn!(
+                self.html_bytes,
+                b' ' | b'\t' | 0x0c | b'\r' | b'\n' | b'/' | b'>',
+                at
+            );
+            at += skipped;
+
+            if at < end && b'&' == self.html_bytes[at] {
+                todo!("implement character reference handling");
+            }
+
+            break;
+        }
+
+        if (at > self.text_starts_at.unwrap()) {
+            let new_length = at - self.text_starts_at.unwrap();
+            self.text_length = Some(new_length);
+            self.token_length = Some(new_length);
+            self.bytes_already_parsed = at;
+            self.text_node_classification = TextNodeClassification::Whitespace;
+            return true;
+        }
+
+        false
     }
 }
 
