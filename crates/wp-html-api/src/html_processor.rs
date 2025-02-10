@@ -2113,6 +2113,30 @@ impl HtmlProcessor {
                     true
                 }
             }
+
+            /*
+             * > A start tag whose tag name is "li"
+             * > A start tag whose tag name is one of: "dd", "dt"
+             */
+            Op::TagPush(tag_name @ (TagName::LI | TagName::DD | TagName::DT)) => {
+                todo!()
+            }
+
+            /*
+             * > A start tag whose tag name is "plaintext"
+             */
+            Op::TagPush(TagName::PLAINTEXT) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                /*
+                 * @todo This may need to be handled in the Tag Processor and turn into
+                 *       a single self-contained tag like TEXTAREA, whose modifiable text
+                 *       is the rest of the input document as plaintext.
+                 */
+                self.bail("Cannot process PLAINTEXT elements.".to_string())
+            }
         }
     }
 
