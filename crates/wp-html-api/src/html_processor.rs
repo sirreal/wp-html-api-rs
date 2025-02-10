@@ -1869,6 +1869,41 @@ impl HtmlProcessor {
                 | TagName::TITLE,
             )
             | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+
+            /*
+             * > A start tag whose tag name is "body"
+             *
+             * This tag in the IN BODY insertion mode is a parse error.
+             */
+            Op::TagPush(TagName::BODY) => {
+                if 1 == self.state.stack_of_open_elements.count()
+                    || !matches!(
+                        self.state.stack_of_open_elements.at(2),
+                        Some(HTMLToken {
+                            node_name: NodeName::Tag(TagName::BODY),
+                            ..
+                        })
+                    )
+                    || self
+                        .state
+                        .stack_of_open_elements
+                        .contains(&TagName::TEMPLATE)
+                {
+                    // Ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    /*
+                     * > Otherwise, set the frameset-ok flag to "not ok"; then, for each attribute
+                     * > on the token, check to see if the attribute is already present on the body
+                     * > element (the second element) on the stack of open elements, and if it is
+                     * > not, add the attribute and its corresponding value to that element.
+                     *
+                     * This parser does not currently support this behavior: ignore the token.
+                     */
+                    self.state.frameset_ok = false;
+                    self.step(NodeToProcess::ProcessNextNode)
+                }
+            }
         }
     }
 

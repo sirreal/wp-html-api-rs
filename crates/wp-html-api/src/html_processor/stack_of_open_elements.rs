@@ -44,4 +44,8 @@ impl StackOfOpenElements {
     pub(crate) fn pop_until(&self, tag_name: &TagName) -> bool {
         todo!()
     }
+
+    pub(crate) fn at(&self, nth: usize) -> Option<HTMLToken> {
+        todo!()
+    }
 }
