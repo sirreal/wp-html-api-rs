@@ -1904,6 +1904,33 @@ impl HtmlProcessor {
                     self.step(NodeToProcess::ProcessNextNode)
                 }
             }
+
+            /*
+             * > A start tag whose tag name is "frameset"
+             *
+             * This tag in the IN BODY insertion mode is a parse error.
+             */
+            Op::TagPush(TagName::FRAMESET) => {
+                if 1 == self.state.stack_of_open_elements.count()
+                    || !matches!(
+                        self.state.stack_of_open_elements.at(2),
+                        Some(HTMLToken {
+                            node_name: NodeName::Tag(TagName::BODY),
+                            ..
+                        })
+                    )
+                    || !self.state.frameset_ok
+                {
+                    // Ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    /*
+                     * > Otherwise, run the following steps:
+                     */
+                    self.bail("Cannot process non-ignored FRAMESET tags.".to_string());
+                    todo!()
+                }
+            }
         }
     }
 
