@@ -2275,6 +2275,32 @@ impl HtmlProcessor {
              * > A start tag whose tag name is "a"
              */
             Op::TagPush(TagName::A) => todo!(),
+
+            /*
+             * > A start tag whose tag name is one of: "b", "big", "code", "em", "font", "i",
+             * > "s", "small", "strike", "strong", "tt", "u"
+             */
+            Op::TagPush(
+                TagName::B
+                | TagName::BIG
+                | TagName::CODE
+                | TagName::EM
+                | TagName::FONT
+                | TagName::I
+                | TagName::S
+                | TagName::SMALL
+                | TagName::STRIKE
+                | TagName::STRONG
+                | TagName::TT
+                | TagName::U,
+            ) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state
+                    .active_formatting_elements
+                    .push(self.state.current_token.clone().unwrap());
+                true
+            }
         }
     }
 
