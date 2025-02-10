@@ -670,7 +670,11 @@ impl HtmlProcessor {
         }
 
         // Avoid sending close events for elements which don't expect a closing
-        if is_pop && !self.expects_closer(Some(&current_element.token)) {
+        if is_pop
+            && !self
+                .expects_closer(Some(&current_element.token))
+                .unwrap_or(false)
+        {
             return self.next_visitable_token();
         }
 
@@ -767,8 +771,48 @@ impl HtmlProcessor {
     /// @return bool|null Whether to expect a closer for the currently-matched node,
     ///                   or `null` if not matched on any token.
 
-    pub fn expects_closer(&self, node: Option<&HTMLToken>) -> bool {
-        todo!()
+    pub fn expects_closer(&self, node: Option<&HTMLToken>) -> Option<bool> {
+        let token_name = node
+            .map(|n| n.node_name.clone())
+            .or_else(|| self.get_token_name())?;
+        let token_name_namespace = node
+            .map(|n| n.namespace.clone())
+            .unwrap_or_else(|| self.get_namespace());
+        let token_has_self_closing = node
+            .map(|n| n.has_self_closing_flag)
+            .unwrap_or_else(|| self.has_self_closing_flag());
+
+        let result = match token_name {
+            // Comments, text nodes, and other atomic tokens.
+            // Doctype declarations.
+            NodeName::Token(TokenType::Text)
+            | NodeName::Token(TokenType::CdataSection)
+            | NodeName::Token(TokenType::Comment)
+            | NodeName::Token(TokenType::Doctype)
+            | NodeName::Token(TokenType::PresumptuousTag)
+            | NodeName::Token(TokenType::FunkyComment) => false,
+
+            NodeName::Token(TokenType::Tag) => unreachable!("#tag NodeName should never exist"),
+
+            // Void elements.
+            // Special atomic elements.
+            NodeName::Tag(tag_name) if token_name_namespace == ParsingNamespace::Html => {
+                !(matches!(
+                    tag_name,
+                    TagName::IFRAME
+                        | TagName::NOEMBED
+                        | TagName::NOFRAMES
+                        | TagName::SCRIPT
+                        | TagName::STYLE
+                        | TagName::TEXTAREA
+                        | TagName::TITLE
+                        | TagName::XMP
+                ) || Self::is_void(tag_name))
+            }
+            // Self-closing elements in foreign content.
+            NodeName::Tag(_) => !token_has_self_closing,
+        };
+        Some(result)
     }
 
     /// Steps through the HTML document and stop at the next tag, if any.
@@ -799,7 +843,7 @@ impl HtmlProcessor {
              * on the stack is a void element, it must be closed.
              */
             if let Some(top_node) = self.state.stack_of_open_elements.current_node() {
-                if !self.expects_closer(Some(top_node)) {
+                if !self.expects_closer(Some(top_node)).unwrap_or(false) {
                     self.state.stack_of_open_elements.pop();
                 }
             }
@@ -3128,7 +3172,6 @@ impl HtmlProcessor {
     /// @since 6.6.0 Subclassed for the HTML Processor.
     ///
     /// @return bool Whether the currently matched tag contains the self-closing flag.
-
     pub fn has_self_closing_flag(&self) -> bool {
         if self.is_virtual() {
             false
