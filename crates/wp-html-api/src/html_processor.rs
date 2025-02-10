@@ -1400,8 +1400,123 @@ impl HtmlProcessor {
                 true
             }
 
+            /*
+             * > A start tag whose tag name is "noscript", if the scripting flag is enabled
+             * > A start tag whose tag name is one of: "noframes", "style"
+             *
+             * The scripting flag is never enabled in this parser.
+             */
+            Op::TagPush(TagName::NOFRAMES | TagName::STYLE) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "noscript", if the scripting flag is disabled
+             */
+            Op::TagPush(TagName::NOSCRIPT) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::IN_HEAD_NOSCRIPT;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "script"
+             *
+             * @todo Could the adjusted insertion location be anything other than the current location?
+             */
+            Op::TagPush(TagName::SCRIPT) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is "head"
+             */
+            Op::TagPop(TagName::HEAD) => {
+                self.state.stack_of_open_elements.pop();
+                self.state.insertion_mode = InsertionMode::AFTER_HEAD;
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "body", "html", "br"
+             *
+             * This rule will be implemented a guard on the "any other close tag" rule below.
+             *
+             * BR tags are always reported by the Tag Processor as opening tags.
+             */
+
+            /*
+             * > A start tag whose tag name is "template"
+             *
+             * @todo Could the adjusted insertion location be anything other than the current location?
+             */
+            Op::TagPush(TagName::TEMPLATE) => {
+                self.state.active_formatting_elements.insert_marker();
+                self.state.frameset_ok = false;
+
+                self.state.insertion_mode = InsertionMode::IN_TEMPLATE;
+                self.state
+                    .stack_of_template_insertion_modes
+                    .push(InsertionMode::IN_TEMPLATE);
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                return true;
+            }
+
+            /*
+             * > An end tag whose tag name is "template"
+             */
+            Op::TagPop(TagName::TEMPLATE) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .contains(&TagName::TEMPLATE)
+                {
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.generate_implied_end_tags_thoroughly();
+                    // @todo If the current node is not a TEMPLATE elemnt, then
+                    // indicate a parse error once it's possible.
+                    self.state
+                        .stack_of_open_elements
+                        .pop_until(&TagName::TEMPLATE);
+                    self.state
+                        .active_formatting_elements
+                        .clear_up_to_last_marker();
+                    self.state.stack_of_template_insertion_modes.pop();
+                    true
+                }
+            }
+            /*
+             * > A start tag whose tag name is "head"
+             * > Any other end tag
+             *
+             * This includes handling for the end tag rules for BODY and HTML elements above that should
+             * fall through to the anything else case below.
+             *
+             * // Parse error: ignore the token.
+             */
+            Op::TagPush(TagName::HEAD) => self.step(NodeToProcess::ProcessNextNode),
+            Op::TagPop(tag_name) if tag_name != TagName::BODY && tag_name != TagName::HTML => {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            Op::TagPop(TagName::BODY | TagName::HTML) => {
+                /*
+                 * > Act as described in the "anything else" entry below.
+                 */
+                todo!();
+            }
+
+            /*
+             * > Anything else
+             */
             _ => {
-                unimplemented!("Stopped ad +NOFRAMES +STYLE rule.")
+                self.state.stack_of_open_elements.pop();
+                self.state.insertion_mode = InsertionMode::AFTER_HEAD;
+                self.step(NodeToProcess::ReprocessCurrentNode)
             }
         }
     }

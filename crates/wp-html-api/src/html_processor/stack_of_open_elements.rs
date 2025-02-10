@@ -1,4 +1,7 @@
-use crate::html_processor::HTMLToken;
+use crate::{
+    html_processor::HTMLToken,
+    tag_processor::{NodeName, TagName},
+};
 
 pub(super) struct StackOfOpenElements {
     pub stack: Vec<HTMLToken>,
@@ -22,5 +25,23 @@ impl StackOfOpenElements {
 
     pub(crate) fn count(&self) -> usize {
         self.stack.len()
+    }
+
+    pub(crate) fn contains(&self, tag_name: &TagName) -> bool {
+        self.stack.iter().any(|t| {
+            if let HTMLToken {
+                node_name: NodeName::Tag(tag_on_stack),
+                ..
+            } = t
+            {
+                tag_on_stack == tag_name
+            } else {
+                false
+            }
+        })
+    }
+
+    pub(crate) fn pop_until(&self, tag_name: &TagName) -> bool {
+        todo!()
     }
 }
