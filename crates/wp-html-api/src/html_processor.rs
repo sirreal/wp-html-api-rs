@@ -2135,7 +2135,31 @@ impl HtmlProcessor {
                  *       a single self-contained tag like TEXTAREA, whose modifiable text
                  *       is the rest of the input document as plaintext.
                  */
-                self.bail("Cannot process PLAINTEXT elements.".to_string())
+                self.bail("Cannot process PLAINTEXT elements.".to_string());
+                todo!()
+            }
+
+            /*
+             * > A start tag whose tag name is "button"
+             */
+            Op::TagPush(TagName::BUTTON) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::BUTTON)
+                {
+                    // Parse error: this error does not impact the logic here.
+                    self.generate_implied_end_tags(None);
+                    self.state
+                        .stack_of_open_elements
+                        .pop_until(&TagName::BUTTON);
+                }
+
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+
+                true
             }
         }
     }
