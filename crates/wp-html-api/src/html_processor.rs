@@ -1931,6 +1931,40 @@ impl HtmlProcessor {
                     todo!()
                 }
             }
+
+            /*
+             * > An end tag whose tag name is "body"
+             */
+            Op::TagPop(TagName::BODY) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::BODY)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    /*
+                     * > Otherwise, if there is a node in the stack of open elements that is not either a
+                     * > dd element, a dt element, an li element, an optgroup element, an option element,
+                     * > a p element, an rb element, an rp element, an rt element, an rtc element, a tbody
+                     * > element, a td element, a tfoot element, a th element, a thread element, a tr
+                     * > element, the body element, or the html element, then this is a parse error.
+                     *
+                     * There is nothing to do for this parse error, so don't check for it.
+                     */
+
+                    self.state.insertion_mode = InsertionMode::AFTER_BODY;
+                    /*
+                     * The BODY element is not removed from the stack of open elements.
+                     * Only internal state has changed, this does not qualify as a "step"
+                     * in terms of advancing through the document to another token.
+                     * Nothing has been pushed or popped.
+                     * Proceed to parse the next item.
+                     */
+                    self.step(NodeToProcess::ProcessNextNode)
+                }
+            }
         }
     }
 

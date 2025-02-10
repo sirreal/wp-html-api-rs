@@ -48,4 +48,8 @@ impl StackOfOpenElements {
     pub(crate) fn at(&self, nth: usize) -> Option<HTMLToken> {
         todo!()
     }
+
+    pub(crate) fn has_element_in_scope(&self, body: &TagName) -> bool {
+        todo!()
+    }
 }
