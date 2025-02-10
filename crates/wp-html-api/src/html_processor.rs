@@ -1773,7 +1773,46 @@ impl HtmlProcessor {
     /// @return bool Whether an element was found.
 
     fn step_in_body(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is U+0000 NULL
+             *
+             * Any successive sequence of NULL bytes is ignored and won't
+             * trigger active format reconstruction. Therefore, if the text
+             * only comprises NULL bytes then the token should be ignored
+             * here, but if there are any other characters in the stream
+             * the active formats should be reconstructed.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::NullSequence =>
+            {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * > Any other character token
+             */
+            Op::Token(TokenType::Text) => {
+                self.reconstruct_active_formatting_elements();
+
+                /*
+                 * Whitespace-only text does not affect the frameset-ok flag.
+                 * It is probably inter-element whitespace, but it may also
+                 * contain character references which decode only to whitespace.
+                 */
+                if self.tag_processor.text_node_classification == TextNodeClassification::Generic {
+                    self.state.frameset_ok = false;
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+        }
     }
 
     /// Parses next element in the 'in table' insertion mode.
