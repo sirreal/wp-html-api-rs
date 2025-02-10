@@ -1992,6 +1992,47 @@ impl HtmlProcessor {
                     self.step(NodeToProcess::ReprocessCurrentNode)
                 }
             }
+
+            /*
+             * > A start tag whose tag name is one of: "address", "article", "aside",
+             * > "blockquote", "center", "details", "dialog", "dir", "div", "dl",
+             * > "fieldset", "figcaption", "figure", "footer", "header", "hgroup",
+             * > "main", "menu", "nav", "ol", "p", "search", "section", "summary", "ul"
+             */
+            Op::TagPush(
+                TagName::ADDRESS
+                | TagName::ARTICLE
+                | TagName::ASIDE
+                | TagName::BLOCKQUOTE
+                | TagName::CENTER
+                | TagName::DETAILS
+                | TagName::DIALOG
+                | TagName::DIR
+                | TagName::DIV
+                | TagName::DL
+                | TagName::FIELDSET
+                | TagName::FIGCAPTION
+                | TagName::FIGURE
+                | TagName::FOOTER
+                | TagName::HEADER
+                | TagName::HGROUP
+                | TagName::MAIN
+                | TagName::MENU
+                | TagName::NAV
+                | TagName::OL
+                | TagName::P
+                | TagName::SEARCH
+                | TagName::SECTION
+                | TagName::SUMMARY
+                | TagName::UL,
+            ) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
         }
     }
 
