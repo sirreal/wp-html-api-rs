@@ -1360,7 +1360,7 @@ impl HtmlProcessor {
                  * >     tentative, then change the encoding to the resulting encoding.
                  */
                 if let AttributeValue::String(_) = self.get_attribute("charset") {
-                    if (EncodingConfidence::Tentative == self.state.encoding_confidence) {
+                    if EncodingConfidence::Tentative == self.state.encoding_confidence {
                         self.bail(
                             "Cannot yet process META tags with charset to determine encoding."
                                 .to_string(),
