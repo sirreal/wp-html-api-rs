@@ -1812,6 +1812,16 @@ impl HtmlProcessor {
                 self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
         }
     }
 
