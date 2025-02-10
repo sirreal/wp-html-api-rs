@@ -2301,6 +2301,29 @@ impl HtmlProcessor {
                     .push(self.state.current_token.clone().unwrap());
                 true
             }
+
+            /*
+             * > A start tag whose tag name is "nobr"
+             */
+            Op::TagPush(TagName::NOBR) => {
+                self.reconstruct_active_formatting_elements();
+
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::NOBR)
+                {
+                    // Parse error.
+                    self.run_adoption_agency_algorithm();
+                    self.reconstruct_active_formatting_elements();
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state
+                    .active_formatting_elements
+                    .push(self.state.current_token.clone().unwrap());
+                true
+            }
         }
     }
 
