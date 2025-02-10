@@ -1828,6 +1828,28 @@ impl HtmlProcessor {
              * > Parse error. Ignore the token.
              */
             Op::Token(TokenType::Doctype) => self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .contains(&TagName::TEMPLATE)
+                {
+                    /*
+                     * > Otherwise, for each attribute on the token, check to see if the attribute
+                     * > is already present on the top element of the stack of open elements. If
+                     * > it is not, add the attribute and its corresponding value to that element.
+                     *
+                     * This parser does not currently support this behavior: ignore the token.
+                     */
+                }
+
+                // Ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
         }
     }
 
