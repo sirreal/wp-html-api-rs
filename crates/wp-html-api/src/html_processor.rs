@@ -2213,6 +2213,23 @@ impl HtmlProcessor {
                     true
                 }
             }
+
+            /*
+             * > An end tag whose tag name is "form"
+             */
+            Op::TagPop(TagName::FORM) => todo!(),
+
+            /*
+             * > An end tag whose tag name is "p"
+             */
+            Op::TagPop(TagName::P) => {
+                if !self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.insert_html_element(self.state.current_token.clone().unwrap());
+                }
+
+                self.close_a_p_element();
+                true
+            }
         }
     }
 
