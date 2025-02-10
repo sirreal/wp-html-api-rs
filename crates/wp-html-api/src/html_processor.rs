@@ -2655,6 +2655,84 @@ impl HtmlProcessor {
                 self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
+
+            /*
+             * > A start tag whose tag name is "math"
+             */
+            Op::TagPush(TagName::MATH) => {
+                self.reconstruct_active_formatting_elements();
+
+                /*
+                 * @todo Adjust MathML attributes for the token. (This fixes the case of MathML attributes that are not all lowercase.)
+                 * @todo Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink.)
+                 *
+                 * These ought to be handled in the attribute methods.
+                 */
+                let mut token = self.state.current_token.as_mut().unwrap();
+                token.namespace = ParsingNamespace::MathML;
+                self.insert_html_element(token.clone());
+                if token.has_self_closing_flag {
+                    self.state.stack_of_open_elements.pop();
+                }
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "svg"
+             */
+            Op::TagPush(TagName::SVG) => {
+                self.reconstruct_active_formatting_elements();
+
+                /*
+                 * @todo Adjust SVG attributes for the token. (This fixes the case of SVG attributes that are not all lowercase.)
+                 * @todo Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink in SVG.)
+                 *
+                 * These ought to be handled in the attribute methods.
+                 */
+                let mut token = self.state.current_token.as_mut().unwrap();
+                token.namespace = ParsingNamespace::Svg;
+                self.insert_html_element(token.clone());
+                if token.has_self_closing_flag {
+                    self.state.stack_of_open_elements.pop();
+                }
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "caption", "col", "colgroup",
+             * > "frame", "head", "tbody", "td", "tfoot", "th", "thead", "tr"
+             *
+            	* Parse error. Ignore the token.
+             */
+            Op::TagPush(
+                TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::FRAME
+                | TagName::HEAD
+                | TagName::TBODY
+                | TagName::TD
+                | TagName::TFOOT
+                | TagName::TH
+                | TagName::THEAD
+                | TagName::TR,
+            ) => self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > Any other start tag
+             */
+            Op::TagPush(_) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > Any other end tag
+             */
+            Op::TagPop(_) => {
+                todo!()
+            }
         }
     }
 
