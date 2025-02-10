@@ -1965,6 +1965,33 @@ impl HtmlProcessor {
                     self.step(NodeToProcess::ProcessNextNode)
                 }
             }
+
+            /*
+             * > An end tag whose tag name is "html"
+             */
+            Op::TagPop(TagName::HTML) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::BODY)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    /*
+                     * > Otherwise, if there is a node in the stack of open elements that is not either a
+                     * > dd element, a dt element, an li element, an optgroup element, an option element,
+                     * > a p element, an rb element, an rp element, an rt element, an rtc element, a tbody
+                     * > element, a td element, a tfoot element, a th element, a thread element, a tr
+                     * > element, the body element, or the html element, then this is a parse error.
+                     *
+                     * There is nothing to do for this parse error, so don't check for it.
+                     */
+
+                    self.state.insertion_mode = InsertionMode::AFTER_BODY;
+                    self.step(NodeToProcess::ReprocessCurrentNode)
+                }
+            }
         }
     }
 
