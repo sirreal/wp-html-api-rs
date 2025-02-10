@@ -1771,7 +1771,6 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_body(&mut self) -> bool {
         match self.make_op() {
             /*
@@ -1850,6 +1849,26 @@ impl HtmlProcessor {
                 // Ignore the token.
                 self.step(NodeToProcess::ProcessNextNode)
             }
+
+            /*
+             * > A start tag whose tag name is one of: "base", "basefont", "bgsound", "link",
+             * > "meta", "noframes", "script", "style", "template", "title"
+             * >
+             * > An end tag whose tag name is "template"
+             */
+            Op::TagPush(
+                TagName::BASE
+                | TagName::BASEFONT
+                | TagName::BGSOUND
+                | TagName::LINK
+                | TagName::META
+                | TagName::NOFRAMES
+                | TagName::SCRIPT
+                | TagName::STYLE
+                | TagName::TEMPLATE
+                | TagName::TITLE,
+            )
+            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
         }
     }
 
