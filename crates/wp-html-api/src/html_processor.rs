@@ -2033,6 +2033,39 @@ impl HtmlProcessor {
                 self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
+
+            /*
+             * > A start tag whose tag name is one of: "h1", "h2", "h3", "h4", "h5", "h6"
+             */
+            Op::TagPush(
+                TagName::H1 | TagName::H2 | TagName::H3 | TagName::H4 | TagName::H5 | TagName::H6,
+            ) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                if let Some(HTMLToken {
+                    node_name: NodeName::Tag(tag_name),
+                    ..
+                }) = self.state.stack_of_open_elements.current_node()
+                {
+                    if matches!(
+                        tag_name,
+                        TagName::H1
+                            | TagName::H2
+                            | TagName::H3
+                            | TagName::H4
+                            | TagName::H5
+                            | TagName::H6
+                    ) {
+                        // Parse error: pop the current heading element
+                        self.state.stack_of_open_elements.pop();
+                    }
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
         }
     }
 
