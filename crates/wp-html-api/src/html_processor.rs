@@ -2643,7 +2643,8 @@ impl HtmlProcessor {
                         .stack_of_open_elements
                         .current_node()
                         .unwrap()
-                        .node_name;
+                        .node_name
+                        .clone();
                     if matches!(
                         current_node_name,
                         NodeName::Tag(TagName::RUBY | TagName::RTC)
@@ -2668,10 +2669,12 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                let mut token = self.state.current_token.as_mut().unwrap();
+                let token = self.state.current_token.as_mut().unwrap();
                 token.namespace = ParsingNamespace::MathML;
-                self.insert_html_element(token.clone());
-                if token.has_self_closing_flag {
+                let token = token.clone();
+                let has_self_closing_flag = token.has_self_closing_flag;
+                self.insert_html_element(token);
+                if has_self_closing_flag {
                     self.state.stack_of_open_elements.pop();
                 }
                 true
@@ -2689,10 +2692,12 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                let mut token = self.state.current_token.as_mut().unwrap();
+                let token = self.state.current_token.as_mut().unwrap();
                 token.namespace = ParsingNamespace::Svg;
-                self.insert_html_element(token.clone());
-                if token.has_self_closing_flag {
+                let token = token.clone();
+                let has_self_closing_flag = token.has_self_closing_flag;
+                self.insert_html_element(token);
+                if has_self_closing_flag {
                     self.state.stack_of_open_elements.pop();
                 }
                 true
@@ -2732,6 +2737,11 @@ impl HtmlProcessor {
              */
             Op::TagPop(_) => {
                 todo!()
+            }
+
+            Op::Token(TokenType::CdataSection) => unreachable!("CDATA does not exist in HTML5."),
+            Op::Token(TokenType::Tag) => {
+                unreachable!("#tag token operations are handled by Op::TagPush and Op::TagPop.")
             }
         }
     }

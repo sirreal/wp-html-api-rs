@@ -61,11 +61,11 @@ impl StackOfOpenElements {
         todo!()
     }
 
-    pub(crate) fn has_any_h1_to_h6_element_in_scope(&self) -> _ {
+    pub(crate) fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
         todo!()
     }
 
-    pub(crate) fn pop_until_any_h1_to_h6(&self) -> _ {
+    pub(crate) fn pop_until_any_h1_to_h6(&self) {
         todo!()
     }
 }
