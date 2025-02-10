@@ -1822,6 +1822,12 @@ impl HtmlProcessor {
                 self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
+
+            /*
+             * > A DOCTYPE token
+             * > Parse error. Ignore the token.
+             */
+            Op::Token(TokenType::Doctype) => self.step(NodeToProcess::ProcessNextNode),
         }
     }
 
