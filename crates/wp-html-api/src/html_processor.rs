@@ -2066,6 +2066,27 @@ impl HtmlProcessor {
                 self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
+
+            /*
+             * > A start tag whose tag name is one of: "pre", "listing"
+             */
+            Op::TagPush(TagName::PRE | TagName::LISTING) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                /*
+                 * > If the next token is a U+000A LINE FEED (LF) character token,
+                 * > then ignore that token and move on to the next one. (Newlines
+                 * > at the start of pre blocks are ignored as an authoring convenience.)
+                 *
+                 * This is handled in `get_modifiable_text()`.
+                 */
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                true
+            }
         }
     }
 
