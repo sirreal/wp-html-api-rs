@@ -2161,6 +2161,58 @@ impl HtmlProcessor {
 
                 true
             }
+
+            /*
+             * > An end tag whose tag name is one of: "address", "article", "aside", "blockquote",
+             * > "button", "center", "details", "dialog", "dir", "div", "dl", "fieldset",
+             * > "figcaption", "figure", "footer", "header", "hgroup", "listing", "main",
+             * > "menu", "nav", "ol", "pre", "search", "section", "summary", "ul"
+             */
+            Op::TagPop(
+                tag_name @ (TagName::ADDRESS
+                | TagName::ARTICLE
+                | TagName::ASIDE
+                | TagName::BLOCKQUOTE
+                | TagName::BUTTON
+                | TagName::CENTER
+                | TagName::DETAILS
+                | TagName::DIALOG
+                | TagName::DIR
+                | TagName::DIV
+                | TagName::DL
+                | TagName::FIELDSET
+                | TagName::FIGCAPTION
+                | TagName::FIGURE
+                | TagName::FOOTER
+                | TagName::HEADER
+                | TagName::HGROUP
+                | TagName::LISTING
+                | TagName::MAIN
+                | TagName::MENU
+                | TagName::NAV
+                | TagName::OL
+                | TagName::PRE
+                | TagName::SEARCH
+                | TagName::SECTION
+                | TagName::SUMMARY
+                | TagName::UL),
+            ) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&tag_name)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.generate_implied_end_tags(None);
+                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                        // Parse error: this error doesn't impact parsing.
+                    }
+                    self.state.stack_of_open_elements.pop_until(&tag_name);
+                    true
+                }
+            }
         }
     }
 

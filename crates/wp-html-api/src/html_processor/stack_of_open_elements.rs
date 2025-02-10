@@ -56,4 +56,8 @@ impl StackOfOpenElements {
     pub(crate) fn has_p_in_button_scope(&self) -> bool {
         todo!()
     }
+
+    pub(crate) fn current_node_is(&self, tag_name: &TagName) -> bool {
+        todo!()
+    }
 }
