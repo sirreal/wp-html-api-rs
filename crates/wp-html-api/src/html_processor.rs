@@ -2087,6 +2087,32 @@ impl HtmlProcessor {
                 self.state.frameset_ok = false;
                 true
             }
+
+            /*
+             * > A start tag whose tag name is "form"
+             */
+            Op::TagPush(TagName::FORM) => {
+                let stack_contains_template = self
+                    .state
+                    .stack_of_open_elements
+                    .contains(&TagName::TEMPLATE);
+
+                if self.state.form_element.is_some() && !stack_contains_template {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                        self.close_a_p_element();
+                    }
+
+                    self.insert_html_element(self.state.current_token.clone().unwrap());
+                    if !stack_contains_template {
+                        self.state.form_element = self.state.current_token.clone();
+                    }
+
+                    true
+                }
+            }
         }
     }
 
