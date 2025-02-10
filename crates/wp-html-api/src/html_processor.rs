@@ -1496,10 +1496,10 @@ impl HtmlProcessor {
              * This includes handling for the end tag rules for BODY and HTML elements above that should
              * fall through to the anything else case below.
              *
-             * // Parse error: ignore the token.
+             * Parse error: ignore the token.
              */
             Op::TagPush(TagName::HEAD) => self.step(NodeToProcess::ProcessNextNode),
-            Op::TagPop(tag_name) if tag_name != TagName::BODY && tag_name != TagName::HTML => {
+            Op::TagPop(tag_name) if !matches!(tag_name, TagName::BODY | TagName::HTML) => {
                 self.step(NodeToProcess::ProcessNextNode)
             }
 
@@ -1634,7 +1634,128 @@ impl HtmlProcessor {
     /// @return bool Whether an element was found.
 
     fn step_after_head(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                // Insert the character.
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > A start tag whose tag name is "body"
+             */
+            Op::TagPush(TagName::BODY) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                self.state.insertion_mode = InsertionMode::IN_BODY;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "frameset"
+             */
+            Op::TagPush(TagName::FRAMESET) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::IN_FRAMESET;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "base", "basefont", "bgsound",
+             * > "link", "meta", "noframes", "script", "style", "template", "title"
+             *
+             * Anything here is a parse error.
+             */
+            Op::TagPush(
+                TagName::BASE
+                | TagName::BASEFONT
+                | TagName::BGSOUND
+                | TagName::LINK
+                | TagName::META
+                | TagName::NOFRAMES
+                | TagName::SCRIPT
+                | TagName::STYLE
+                | TagName::TEMPLATE
+                | TagName::TITLE,
+            ) => {
+                /*
+                 * > Push the node pointed to by the head element pointer onto the stack of open elements.
+                 * > Process the token using the rules for the "in head" insertion mode.
+                 * > Remove the node pointed to by the head element pointer from the stack of open elements. (It might not be the current node at this point.)
+                 */
+                self.bail(
+                    "Cannot process elements after HEAD which reopen the HEAD element.".to_string(),
+                );
+                todo!()
+            }
+
+            /*
+             * > An end tag whose tag name is "template"
+             */
+            Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+
+            /*
+             * > An end tag whose tag name is one of: "body", "html", "br"
+             *
+             * This rule will be implemented a guard on the "any other close tag" rule below.
+             *
+             * BR tags are always reported by the Tag Processor as opening tags.
+             */
+
+            /*
+             * > A start tag whose tag name is "head"
+             * > Any other end tag
+             *
+                          * This includes handling for the end tag rules for BODY and HTML elements above that should
+             * fall through to the anything else case below.
+             *
+             * Parse error: ignore the token.
+             */
+            Op::TagPush(TagName::HEAD) => self.step(NodeToProcess::ProcessNextNode),
+            Op::TagPop(tag_name) if !matches!(tag_name, TagName::BODY | TagName::HTML) => {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Anything else
+             */
+            _ => {
+                self.insert_virtual_node(TagName::BODY, None);
+                self.state.insertion_mode = InsertionMode::IN_BODY;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+        }
     }
 
     /// Parses next element in the 'in body' insertion mode.
