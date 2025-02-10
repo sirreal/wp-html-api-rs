@@ -2386,6 +2386,275 @@ impl HtmlProcessor {
                     true
                 }
             }
+
+            /*
+             * > A start tag whose tag name is "table"
+             */
+            Op::TagPush(TagName::TABLE) => {
+                /*
+                 * > If the Document is not set to quirks mode, and the stack of open elements
+                 * > has a p element in button scope, then close a p element.
+                 */
+                if self.tag_processor.compat_mode != CompatMode::Quirks
+                    && self.state.stack_of_open_elements.has_p_in_button_scope()
+                {
+                    self.close_a_p_element();
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                self.state.insertion_mode = InsertionMode::IN_TABLE;
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is "br"
+             *
+             * This is prevented from happening because the Tag Processor
+             * reports all closing BR tags as if they were opening tags.
+             */
+
+            /*
+             * > A start tag whose tag name is one of: "area", "br", "embed", "img", "keygen", "wbr"
+             */
+            Op::TagPush(
+                TagName::AREA
+                | TagName::BR
+                | TagName::EMBED
+                | TagName::IMG
+                | TagName::KEYGEN
+                | TagName::WBR,
+            ) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "input"
+             */
+            Op::TagPush(TagName::INPUT) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+
+                /*
+                 * > If the token does not have an attribute with the name "type", or if it does,
+                 * > but that attribute's value is not an ASCII case-insensitive match for the
+                 * > string "hidden", then: set the frameset-ok flag to "not ok".
+                 */
+                match self.get_attribute("type") {
+                    AttributeValue::String(type_attr_value)
+                        if !type_attr_value.eq_ignore_ascii_case(b"hidden") =>
+                    {
+                        self.state.frameset_ok = false;
+                    }
+                    AttributeValue::String(_) => {}
+                    AttributeValue::BooleanFalse | AttributeValue::BooleanTrue => {
+                        self.state.frameset_ok = false;
+                    }
+                }
+
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "param", "source", "track"
+             */
+            Op::TagPush(TagName::PARAM | TagName::SOURCE | TagName::TRACK) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "hr"
+             */
+            Op::TagPush(TagName::HR) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                true
+            }
+
+            /*
+               * > A start tag whose tag name is "image"
+               * > Parse error. Change the token's tag name to "img" and reprocess it. (Don't ask.)
+               *
+               * Note that this is handled elsewhere, so it should not be possible to reach this code.
+               */
+
+
+            /*
+             * > A start tag whose tag name is "textarea"
+             */
+            Op::TagPush(TagName::TEXTAREA) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+
+                /*
+                 * > If the next token is a U+000A LINE FEED (LF) character token, then ignore
+                 * > that token and move on to the next one. (Newlines at the start of
+                 * > textarea elements are ignored as an authoring convenience.)
+                 *
+                 * This is handled in `get_modifiable_text()`.
+                 */
+
+                self.state.frameset_ok = false;
+
+                /*
+                 * > Switch the insertion mode to "text".
+                 *
+                 * As a self-contained node, this behavior is handled in the Tag Processor.
+                 */
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "xmp"
+             */
+            Op::TagPush(TagName::XMP) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                self.reconstruct_active_formatting_elements();
+                self.state.frameset_ok = false;
+
+                /*
+                 * > Follow the generic raw text element parsing algorithm.
+                 *
+                 * As a self-contained node, this behavior is handled in the Tag Processor.
+                 */
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * A start tag whose tag name is "iframe"
+             */
+            Op::TagPush(TagName::IFRAME) => {
+                self.state.frameset_ok = false;
+
+                /*
+                 * > Follow the generic raw text element parsing algorithm.
+                 *
+                 * As a self-contained node, this behavior is handled in the Tag Processor.
+                 */
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "noembed"
+             * > A start tag whose tag name is "noscript", if the scripting flag is enabled
+             *
+             * The scripting flag is never enabled in this parser.
+             */
+            Op::TagPush(TagName::NOEMBED) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "select"
+             */
+            Op::TagPush(TagName::SELECT) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+
+                match self.state.insertion_mode {
+                    /*
+                     * > If the insertion mode is one of "in table", "in caption", "in table body", "in row",
+                     * > or "in cell", then switch the insertion mode to "in select in table".
+                     */
+                    InsertionMode::IN_TABLE
+                    | InsertionMode::IN_CAPTION
+                    | InsertionMode::IN_TABLE_BODY
+                    | InsertionMode::IN_ROW
+                    | InsertionMode::IN_CELL => {
+                        self.state.insertion_mode = InsertionMode::IN_SELECT_IN_TABLE;
+                    }
+
+                    /*
+                     * > Otherwise, switch the insertion mode to "in select".
+                     */
+                    _ => {
+                        self.state.insertion_mode = InsertionMode::IN_SELECT;
+                    }
+                }
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "optgroup", "option"
+             */
+            Op::TagPush(TagName::OPTGROUP | TagName::OPTION) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&TagName::OPTION)
+                {
+                    self.state.stack_of_open_elements.pop();
+                }
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "rb", "rtc"
+             */
+            Op::TagPush(TagName::RB | TagName::RTC) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::RUBY)
+                {
+                    self.generate_implied_end_tags(None);
+
+                    if self
+                        .state
+                        .stack_of_open_elements
+                        .current_node_is(&TagName::RUBY)
+                    {
+                        // @todo Indicate a parse error once it's possible.
+                    }
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "rp", "rt"
+             */
+            Op::TagPush(TagName::RP | TagName::RT) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::RUBY)
+                {
+                    self.generate_implied_end_tags(Some(TagName::RTC));
+
+                    let current_node_name = self
+                        .state
+                        .stack_of_open_elements
+                        .current_node()
+                        .unwrap()
+                        .node_name;
+                    if matches!(
+                        current_node_name,
+                        NodeName::Tag(TagName::RUBY | TagName::RTC)
+                    ) {
+                        // @todo Indicate a parse error once it's possible.
+                    }
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
         }
     }
 
