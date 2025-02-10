@@ -1536,7 +1536,87 @@ impl HtmlProcessor {
     /// @return bool Whether an element was found.
 
     fn step_in_head_noscript(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * Parse error: ignore the token.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                self.step_in_head()
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > An end tag whose tag name is "noscript"
+             */
+            Op::TagPop(TagName::NOSCRIPT) => {
+                self.state.stack_of_open_elements.pop();
+                self.state.insertion_mode = InsertionMode::IN_HEAD;
+                true
+            }
+
+            /*
+             * > A comment token
+             * >
+             * > A start tag whose tag name is one of: "basefont", "bgsound",
+             * > "link", "meta", "noframes", "style"
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            )
+            | Op::TagPush(
+                TagName::BASEFONT
+                | TagName::BGSOUND
+                | TagName::LINK
+                | TagName::META
+                | TagName::NOFRAMES
+                | TagName::STYLE,
+            ) => self.step_in_head(),
+
+            /*
+             * > An end tag whose tag name is "br"
+             *
+             * This should never happen, as the Tag Processor prevents showing a BR closing tag.
+             */
+
+            /*
+             * > A start tag whose tag name is one of: "head", "noscript"
+             * > Any other end tag
+             */
+            Op::TagPush(TagName::HEAD | TagName::NOSCRIPT) | Op::TagPop(_) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Anything else
+             *
+             * Anything here is a parse error.
+             */
+            _ => {
+                self.state.stack_of_open_elements.pop();
+                self.state.insertion_mode = InsertionMode::IN_HEAD;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+        }
     }
 
     /// Parses next element in the 'after head' insertion mode.
