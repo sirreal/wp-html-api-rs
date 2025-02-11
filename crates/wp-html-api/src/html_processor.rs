@@ -80,8 +80,6 @@ enum EncodingConfidence {
 enum InsertionMode {
     /// Initial insertion mode for full HTML parser.
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#the-initial-insertion-mode
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -89,8 +87,6 @@ enum InsertionMode {
     INITIAL,
 
     /// Before HTML insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#the-before-html-insertion-mode
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -100,8 +96,6 @@ enum InsertionMode {
 
     /// Before head insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-beforehead
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -109,8 +103,6 @@ enum InsertionMode {
     BEFORE_HEAD,
 
     /// In head insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inhead
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -120,8 +112,6 @@ enum InsertionMode {
 
     /// In head noscript insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inheadnoscript
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -129,8 +119,6 @@ enum InsertionMode {
     IN_HEAD_NOSCRIPT,
 
     /// After head insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterhead
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -140,8 +128,6 @@ enum InsertionMode {
 
     /// In body insertion mode for full HTML parser.
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inbody
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -149,8 +135,6 @@ enum InsertionMode {
     IN_BODY,
 
     /// In table insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intable
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -160,8 +144,6 @@ enum InsertionMode {
 
     /// In table text insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intabletext
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -169,8 +151,6 @@ enum InsertionMode {
     IN_TABLE_TEXT,
 
     /// In caption insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incaption
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -180,8 +160,6 @@ enum InsertionMode {
 
     /// In column group insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incolumngroup
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -189,8 +167,6 @@ enum InsertionMode {
     IN_COLUMN_GROUP,
 
     /// In table body insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intablebody
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -200,8 +176,6 @@ enum InsertionMode {
 
     /// In row insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inrow
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -209,8 +183,6 @@ enum InsertionMode {
     IN_ROW,
 
     /// In cell insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incell
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -220,8 +192,6 @@ enum InsertionMode {
 
     /// In select insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inselect
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -229,8 +199,6 @@ enum InsertionMode {
     IN_SELECT,
 
     /// In select in table insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inselectintable
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -240,8 +208,6 @@ enum InsertionMode {
 
     /// In template insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intemplate
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -249,8 +215,6 @@ enum InsertionMode {
     IN_TEMPLATE,
 
     /// After body insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterbody
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -260,8 +224,6 @@ enum InsertionMode {
 
     /// In frameset insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inframeset
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -269,8 +231,6 @@ enum InsertionMode {
     IN_FRAMESET,
 
     /// After frameset insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterframeset
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -280,8 +240,6 @@ enum InsertionMode {
 
     /// After after body insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#the-after-after-body-insertion-mode
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -289,8 +247,6 @@ enum InsertionMode {
     AFTER_AFTER_BODY,
 
     /// After after frameset insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#the-after-after-frameset-insertion-mode
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -429,8 +385,6 @@ impl HtmlProcessor {
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#html-fragment-parsing-algorithm
     ///
-    /// @since 6.8.0
-    ///
     /// @param string $html Input HTML fragment to process.
     /// @return static|null The created processor if successful, otherwise null.
     fn create_fragment_at_current_node(html: &str) -> Self {
@@ -440,8 +394,6 @@ impl HtmlProcessor {
     /// Stops the parser and terminates its execution when encountering unsupported markup.
     ///
     /// @throws WP_HTML_Unsupported_Exception Halts execution of the parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @param string $message Explains support is missing in order to parse the current node.
     fn bail(&mut self, message: String) -> () {
@@ -463,8 +415,6 @@ impl HtmlProcessor {
     ///     false === $processor->next_tag();
     ///     WP_HTML_Processor::ERROR_UNSUPPORTED === $processor->get_last_error();
     ///
-    /// @since 6.4.0
-    ///
     /// @see self::ERROR_UNSUPPORTED
     /// @see self::ERROR_EXCEEDED_MAX_BOOKMARKS
     ///
@@ -477,12 +427,9 @@ impl HtmlProcessor {
     ///
     /// This is meant for debugging purposes, not for production use.
     ///
-    /// @since 6.7.0
-    ///
     /// @see self::$unsupported_exception
     ///
     /// @return WP_HTML_Unsupported_Exception|null
-
     pub fn get_unsupported_exception(&self) -> Option<&UnsupportedException> {
         match &self.last_error {
             Some(HtmlProcessorError::UnsupportedException(e)) => Some(e),
@@ -493,9 +440,6 @@ impl HtmlProcessor {
     /// Finds the next tag matching the query.
     ///
     /// @todo Support matching the class name and tag name.
-    ///
-    /// @since 6.4.0
-    /// @since 6.6.0 Visits all tokens, including virtual ones.
     ///
     /// @throws Exception When unable to allocate a bookmark for the next token in the input HTML document.
     ///
@@ -588,11 +532,7 @@ impl HtmlProcessor {
     /// semantic rules for text nodes. For access to the raw tokens consider using
     /// WP_HTML_Tag_Processor instead.
     ///
-    /// @since 6.5.0 Added for internal support; do not use.
-    /// @since 6.7.1 Refactored so subclasses may extend.
-    ///
     /// @return bool Whether a token was parsed.
-
     pub fn next_token(&mut self) -> bool {
         self.next_visitable_token()
     }
@@ -692,10 +632,7 @@ impl HtmlProcessor {
     ///     $p->next_tag( array( 'tag_name' => 'div', 'tag_closers' => 'visit' ) );
     ///     $p->is_tag_closer() === true;
     ///
-    /// @since 6.6.0 Subclassed for HTML Processor.
-    ///
     /// @return bool Whether the current tag is a tag closer.
-
     pub fn is_tag_closer(&self) -> bool {
         if self.is_virtual() {
             self.current_element
@@ -715,10 +652,7 @@ impl HtmlProcessor {
     /// Indicates if the currently-matched token is virtual, created by a stack operation
     /// while processing HTML, rather than a token found in the HTML text itself.
     ///
-    /// @since 6.6.0
-    ///
     /// @return bool Whether the current token is virtual.
-
     fn is_virtual(&self) -> bool {
         self.current_element
             .as_ref()
@@ -744,12 +678,9 @@ impl HtmlProcessor {
     ///     false === $processor->matches_breadcrumbs( array( 'span', 'img' ) );
     ///     true  === $processor->matches_breadcrumbs( array( 'span', '*', 'img' ) );
     ///
-    /// @since 6.4.0
-    ///
     /// @param string[] $breadcrumbs DOM sub-path at which element is found, e.g. `array( 'FIGURE', 'IMG' )`.
     ///                              May also contain the wildcard `*` which matches a single element, e.g. `array( 'SECTION', '*' )`.
     /// @return bool Whether the currently-matched tag is found at the given nested structure.
-
     pub fn matches_breadcrumbs(&self, breadcrumbs: Option<&Vec<&str>>) -> bool {
         todo!()
     }
@@ -764,13 +695,10 @@ impl HtmlProcessor {
     /// foreign content will also act just like a void tag, immediately
     /// closing as soon as the processor advances to the next token.
     ///
-    /// @since 6.6.0
-    ///
     /// @param WP_HTML_Token|null $node Optional. Node to examine, if provided.
     ///                                 Default is to examine current node.
     /// @return bool|null Whether to expect a closer for the currently-matched node,
     ///                   or `null` if not matched on any token.
-
     pub fn expects_closer(&self, node: Option<&HTMLToken>) -> Option<bool> {
         let token_name = node
             .map(|n| n.node_name.clone())
@@ -816,8 +744,6 @@ impl HtmlProcessor {
     }
 
     /// Steps through the HTML document and stop at the next tag, if any.
-    ///
-    /// @since 6.4.0
     ///
     /// @throws Exception When unable to allocate a bookmark for the next token in the input HTML document.
     ///
@@ -949,8 +875,6 @@ impl HtmlProcessor {
     ///     $processor->next_tag( 'IMG' );
     ///     $processor->get_breadcrumbs() === array( 'HTML', 'BODY', 'P', 'STRONG', 'EM', 'IMG' );
     ///
-    /// @since 6.4.0
-    ///
     /// @return string[] Array of tag names representing path to matched node.
 
     pub fn get_breadcrumbs() -> () {
@@ -976,8 +900,6 @@ impl HtmlProcessor {
     ///     // The P element is closed during `next_token()` so the depth is decreased to reflect that.
     ///     $processor->next_token();
     ///     3 === $processor->get_current_depth();
-    ///
-    /// @since 6.6.0
     ///
     /// @return int Nesting-depth of current location in the document.
 
@@ -1015,8 +937,6 @@ impl HtmlProcessor {
     ///
     ///     echo WP_HTML_Processor::normalize( '<![CDATA[invalid comment]]> syntax < <> "oddities"' );
     ///     // <!--[CDATA[invalid comment]]--> syntax &lt; &lt;&gt; &quot;oddities&quot;
-    ///
-    /// @since 6.7.0
     ///
     /// @param string $html Input HTML to normalize.
     ///
@@ -1061,8 +981,6 @@ impl HtmlProcessor {
     ///     echo $processor->serialize();
     ///     // <!--[CDATA[invalid comment]]--> syntax &lt; &lt;&gt; &quot;oddities&quot;
     ///
-    /// @since 6.7.0
-    ///
     /// @return string|null Normalized HTML markup represented by processor,
     ///                     or `null` if unable to generate serialization.
     pub fn serialize(&self) -> Result<String, ()> {
@@ -1077,8 +995,6 @@ impl HtmlProcessor {
     ///
     /// @see static::serialize()
     ///
-    /// @since 6.7.0
-    ///
     /// @return string Serialization of token, or empty string if no serialization exists.
     ///
     /// @todo What do wo with this _protected_ function?
@@ -1090,8 +1006,6 @@ impl HtmlProcessor {
     ///
     /// This internal function performs the 'initial' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.7.0
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -1160,8 +1074,6 @@ impl HtmlProcessor {
     ///
     /// This internal function performs the 'before html' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.7.0
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -1245,8 +1157,6 @@ impl HtmlProcessor {
     ///
     /// This internal function performs the 'before head' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.7.0 Stub implementation.
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -1570,15 +1480,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in head noscript' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inheadnoscript
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_head_noscript(&mut self) -> bool {
         match self.make_op() {
             /*
@@ -1667,8 +1574,6 @@ impl HtmlProcessor {
     ///
     /// This internal function performs the 'after head' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.7.0 Stub implementation.
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -1806,8 +1711,6 @@ impl HtmlProcessor {
     ///
     /// This internal function performs the 'in body' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.4.0
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -2795,15 +2698,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in table' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intable
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_table(&mut self) -> bool {
         todo!()
     }
@@ -2813,15 +2713,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in table text' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intabletext
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_table_text(&mut self) -> bool {
         todo!()
     }
@@ -2831,15 +2728,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in caption' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incaption
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_caption(&mut self) -> bool {
         todo!()
     }
@@ -2849,15 +2743,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in column group' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incolgroup
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_column_group(&mut self) -> bool {
         todo!()
     }
@@ -2867,15 +2758,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in table body' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intbody
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_table_body(&mut self) -> bool {
         todo!()
     }
@@ -2885,15 +2773,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in row' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intr
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_row(&mut self) -> bool {
         todo!()
     }
@@ -2903,15 +2788,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in cell' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intd
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_cell(&mut self) -> bool {
         todo!()
     }
@@ -2921,15 +2803,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in select' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inselect
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_select(&mut self) -> bool {
         todo!()
     }
@@ -2939,15 +2818,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in select in table' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inselectintable
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_select_in_table(&mut self) -> bool {
         todo!()
     }
@@ -2957,15 +2833,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in template' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intemplate
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_template(&mut self) -> bool {
         todo!()
     }
@@ -2975,15 +2848,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'after body' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterbody
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_body(&mut self) -> bool {
         todo!()
     }
@@ -2993,15 +2863,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in frameset' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inframeset
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_frameset(&mut self) -> bool {
         todo!()
     }
@@ -3011,15 +2878,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'after frameset' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterframeset
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_frameset(&mut self) -> bool {
         todo!()
     }
@@ -3029,15 +2893,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'after after body' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#the-after-after-body-insertion-mode
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_after_body(&mut self) -> bool {
         todo!()
     }
@@ -3047,15 +2908,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'after after frameset' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#the-after-after-frameset-insertion-mode
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_after_frameset(&mut self) -> bool {
         todo!()
     }
@@ -3065,22 +2923,19 @@ impl HtmlProcessor {
     /// This internal function performs the 'in foreign content' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inforeign
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_foreign_content(&mut self) -> bool {
         todo!()
     }
 
-    ///
-    /// Internal helpers
-    ///
+    /*
+     * Internal helpers
+     */
 
     /// Creates a new bookmark for the currently-matched token and returns the generated name.
     ///
@@ -3098,12 +2953,13 @@ impl HtmlProcessor {
             .map_err(|_| HtmlProcessorError::ExceededMaxBookmarks)
     }
 
-    /// HTML semantic overrides for Tag Processor
+    /*
+     * HTML semantic overrides for Tag Processor
+     */
 
     /// Indicates the namespace of the current token, or "html" if there is none.
     ///
     /// @return string One of "html", "math", or "svg".
-
     pub fn get_namespace(&self) -> ParsingNamespace {
         todo!()
     }
@@ -3124,10 +2980,7 @@ impl HtmlProcessor {
     ///     $processor->next_tag() === false;
     ///     $processor->get_tag() === null;
     ///
-    /// @since 6.4.0
-    ///
     /// @return string|null Name of currently matched tag in input HTML, or `null` if none found.
-
     pub fn get_tag(&self) -> Option<TagName> {
         if self.last_error.is_some() {
             return None;
@@ -3169,8 +3022,6 @@ impl HtmlProcessor {
     /// This function does not determine if a tag is self-closing,
     /// but only if the self-closing flag is present in the syntax.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return bool Whether the currently matched tag contains the self-closing flag.
     pub fn has_self_closing_flag(&self) -> bool {
         if self.is_virtual() {
@@ -3195,10 +3046,7 @@ impl HtmlProcessor {
     /// hasn't yet found a token or because it reached the end
     /// of the document without matching a token.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return string|null Name of the matched token.
-
     pub fn get_token_name(&self) -> Option<NodeName> {
         if self.is_virtual() {
             Some(
@@ -3231,10 +3079,7 @@ impl HtmlProcessor {
     ///  - `#presumptuous-tag` when matched on an empty tag closer.
     ///  - `#funky-comment` when matched on a funky comment.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return string|null What kind of token is matched, or null.
-
     pub fn get_token_type(&self) -> Option<TokenType> {
         if self.is_virtual() {
             /*
@@ -3265,11 +3110,8 @@ impl HtmlProcessor {
     ///     $p->next_tag() === false;
     ///     $p->get_attribute( 'class' ) === null;
     ///
-    /// @since 6.6.0 Subclassed for HTML Processor.
-    ///
     /// @param string $name Name of attribute whose value is requested.
     /// @return string|true|null Value of attribute or `null` if not available. Boolean attributes return `true`.
-
     pub fn get_attribute(&self, name: &str) -> AttributeValue {
         if self.is_virtual() {
             AttributeValue::BooleanFalse
@@ -3286,12 +3128,9 @@ impl HtmlProcessor {
     ///
     /// For string attributes, the value is escaped using the `esc_attr` function.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @param string      $name  The attribute name to target.
     /// @param string|bool $value The new attribute value.
     /// @return bool Whether an attribute value was set.
-
     pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {
         if self.is_virtual() {
             false
@@ -3302,11 +3141,8 @@ impl HtmlProcessor {
 
     /// Remove an attribute from the currently-matched tag.
     ///
-    /// @since 6.6.0 Subclassed for HTML Processor.
-    ///
     /// @param string $name The attribute name to remove.
     /// @return bool Whether an attribute was removed.
-
     pub fn remove_attribute(&mut self, name: &str) -> bool {
         if self.is_virtual() {
             false
@@ -3333,13 +3169,10 @@ impl HtmlProcessor {
     ///     $p->next_tag() === false;
     ///     $p->get_attribute_names_with_prefix( 'data-' ) === null;
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @see https://html.spec.whatwg.org/multipage/syntax.html#attributes-2:ascii-case-insensitive
     ///
     /// @param string $prefix Prefix of requested attribute names.
     /// @return array|null List of attribute names, or `null` when no tag opener is matched.
-
     pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Rc<str>>> {
         if self.is_virtual() {
             None
@@ -3350,11 +3183,8 @@ impl HtmlProcessor {
 
     /// Adds a new class name to the currently matched tag.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @param string $class_name The class name to add.
     /// @return bool Whether the class was set to be added.
-
     pub fn add_class(&mut self, class_name: &str) -> bool {
         if self.is_virtual() {
             false
@@ -3365,11 +3195,8 @@ impl HtmlProcessor {
 
     /// Removes a class name from the currently matched tag.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @param string $class_name The class name to remove.
     /// @return bool Whether the class was set to be removed.
-
     pub fn remove_class(&mut self, class_name: &str) -> bool {
         if self.is_virtual() {
             false
@@ -3380,15 +3207,12 @@ impl HtmlProcessor {
 
     /// Returns if a matched tag contains the given ASCII case-insensitive class name.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @todo When reconstructing active formatting elements with attributes, find a way
     ///       to indicate if the virtually-reconstructed formatting elements contain the
     ///       wanted class name.
     ///
     /// @param string $wanted_class Look for this CSS class name, ASCII case-insensitive.
     /// @return bool|null Whether the matched tag contains the given class name, or null if not matched.
-
     pub fn has_class(&self, wanted_class: &str) -> Option<bool> {
         if self.is_virtual() {
             None
@@ -3409,9 +3233,6 @@ impl HtmlProcessor {
     ///         echo "{$class_name} ";
     ///     }
     ///     // Outputs: "free <egg> lang-en "
-    ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-
     pub fn class_list(&self) -> () {
         todo!();
         //if self.is_virtual() {
@@ -3436,8 +3257,6 @@ impl HtmlProcessor {
     /// that a token has modifiable text, and a token with modifiable text may
     /// have an empty string (e.g. a comment with no contents).
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return string
     pub fn get_modifiable_text(&self) -> Rc<str> {
         if self.is_virtual() {
@@ -3461,8 +3280,6 @@ impl HtmlProcessor {
     /// @see self::COMMENT_AS_HTML_COMMENT
     /// @see self::COMMENT_AS_PI_NODE_LOOKALIKE
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return string|null
     pub fn get_comment_type(&self) -> Option<CommentType> {
         if self.is_virtual() {
@@ -3476,8 +3293,6 @@ impl HtmlProcessor {
     ///
     /// Releasing a bookmark frees up the small
     /// performance overhead it requires.
-    ///
-    /// @since 6.4.0
     ///
     /// @param string $bookmark_name Name of the bookmark to remove.
     /// @return bool Whether the bookmark already existed before removal.
@@ -3495,8 +3310,6 @@ impl HtmlProcessor {
     /// maximum limit on the number of times seek() can be called.
     ///
     /// @throws Exception When unable to allocate a bookmark for the next token in the input HTML document.
-    ///
-    /// @since 6.4.0
     ///
     /// @param string $bookmark_name Jump to the place in the document identified by this bookmark name.
     /// @return bool Whether the internal cursor was successfully moved to the bookmark's location.
@@ -3583,8 +3396,6 @@ impl HtmlProcessor {
     /// `TBODY`, `TR`, and `TD`. The `TBODY` and `TR` tags do not appear in
     /// the original HTML and cannot be used as bookmarks.
     ///
-    /// @since 6.4.0
-    ///
     /// @param string $bookmark_name Identifies this particular bookmark.
     /// @return bool Whether the bookmark was successfully created.
     pub fn set_bookmark(&mut self, bookmark_name: &str) -> bool {
@@ -3593,8 +3404,6 @@ impl HtmlProcessor {
 
     /// Checks whether a bookmark with the given name exists.
     ///
-    /// @since 6.5.0
-    ///
     /// @param string $bookmark_name Name to identify a bookmark that potentially exists.
     /// @return bool Whether that bookmark exists.
     pub fn has_bookmark(&self, bookmark_name: &str) -> bool {
@@ -3602,15 +3411,13 @@ impl HtmlProcessor {
         // self.tag_processor.has_bookmark( "_{$bookmark_name}" )
     }
 
-    ///
-    ///
-    /// HTML Parsing Algorithms
-    ///
-    ///
+    /*
+     *
+     * HTML Parsing Algorithms
+     *
+     */
 
     /// Closes a P element.
-    ///
-    /// @since 6.4.0
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -3620,9 +3427,6 @@ impl HtmlProcessor {
     }
 
     /// Closes elements that have implied end tags.
-    ///
-    /// @since 6.4.0
-    /// @since 6.7.0 Full spec support.
     ///
     /// @see https://html.spec.whatwg.org/#generate-implied-end-tags
     ///
@@ -3635,9 +3439,6 @@ impl HtmlProcessor {
     ///
     /// See the HTML specification for an explanation why this is
     /// different from generating end tags in the normal sense.
-    ///
-    /// @since 6.4.0
-    /// @since 6.7.0 Full spec support.
     ///
     /// @see WP_HTML_Processor::generate_implied_end_tags
     /// @see https://html.spec.whatwg.org/#generate-implied-end-tags
@@ -3669,36 +3470,27 @@ impl HtmlProcessor {
     /// > in the current body, cell, or caption (whichever is youngest) that haven't
     /// > been explicitly closed.
     ///
-    /// @since 6.4.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#reconstruct-the-active-formatting-elements
     ///
     /// @return bool Whether any formatting elements needed to be reconstructed.
-
     fn reconstruct_active_formatting_elements(&mut self) -> bool {
         todo!()
     }
 
     /// Runs the reset the insertion mode appropriately algorithm.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#reset-the-insertion-mode-appropriately
-
     fn reset_insertion_mode_appropriately(&mut self) -> () {
         todo!()
     }
 
     /// Runs the adoption agency algorithm.
     ///
-    /// @since 6.4.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#adoption-agency-algorithm
-
     fn run_adoption_agency_algorithm(&mut self) -> () {
         todo!()
     }
@@ -3713,28 +3505,20 @@ impl HtmlProcessor {
     /// >   5. Switch the insertion mode to "in row".
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#close-the-cell
-    ///
-    /// @since 6.7.0
-
     fn close_cell(&mut self) -> () {
         todo!()
     }
 
     /// Inserts an HTML element on the stack of open elements.
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#insert-a-foreign-element
     ///
     /// @param WP_HTML_Token $token Name of bookmark pointing to element in original input HTML.
-
     fn insert_html_element(&mut self, token: HTMLToken) -> () {
         self.state.stack_of_open_elements.push(token);
     }
 
     /// Inserts a foreign element on to the stack of open elements.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#insert-a-foreign-element
     ///
@@ -3747,8 +3531,6 @@ impl HtmlProcessor {
     }
 
     /// Inserts a virtual element on the stack of open elements.
-    ///
-    /// @since 6.7.0
     ///
     /// @param string      $token_name    Name of token to create and insert into the stack of open elements.
     /// @param string|null $bookmark_name Optional. Name to give bookmark for created virtual node.
@@ -3779,20 +3561,17 @@ impl HtmlProcessor {
         token
     }
 
-    ///
-    ///
-    /// HTML Specification Helpers
-    ///
-    ///
+    /*
+     *
+     * HTML Specification Helpers
+     *
+     */
 
     /// Indicates if the current token is a MathML integration point.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#mathml-text-integration-point
     ///
     /// @return bool Whether the current token is a MathML integration point.
-
     fn is_mathml_integration_point(&self) -> bool {
         todo!()
     }
@@ -3805,25 +3584,19 @@ impl HtmlProcessor {
     /// Otherwise it would be required to scan the HTML and ensure that
     /// no other accounting is overlooked.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#html-integration-point
     ///
     /// @return bool Whether the current token is an HTML integration point.
-
     fn is_html_integration_point(&self) -> bool {
         todo!()
     }
 
     /// Returns whether an element of a given name is in the HTML special category.
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#special
     ///
     /// @param WP_HTML_Token|string $tag_name Node to check, or only its name if in the HTML namespace.
     /// @return bool Whether the element of the given name is in the special category.
-
     pub fn is_special(tag_name: TagName) -> bool {
         todo!()
     }
@@ -3831,8 +3604,6 @@ impl HtmlProcessor {
     /// Returns whether a given element is an HTML Void Element
     ///
     /// > area, base, br, col, embed, hr, img, input, link, meta, source, track, wbr
-    ///
-    /// @since 6.4.0
     ///
     /// @see https://html.spec.whatwg.org/#void-elements
     ///
@@ -3878,8 +3649,6 @@ impl HtmlProcessor {
     /// @todo As this parser only supports UTF-8, only the UTF-8
     ///       encodings are detected. Add more as desired, but the
     ///       parser will bail on non-UTF-8 encodings.
-    ///
-    /// @since 6.7.0
     ///
     /// @param string $label A string which may specify a known encoding.
     /// @return string|null Known encoding if matched, otherwise null.
