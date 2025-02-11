@@ -335,7 +335,9 @@ impl HtmlProcessor {
         let tag_processor = TagProcessor::new(html);
         let state = ProcessorState::new();
 
-        let processor = Self {
+        // TODO stack push/pop handlers???
+
+        Self {
             tag_processor,
             state,
             element_queue: VecDeque::new(),
@@ -345,39 +347,7 @@ impl HtmlProcessor {
             breadcrumbs: Vec::new(),
             bookmark_counter: 0,
             context_node: None,
-        };
-
-        {
-            let push_handler = |token: HTMLToken| {
-                let is_virtual =
-                    processor.state.current_token.is_none() || processor.is_tag_closer();
-                let same_node = processor.state.current_token.is_some()
-                    && token.node_name == processor.state.current_token.unwrap().node_name;
-                let provenance = if !same_node || is_virtual {
-                    StackProvenance::Virtual
-                } else {
-                    StackProvenance::Real
-                };
-                processor.element_queue.push_back(HTMLStackEvent {
-                    operation: StackOperation::Push,
-                    token,
-                    provenance,
-                });
-
-                processor.tag_processor.change_parsing_namespace(
-                    if token.integration_node_type.is_some() {
-                        ParsingNamespace::Html
-                    } else {
-                        token.namespace
-                    },
-                );
-            };
-            state
-                .stack_of_open_elements
-                .set_push_handler(Box::new(push_handler));
         }
-
-        processor
     }
 
     /// Creates a fragment processor at the current node.
