@@ -34,15 +34,15 @@ impl StackOfOpenElements {
         self.stack.pop()
     }
 
-    pub(crate) fn current_node(&self) -> Option<&HTMLToken> {
+    pub fn current_node(&self) -> Option<&HTMLToken> {
         self.stack.last()
     }
 
-    pub(crate) fn count(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.stack.len()
     }
 
-    pub(crate) fn contains(&self, tag_name: &TagName) -> bool {
+    pub fn contains(&self, tag_name: &TagName) -> bool {
         self.stack.iter().any(|t| {
             if let HTMLToken {
                 node_name: NodeName::Tag(tag_on_stack),
@@ -56,15 +56,15 @@ impl StackOfOpenElements {
         })
     }
 
-    pub(crate) fn pop_until(&self, tag_name: &TagName) -> bool {
+    pub fn pop_until(&self, tag_name: &TagName) -> bool {
         todo!()
     }
 
-    pub(crate) fn at(&self, nth: usize) -> Option<HTMLToken> {
+    pub fn at(&self, nth: usize) -> Option<HTMLToken> {
         todo!()
     }
 
-    pub(crate) fn has_element_in_scope(&self, body: &TagName) -> bool {
+    pub fn has_element_in_scope(&self, body: &TagName) -> bool {
         todo!()
     }
 
@@ -73,19 +73,19 @@ impl StackOfOpenElements {
     /// @see https://html.spec.whatwg.org/#has-an-element-in-button-scope
     ///
     /// @return bool Whether a P is in BUTTON scope.
-    pub(crate) fn has_p_in_button_scope(&self) -> bool {
+    pub fn has_p_in_button_scope(&self) -> bool {
         self.has_element_in_button_scope(&TagName::P)
     }
 
-    pub(crate) fn current_node_is(&self, tag_name: &TagName) -> bool {
+    pub fn current_node_is(&self, tag_name: &TagName) -> bool {
         todo!()
     }
 
-    pub(crate) fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
+    pub fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
         todo!()
     }
 
-    pub(crate) fn pop_until_any_h1_to_h6(&self) {
+    pub fn pop_until_any_h1_to_h6(&self) {
         todo!()
     }
 
@@ -104,7 +104,7 @@ impl StackOfOpenElements {
     ///
     /// To start with the most-recently added element and walk towards the top,
     /// see WP_HTML_Open_Elements::walk_up().
-    pub(crate) fn walk_down(&self) -> StackWalker {
+    pub fn walk_down(&self) -> StackWalker {
         StackWalker {
             stack: self,
             current: 0,
@@ -129,7 +129,7 @@ impl StackOfOpenElements {
     ///
     /// @param WP_HTML_Token|null $above_this_node Optional. Start traversing above this node,
     ///                                            if provided and if the node exists.
-    pub(crate) fn walk_up(&self, above_this_node: Option<&HTMLToken>) -> StackWalker {
+    pub fn walk_up(&self, above_this_node: Option<&HTMLToken>) -> StackWalker {
         if above_this_node.is_some() {
             todo!("Above this node not implemented");
         }
@@ -209,6 +209,14 @@ impl StackOfOpenElements {
         }
         // If we've walked through the entire stack without finding the tag, it's not in scope
         false
+    }
+
+    /// Reports if a specific node is in the stack of open elements.
+    ///
+    /// @param WP_HTML_Token $token Look for this node in the stack.
+    /// @return bool Whether the referenced node is in the stack of open elements.
+    pub fn contains_node(&self, last_entry: &HTMLToken) -> bool {
+        self.walk_up(None).any(|node| node == last_entry)
     }
 }
 

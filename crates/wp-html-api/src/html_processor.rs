@@ -3476,6 +3476,41 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether any formatting elements needed to be reconstructed.
     fn reconstruct_active_formatting_elements(&mut self) -> bool {
+        /*
+         * > If there are no entries in the list of active formatting elements, then there is nothing
+         * > to reconstruct; stop this algorithm.
+         */
+        if self.state.active_formatting_elements.count() == 0 {
+            return false;
+        }
+
+        let last_entry = self
+            .state
+            .active_formatting_elements
+            .current_node()
+            .unwrap();
+
+        let last_entry = match last_entry {
+            ActiveFormattingElement::Token(token) => token,
+            /*
+             * > If the last (most recently added) entry in the list of active formatting elements is a marker;
+             * > stop this algorithm.
+             */
+            ActiveFormattingElement::Marker => {
+                return false;
+            }
+        };
+
+        /*
+         * > If the last (most recently added) entry in the list of active formatting elements is an
+         * > element that is in the stack of open elements, then there is nothing to reconstruct;
+         * > stop this algorithm.
+         */
+        if self.state.stack_of_open_elements.contains_node(last_entry) {
+            return false;
+        }
+
+        self.bail( "Cannot reconstruct active formatting elements when advancing and rewinding is required.".to_string() );
         todo!()
     }
 
