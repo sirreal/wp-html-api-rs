@@ -735,7 +735,7 @@ impl HtmlProcessor {
                         | TagName::TEXTAREA
                         | TagName::TITLE
                         | TagName::XMP
-                ) || Self::is_void(tag_name))
+                ) || Self::is_void(&tag_name))
             }
             // Self-closing elements in foreign content.
             NodeName::Tag(_) => !token_has_self_closing,
@@ -1331,7 +1331,6 @@ impl HtmlProcessor {
                  * >     value returns an encoding, and the confidence is currently tentative,
                  * >     then change the encoding to the extracted encoding.
                  */
-
                 if let (Some(AttributeValue::String(http_equiv)), Some(AttributeValue::String(_))) = (
                     self.get_attribute(b"http-equiv"),
                     self.get_attribute(b"content"),
@@ -3668,7 +3667,7 @@ impl HtmlProcessor {
     ///
     /// @param string $tag_name Name of HTML tag to check.
     /// @return bool Whether the given tag is an HTML Void Element.
-    pub fn is_void(tag_name: TagName) -> bool {
+    pub fn is_void(tag_name: &TagName) -> bool {
         matches!(
             tag_name,
             TagName::AREA
