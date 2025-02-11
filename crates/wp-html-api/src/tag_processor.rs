@@ -1578,6 +1578,11 @@ impl TagProcessor {
 
         false
     }
+
+    pub fn change_parsing_namespace(&mut self, namespace: ParsingNamespace) -> bool {
+        self.parsing_namespace = namespace;
+        true
+    }
 }
 
 //#[derive(Debug, PartialEq, Clone)]
@@ -2011,6 +2016,21 @@ pub enum TagName {
 
     // Some tags we're interested in for special parsing ru
     Arbitrary(Rc<[u8]>),
+
+    // MathML tags we're interested in
+    // @todo add arbitrary mathml tag
+    MathML_MI,
+    MathML_MO,
+    MathML_MN,
+    MathML_MS,
+    MathML_MTEXT,
+    MathML_ANNOTATION_XML,
+
+    // SVG tags we're interested in
+    // @todo add arbitrary svg tag
+    SVG_FOREIGNOBJECT,
+    SVG_DESC,
+    SVG_TITLE,
 }
 
 impl From<&[u8]> for TagName {

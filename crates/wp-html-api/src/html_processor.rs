@@ -575,7 +575,7 @@ impl HtmlProcessor {
         self.current_element = self.element_queue.pop_front();
         if self.current_element.is_none() {
             // There are no tokens left, so close all remaining open elements
-            while self.state.stack_of_open_elements.pop().is_some() {
+            while self.pop().is_some() {
                 continue;
             }
 
@@ -770,7 +770,7 @@ impl HtmlProcessor {
              */
             if let Some(top_node) = self.state.stack_of_open_elements.current_node() {
                 if !self.expects_closer(Some(top_node)).unwrap_or(false) {
-                    self.state.stack_of_open_elements.pop();
+                    self.pop();
                 }
             }
         }
@@ -1388,7 +1388,7 @@ impl HtmlProcessor {
              * > An end tag whose tag name is "head"
              */
             Op::TagPop(TagName::HEAD) => {
-                self.state.stack_of_open_elements.pop();
+                self.pop();
                 self.state.insertion_mode = InsertionMode::AFTER_HEAD;
                 true
             }
@@ -1433,9 +1433,7 @@ impl HtmlProcessor {
                     self.generate_implied_end_tags_thoroughly();
                     // @todo If the current node is not a TEMPLATE elemnt, then
                     // indicate a parse error once it's possible.
-                    self.state
-                        .stack_of_open_elements
-                        .pop_until(&TagName::TEMPLATE);
+                    self.pop_until(&TagName::TEMPLATE);
                     self.state
                         .active_formatting_elements
                         .clear_up_to_last_marker();
@@ -1468,7 +1466,7 @@ impl HtmlProcessor {
              * > Anything else
              */
             _ => {
-                self.state.stack_of_open_elements.pop();
+                self.pop();
                 self.state.insertion_mode = InsertionMode::AFTER_HEAD;
                 self.step(NodeToProcess::ReprocessCurrentNode)
             }
@@ -1519,7 +1517,7 @@ impl HtmlProcessor {
              * > An end tag whose tag name is "noscript"
              */
             Op::TagPop(TagName::NOSCRIPT) => {
-                self.state.stack_of_open_elements.pop();
+                self.pop();
                 self.state.insertion_mode = InsertionMode::IN_HEAD;
                 true
             }
@@ -1563,7 +1561,7 @@ impl HtmlProcessor {
              * Anything here is a parse error.
              */
             _ => {
-                self.state.stack_of_open_elements.pop();
+                self.pop();
                 self.state.insertion_mode = InsertionMode::IN_HEAD;
                 self.step(NodeToProcess::ReprocessCurrentNode)
             }
@@ -2006,7 +2004,7 @@ impl HtmlProcessor {
                             | TagName::H6
                     ) {
                         // Parse error: pop the current heading element
-                        self.state.stack_of_open_elements.pop();
+                        self.pop();
                     }
                 }
 
@@ -2097,9 +2095,7 @@ impl HtmlProcessor {
                 {
                     // Parse error: this error does not impact the logic here.
                     self.generate_implied_end_tags(None);
-                    self.state
-                        .stack_of_open_elements
-                        .pop_until(&TagName::BUTTON);
+                    self.pop_until(&TagName::BUTTON);
                 }
 
                 self.reconstruct_active_formatting_elements();
@@ -2156,7 +2152,7 @@ impl HtmlProcessor {
                     if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
                         // Parse error: this error doesn't impact parsing.
                     }
-                    self.state.stack_of_open_elements.pop_until(&tag_name);
+                    self.pop_until(&tag_name);
                     true
                 }
             }
@@ -2213,7 +2209,7 @@ impl HtmlProcessor {
                         // Parse error: this error doesn't impact parsing.
                     }
 
-                    self.state.stack_of_open_elements.pop_until_any_h1_to_h6();
+                    self.pop_until_any_h1_to_h6();
                     true
                 }
             }
@@ -2324,9 +2320,7 @@ impl HtmlProcessor {
                         // This is a parse error.
                     }
 
-                    self.state
-                        .stack_of_open_elements
-                        .pop_until(&self.get_tag().unwrap());
+                    self.pop_until(&self.get_tag().unwrap());
                     self.state
                         .active_formatting_elements
                         .clear_up_to_last_marker();
@@ -2543,7 +2537,7 @@ impl HtmlProcessor {
                     .stack_of_open_elements
                     .current_node_is(&TagName::OPTION)
                 {
-                    self.state.stack_of_open_elements.pop();
+                    self.pop();
                 }
                 self.reconstruct_active_formatting_elements();
                 self.insert_html_element(self.state.current_token.clone().unwrap());
@@ -2622,7 +2616,7 @@ impl HtmlProcessor {
                 let has_self_closing_flag = token.has_self_closing_flag;
                 self.insert_html_element(token);
                 if has_self_closing_flag {
-                    self.state.stack_of_open_elements.pop();
+                    self.pop();
                 }
                 true
             }
@@ -2645,7 +2639,7 @@ impl HtmlProcessor {
                 let has_self_closing_flag = token.has_self_closing_flag;
                 self.insert_html_element(token);
                 if has_self_closing_flag {
-                    self.state.stack_of_open_elements.pop();
+                    self.pop();
                 }
                 true
             }
@@ -3424,7 +3418,7 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#close-a-p-element
     fn close_a_p_element(&mut self) -> () {
         self.generate_implied_end_tags(Some(&TagName::P));
-        self.state.stack_of_open_elements.pop_until(&TagName::P);
+        self.pop_until(&TagName::P);
     }
 
     /// Closes elements that have implied end tags.
@@ -3456,7 +3450,7 @@ impl HtmlProcessor {
                     | TagName::RT
                     | TagName::RTC),
                 ) if Some(current_tag) != except_for_this_element => {
-                    self.state.stack_of_open_elements.pop();
+                    self.pop();
                 }
                 NodeName::Tag(_) => return,
                 NodeName::Token(_) => return,
@@ -3579,7 +3573,7 @@ impl HtmlProcessor {
     ///
     /// @param WP_HTML_Token $token Name of bookmark pointing to element in original input HTML.
     fn insert_html_element(&mut self, token: HTMLToken) -> () {
-        self.state.stack_of_open_elements.push(token);
+        self.push(token);
     }
 
     /// Inserts a foreign element on to the stack of open elements.
@@ -3734,6 +3728,132 @@ impl HtmlProcessor {
             Some(NodeName::Token(token_type)) => Op::Token(token_type),
             None => unreachable!("Op should never be made when no token is available."),
         }
+    }
+
+    fn push(&mut self, token: HTMLToken) -> () {
+        let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
+        let same_node = self.state.current_token.is_some()
+            && token.node_name == self.state.current_token.as_ref().unwrap().node_name;
+        let provenance = if !same_node || is_virtual {
+            StackProvenance::Virtual
+        } else {
+            StackProvenance::Real
+        };
+        self.element_queue.push_back(HTMLStackEvent {
+            token: token.clone(),
+            operation: StackOperation::Push,
+            provenance,
+        });
+
+        self.tag_processor
+            .change_parsing_namespace(if let Some(_) = token.integration_node_type {
+                ParsingNamespace::Html
+            } else {
+                token.namespace.clone()
+            });
+
+        self.state.stack_of_open_elements._push(token);
+    }
+
+    fn pop(&mut self) -> Option<HTMLToken> {
+        let token = self.state.stack_of_open_elements._pop()?;
+
+        let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
+        let same_node = self.state.current_token.is_some()
+            && token.node_name == self.state.current_token.as_ref().unwrap().node_name;
+        let provenance = if !same_node || is_virtual {
+            StackProvenance::Virtual
+        } else {
+            StackProvenance::Real
+        };
+        self.element_queue.push_back(HTMLStackEvent {
+            token: token.clone(),
+            operation: StackOperation::Push,
+            provenance,
+        });
+
+        if let Some(adjusted_current_node) = self.get_adjusted_current_node() {
+            self.tag_processor.change_parsing_namespace(
+                if let Some(_) = adjusted_current_node.integration_node_type {
+                    ParsingNamespace::Html
+                } else {
+                    adjusted_current_node.namespace.clone()
+                },
+            );
+        } else {
+            self.tag_processor
+                .change_parsing_namespace(ParsingNamespace::Html);
+        };
+
+        Some(token)
+    }
+
+    /// Pops nodes off of the stack of open elements until an HTML tag with the given name has been popped.
+    ///
+    /// In the PHP implementation, this method exists on the stack of open elements class.
+    ///
+    /// @param string $html_tag_name Name of tag that needs to be popped off of the stack of open elements.
+    /// @return bool Whether a tag of the given name was found and popped off of the stack of open elements.
+    fn pop_until(&mut self, html_tag_name: &TagName) -> bool {
+        while let Some(HTMLToken {
+            node_name: token_node_name,
+            namespace: token_namespace,
+            ..
+        }) = self.pop()
+        {
+            if token_namespace != ParsingNamespace::Html {
+                continue;
+            }
+
+            match token_node_name {
+                NodeName::Tag(tag_name) => {
+                    if tag_name == *html_tag_name {
+                        return true;
+                    }
+                }
+                NodeName::Token(_) => {}
+            }
+        }
+
+        false
+    }
+
+    /// Pop until any H1-H6 element has been popped off of the stack of open elements.
+    ///
+    /// !!! This function does not exist in the PHP implementation !!!
+    ///
+    /// Most pop_until usage is for a single element. The H1-H6 elements are an
+    /// exception and this additional method prevents needing to implement checks for multiple
+    /// elements.
+    ///
+    /// The
+    pub fn pop_until_any_h1_to_h6(&mut self) -> bool {
+        while let Some(HTMLToken {
+            node_name: token_node_name,
+            namespace: token_namespace,
+            ..
+        }) = self.pop()
+        {
+            if token_namespace != ParsingNamespace::Html {
+                continue;
+            }
+
+            if matches!(
+                token_node_name,
+                NodeName::Tag(
+                    TagName::H1
+                        | TagName::H2
+                        | TagName::H3
+                        | TagName::H4
+                        | TagName::H5
+                        | TagName::H6
+                )
+            ) {
+                return true;
+            }
+        }
+
+        false
     }
 }
 

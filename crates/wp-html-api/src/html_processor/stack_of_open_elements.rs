@@ -1,6 +1,6 @@
 use crate::{
     html_processor::HTMLToken,
-    tag_processor::{NodeName, ParsingNamespace, TagName},
+    tag_processor::{NodeName, TagName},
 };
 
 /// Core class used by the HTML processor during HTML parsing
@@ -26,11 +26,11 @@ impl StackOfOpenElements {
         Self { stack: Vec::new() }
     }
 
-    pub fn push(&mut self, element: HTMLToken) {
+    pub fn _push(&mut self, element: HTMLToken) {
         self.stack.push(element)
     }
 
-    pub fn pop(&mut self) -> Option<HTMLToken> {
+    pub fn _pop(&mut self) -> Option<HTMLToken> {
         self.stack.pop()
     }
 
@@ -56,36 +56,6 @@ impl StackOfOpenElements {
         })
     }
 
-    /// Pops nodes off of the stack of open elements until an HTML tag with the given name has been popped.
-    ///
-    /// @see WP_HTML_Open_Elements::pop
-    ///
-    /// @param string $html_tag_name Name of tag that needs to be popped off of the stack of open elements.
-    /// @return bool Whether a tag of the given name was found and popped off of the stack of open elements.
-    pub fn pop_until(&mut self, html_tag_name: &TagName) -> bool {
-        while let Some(HTMLToken {
-            node_name: token_node_name,
-            namespace: token_namespace,
-            ..
-        }) = self.pop()
-        {
-            if token_namespace != ParsingNamespace::Html {
-                continue;
-            }
-
-            match token_node_name {
-                NodeName::Tag(tag_name) => {
-                    if tag_name == *html_tag_name {
-                        return true;
-                    }
-                }
-                NodeName::Token(_) => {}
-            }
-        }
-
-        false
-    }
-
     pub fn at(&self, nth: usize) -> Option<HTMLToken> {
         todo!()
     }
@@ -109,44 +79,6 @@ impl StackOfOpenElements {
 
     pub fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
         todo!()
-    }
-
-    /// Pop until any H1-H6 element has been popped off of the stack of open elements.
-    ///
-    /// !!! This function does not exist in the PHP implementation !!!
-    ///
-    /// Most pop_until usage is for a single element. The H1-H6 elements are an
-    /// exception and this additional method prevents needing to implement checks for multiple
-    /// elements.
-    ///
-    /// The
-    pub fn pop_until_any_h1_to_h6(&mut self) -> bool {
-        while let Some(HTMLToken {
-            node_name: token_node_name,
-            namespace: token_namespace,
-            ..
-        }) = self.pop()
-        {
-            if token_namespace != ParsingNamespace::Html {
-                continue;
-            }
-
-            if matches!(
-                token_node_name,
-                NodeName::Tag(
-                    TagName::H1
-                        | TagName::H2
-                        | TagName::H3
-                        | TagName::H4
-                        | TagName::H5
-                        | TagName::H6
-                )
-            ) {
-                return true;
-            }
-        }
-
-        false
     }
 
     /// Steps through the stack of open elements, starting with the top element

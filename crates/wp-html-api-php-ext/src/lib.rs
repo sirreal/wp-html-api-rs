@@ -4,7 +4,7 @@ use ext_php_rs::{
     types::ZendClassObject,
 };
 use wp_html_api::html_processor::HtmlProcessor;
-use wp_html_api::tag_processor::{TagName, TagProcessor};
+use wp_html_api::tag_processor::{NodeName, TagName, TagProcessor};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -103,7 +103,17 @@ impl WP_HTML_Processor {
     }
 
     pub fn get_token_name(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
-        todo!()
+        let get_token_name = this.processor.get_token_name()?;
+        Some(match get_token_name {
+            NodeName::Tag(tag_name) => {
+                let tag_name: Box<[u8]> = tag_name.into();
+                tag_name.to_vec().into()
+            }
+            NodeName::Token(token_name) => {
+                let token_name: String = token_name.into();
+                token_name.as_bytes().to_vec().into()
+            }
+        })
     }
 }
 
