@@ -20,10 +20,25 @@ use crate::{
 pub(super) struct StackOfOpenElements {
     /// Holds the stack of open element references.
     pub stack: Vec<HTMLToken>,
+
+    push_handler: Option<Box<dyn FnMut(HTMLToken) -> ()>>,
+    pop_handler: Option<Box<dyn FnMut(HTMLToken) -> ()>>,
 }
 impl StackOfOpenElements {
     pub fn new() -> Self {
-        Self { stack: Vec::new() }
+        Self {
+            stack: Vec::new(),
+            push_handler: None,
+            pop_handler: None,
+        }
+    }
+
+    pub fn set_push_handler(&mut self, handler: Box<dyn FnMut(HTMLToken) -> ()>) {
+        self.push_handler = Some(handler);
+    }
+
+    pub fn set_pop_handler(&mut self, handler: Box<dyn FnMut(HTMLToken) -> ()>) {
+        self.pop_handler = Some(handler);
     }
 
     pub fn push(&mut self, element: HTMLToken) {
