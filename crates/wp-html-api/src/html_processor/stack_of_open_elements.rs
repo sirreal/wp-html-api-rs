@@ -179,13 +179,10 @@ impl StackOfOpenElements {
     ///
     /// To start with the most-recently added element and walk towards the top,
     /// see WP_HTML_Open_Elements::walk_up().
-    pub fn walk_down(&self) -> StackWalker {
-        StackWalker {
-            stack: self,
-            current: 0,
-            dir: Direction::Down,
-        }
+    pub fn walk_down(&self) -> impl Iterator<Item = &HTMLToken> {
+        self.stack.iter()
     }
+
     /// Steps through the stack of open elements, starting with the bottom element
     /// (added last) and walking upwards to the one added first.
     ///
@@ -204,16 +201,12 @@ impl StackOfOpenElements {
     ///
     /// @param WP_HTML_Token|null $above_this_node Optional. Start traversing above this node,
     ///                                            if provided and if the node exists.
-    pub fn walk_up(&self, above_this_node: Option<&HTMLToken>) -> StackWalker {
+    pub fn walk_up(&self, above_this_node: Option<&HTMLToken>) -> impl Iterator<Item = &HTMLToken> {
         if above_this_node.is_some() {
             todo!("Above this node not implemented");
         }
 
-        StackWalker {
-            stack: self,
-            current: self.stack.len() - 1,
-            dir: Direction::Up,
-        }
+        self.stack.iter().rev()
     }
 
     /// Returns whether a particular element is in button scope.
@@ -293,39 +286,4 @@ impl StackOfOpenElements {
     pub fn contains_node(&self, last_entry: &HTMLToken) -> bool {
         self.walk_up(None).any(|node| node == last_entry)
     }
-}
-
-pub(super) struct StackWalker<'a> {
-    stack: &'a StackOfOpenElements,
-    current: usize,
-    dir: Direction,
-}
-impl<'a> Iterator for StackWalker<'a> {
-    type Item = &'a HTMLToken;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let current = self.current;
-        match self.dir {
-            Direction::Up => {
-                if current > 0 && self.stack.stack.len() > 0 {
-                    self.current -= 1;
-                    Some(&self.stack.stack[self.current])
-                } else {
-                    None
-                }
-            }
-            Direction::Down => {
-                if current + 1 >= self.stack.stack.len() {
-                    None
-                } else {
-                    self.current += 1;
-                    Some(&self.stack.stack[self.current])
-                }
-            }
-        }
-    }
-}
-enum Direction {
-    Up,
-    Down,
 }
