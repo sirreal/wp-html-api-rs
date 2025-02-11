@@ -2583,7 +2583,7 @@ impl HtmlProcessor {
                     .stack_of_open_elements
                     .has_element_in_scope(&TagName::RUBY)
                 {
-                    self.generate_implied_end_tags(Some(TagName::RTC));
+                    self.generate_implied_end_tags(Some(&TagName::RTC));
 
                     let current_node_name = self
                         .state
@@ -3423,16 +3423,45 @@ impl HtmlProcessor {
     ///
     /// @see https://html.spec.whatwg.org/#close-a-p-element
     fn close_a_p_element(&mut self) -> () {
-        todo!()
+        self.generate_implied_end_tags(Some(&TagName::P));
+        self.state.stack_of_open_elements.pop_until(&TagName::P);
     }
 
     /// Closes elements that have implied end tags.
     ///
+    /// > while the current node is a dd element, a dt element, an li element,
+    /// > an optgroup element, an option element, a p element, an rb element,
+    /// > an rp element, an rt element, or an rtc element,
+    /// > the UA must pop the current node off the stack of open elements.
+    ///
     /// @see https://html.spec.whatwg.org/#generate-implied-end-tags
     ///
     /// @param string|null $except_for_this_element Perform as if this element doesn't exist in the stack of open elements.
-    fn generate_implied_end_tags(&mut self, except_for_this_element: Option<TagName>) -> () {
-        todo!()
+    fn generate_implied_end_tags(&mut self, except_for_this_element: Option<&TagName>) -> () {
+        while let Some(token) = self.state.stack_of_open_elements.current_node() {
+            if token.namespace != ParsingNamespace::Html {
+                return;
+            }
+
+            match &token.node_name {
+                NodeName::Tag(
+                    current_tag @ (TagName::DD
+                    | TagName::DT
+                    | TagName::LI
+                    | TagName::OPTGROUP
+                    | TagName::OPTION
+                    | TagName::P
+                    | TagName::RB
+                    | TagName::RP
+                    | TagName::RT
+                    | TagName::RTC),
+                ) if Some(current_tag) != except_for_this_element => {
+                    self.state.stack_of_open_elements.pop();
+                }
+                NodeName::Tag(_) => return,
+                NodeName::Token(_) => return,
+            }
+        }
     }
 
     /// Closes elements that have implied end tags, thoroughly.
