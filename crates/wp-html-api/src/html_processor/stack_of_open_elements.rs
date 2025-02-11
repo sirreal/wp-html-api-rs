@@ -88,4 +88,161 @@ impl StackOfOpenElements {
     pub(crate) fn pop_until_any_h1_to_h6(&self) {
         todo!()
     }
+
+    /// Steps through the stack of open elements, starting with the top element
+    /// (added first) and walking downwards to the one added last.
+    ///
+    /// This generator function is designed to be used inside a "foreach" loop.
+    ///
+    /// Example:
+    ///
+    ///     $html = '<em><strong><a>We are here';
+    ///     foreach ( $stack->walk_down() as $node ) {
+    ///         echo "{$node->node_name} -> ";
+    ///     }
+    ///     > EM -> STRONG -> A ->
+    ///
+    /// To start with the most-recently added element and walk towards the top,
+    /// see WP_HTML_Open_Elements::walk_up().
+    pub(crate) fn walk_down(&self) -> StackWalker {
+        StackWalker {
+            stack: self,
+            current: 0,
+            dir: Direction::Down,
+        }
+    }
+    /// Steps through the stack of open elements, starting with the bottom element
+    /// (added last) and walking upwards to the one added first.
+    ///
+    /// This generator function is designed to be used inside a "foreach" loop.
+    ///
+    /// Example:
+    ///
+    ///     $html = '<em><strong><a>We are here';
+    ///     foreach ( $stack->walk_up() as $node ) {
+    ///         echo "{$node->node_name} -> ";
+    ///     }
+    ///     > A -> STRONG -> EM ->
+    ///
+    /// To start with the first added element and walk towards the bottom,
+    /// see WP_HTML_Open_Elements::walk_down().
+    ///
+    /// @param WP_HTML_Token|null $above_this_node Optional. Start traversing above this node,
+    ///                                            if provided and if the node exists.
+    pub(crate) fn walk_up(&self, above_this_node: Option<&HTMLToken>) -> StackWalker {
+        if above_this_node.is_some() {
+            todo!("Above this node not implemented");
+        }
+
+        StackWalker {
+            stack: self,
+            current: self.stack.len() - 1,
+            dir: Direction::Up,
+        }
+    }
+
+    /// Returns whether a particular element is in button scope.
+    ///
+    /// > The stack of open elements is said to have a particular element
+    /// > in button scope when it has that element in the specific scope
+    /// > consisting of the following element types:
+    /// >
+    /// >   - All the element types listed above for the has an element in scope algorithm.
+    /// >   - button in the HTML namespace
+    ///
+    /// @see https://html.spec.whatwg.org/#has-an-element-in-button-scope
+    ///
+    /// @param string $tag_name Name of tag to check.
+    /// @return bool Whether given element is in scope.
+    fn has_element_in_button_scope(&self, tag_name: &TagName) -> bool {
+        self.has_element_in_specific_scope(
+            tag_name,
+            &[
+                TagName::APPLET,
+                TagName::BUTTON,
+                TagName::CAPTION,
+                TagName::HTML,
+                TagName::TABLE,
+                TagName::TD,
+                TagName::TH,
+                TagName::MARQUEE,
+                TagName::OBJECT,
+                TagName::TEMPLATE,
+                TagName::MathML_MI,
+                TagName::MathML_MO,
+                TagName::MathML_MN,
+                TagName::MathML_MS,
+                TagName::MathML_MTEXT,
+                TagName::MathML_ANNOTATION_XML,
+                TagName::SVG_FOREIGNOBJECT,
+                TagName::SVG_DESC,
+                TagName::SVG_TITLE,
+            ],
+        )
+    }
+
+    /// Returns whether an element is in a specific scope.
+    ///
+    /// @see https://html.spec.whatwg.org/#has-an-element-in-the-specific-scope
+    ///
+    /// @param string   $tag_name         Name of tag check.
+    /// @param string[] $termination_list List of elements that terminate the search.
+    /// @return bool Whether the element was found in a specific scope.
+    fn has_element_in_specific_scope(
+        &self,
+        tag_name: &TagName,
+        termination_list: &[TagName],
+    ) -> bool {
+        for node in self.walk_up(None) {
+            if let HTMLToken {
+                node_name: NodeName::Tag(node_tag),
+                ..
+            } = node
+            {
+                if node_tag == tag_name {
+                    return true;
+                }
+                if termination_list.contains(node_tag) {
+                    return false;
+                }
+            }
+        }
+        // If we've walked through the entire stack without finding the tag, it's not in scope
+        false
+    }
+}
+
+pub(super) struct StackWalker<'a> {
+    stack: &'a StackOfOpenElements,
+    current: usize,
+    dir: Direction,
+}
+impl<'a> Iterator for StackWalker<'a> {
+    type Item = &'a HTMLToken;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.current;
+        match self.dir {
+            Direction::Up => {
+                if current > 0 && self.stack.stack.len() > 0 {
+                    self.current -= 1;
+                    Some(&self.stack.stack[self.current])
+                } else {
+                    None
+                }
+            }
+            Direction::Down => {
+                if current + 1 >= self.stack.stack.len() {
+                    None
+                } else {
+                    self.current += 1;
+                    Some(&self.stack.stack[self.current])
+                }
+            }
+        }
+    }
+}
+enum Direction {
+    Up,
+    Down,
 }
