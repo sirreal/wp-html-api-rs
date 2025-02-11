@@ -3838,9 +3838,28 @@ impl HtmlProcessor {
     ///
     /// @param string $tag_name Name of HTML tag to check.
     /// @return bool Whether the given tag is an HTML Void Element.
-
     pub fn is_void(tag_name: TagName) -> bool {
-        todo!()
+        matches!(
+            tag_name,
+            TagName::AREA
+                | TagName::BASE
+                | TagName::BASEFONT // Obsolete but still treated as void.
+                | TagName::BGSOUND // Obsolete but still treated as void.
+                | TagName::BR
+                | TagName::COL
+                | TagName::EMBED
+                | TagName::FRAME
+                | TagName::HR
+                | TagName::IMG
+                | TagName::INPUT
+                | TagName::KEYGEN // Obsolete but still treated as void.
+                | TagName::LINK
+                | TagName::META
+                | TagName::PARAM // Obsolete but still treated as void.
+                | TagName::SOURCE
+                | TagName::TRACK
+                | TagName::WBR
+        )
     }
 
     /// Gets an encoding from a given string.
