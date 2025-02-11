@@ -3718,15 +3718,17 @@ impl HtmlProcessor {
     }
 
     fn make_op(&self) -> Op {
-        match self.get_token_name() {
-            Some(NodeName::Tag(tag_name)) => {
-                if self.is_tag_closer() {
-                    Op::TagPop(tag_name)
-                } else {
-                    Op::TagPush(tag_name)
-                }
-            }
-            Some(NodeName::Token(token_type)) => Op::Token(token_type),
+        match self.get_token_type() {
+            Some(TokenType::Tag) if self.is_tag_closer() => Op::TagPop(self.get_tag().unwrap()),
+            Some(TokenType::Tag) => Op::TagPush(self.get_tag().unwrap()),
+            Some(
+                token @ (TokenType::CdataSection
+                | TokenType::Comment
+                | TokenType::Doctype
+                | TokenType::FunkyComment
+                | TokenType::PresumptuousTag
+                | TokenType::Text),
+            ) => Op::Token(token),
             None => unreachable!("Op should never be made when no token is available."),
         }
     }
