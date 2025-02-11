@@ -3,7 +3,22 @@ use crate::{
     tag_processor::{NodeName, TagName},
 };
 
+/// Core class used by the HTML processor during HTML parsing
+/// for managing the stack of open elements.
+///
+/// This class is designed for internal use by the HTML processor.
+///
+/// > Initially, the stack of open elements is empty. The stack grows
+/// > downwards; the topmost node on the stack is the first one added
+/// > to the stack, and the bottommost node of the stack is the most
+/// > recently added node in the stack (notwithstanding when the stack
+/// > is manipulated in a random access fashion as part of the handling
+/// > for misnested tags).
+///
+/// @see https://html.spec.whatwg.org/#stack-of-open-elements
+/// @see WP_HTML_Processor
 pub(super) struct StackOfOpenElements {
+    /// Holds the stack of open element references.
     pub stack: Vec<HTMLToken>,
 }
 impl StackOfOpenElements {
@@ -53,8 +68,13 @@ impl StackOfOpenElements {
         todo!()
     }
 
+    /// Returns whether a P is in BUTTON scope.
+    ///
+    /// @see https://html.spec.whatwg.org/#has-an-element-in-button-scope
+    ///
+    /// @return bool Whether a P is in BUTTON scope.
     pub(crate) fn has_p_in_button_scope(&self) -> bool {
-        todo!()
+        self.has_element_in_button_scope(&TagName::P)
     }
 
     pub(crate) fn current_node_is(&self, tag_name: &TagName) -> bool {
