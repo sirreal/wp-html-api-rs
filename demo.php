@@ -25,7 +25,7 @@ if ( null === $input_file ) {
     $html = file_get_contents( $input_file );
 }
 
-$processor = new WP_HTML_Tag_Processor($html);
+$processor = WP_HTML_Processor::create_full_parser($html);
 
 $c = 0;
 $ns = -hrtime( true );

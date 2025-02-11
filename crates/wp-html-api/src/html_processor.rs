@@ -80,8 +80,6 @@ enum EncodingConfidence {
 enum InsertionMode {
     /// Initial insertion mode for full HTML parser.
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#the-initial-insertion-mode
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -89,8 +87,6 @@ enum InsertionMode {
     INITIAL,
 
     /// Before HTML insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#the-before-html-insertion-mode
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -100,8 +96,6 @@ enum InsertionMode {
 
     /// Before head insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-beforehead
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -109,8 +103,6 @@ enum InsertionMode {
     BEFORE_HEAD,
 
     /// In head insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inhead
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -120,8 +112,6 @@ enum InsertionMode {
 
     /// In head noscript insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inheadnoscript
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -129,8 +119,6 @@ enum InsertionMode {
     IN_HEAD_NOSCRIPT,
 
     /// After head insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterhead
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -140,8 +128,6 @@ enum InsertionMode {
 
     /// In body insertion mode for full HTML parser.
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inbody
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -149,8 +135,6 @@ enum InsertionMode {
     IN_BODY,
 
     /// In table insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intable
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -160,8 +144,6 @@ enum InsertionMode {
 
     /// In table text insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intabletext
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -169,8 +151,6 @@ enum InsertionMode {
     IN_TABLE_TEXT,
 
     /// In caption insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incaption
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -180,8 +160,6 @@ enum InsertionMode {
 
     /// In column group insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incolumngroup
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -189,8 +167,6 @@ enum InsertionMode {
     IN_COLUMN_GROUP,
 
     /// In table body insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intablebody
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -200,8 +176,6 @@ enum InsertionMode {
 
     /// In row insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inrow
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -209,8 +183,6 @@ enum InsertionMode {
     IN_ROW,
 
     /// In cell insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incell
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -220,8 +192,6 @@ enum InsertionMode {
 
     /// In select insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inselect
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -229,8 +199,6 @@ enum InsertionMode {
     IN_SELECT,
 
     /// In select in table insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inselectintable
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -240,8 +208,6 @@ enum InsertionMode {
 
     /// In template insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intemplate
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -249,8 +215,6 @@ enum InsertionMode {
     IN_TEMPLATE,
 
     /// After body insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterbody
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -260,8 +224,6 @@ enum InsertionMode {
 
     /// In frameset insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inframeset
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -269,8 +231,6 @@ enum InsertionMode {
     IN_FRAMESET,
 
     /// After frameset insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterframeset
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -280,8 +240,6 @@ enum InsertionMode {
 
     /// After after body insertion mode for full HTML parser.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#the-after-after-body-insertion-mode
     /// @see WP_HTML_Processor_State::$insertion_mode
     ///
@@ -289,8 +247,6 @@ enum InsertionMode {
     AFTER_AFTER_BODY,
 
     /// After after frameset insertion mode for full HTML parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#the-after-after-frameset-insertion-mode
     /// @see WP_HTML_Processor_State::$insertion_mode
@@ -429,8 +385,6 @@ impl HtmlProcessor {
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#html-fragment-parsing-algorithm
     ///
-    /// @since 6.8.0
-    ///
     /// @param string $html Input HTML fragment to process.
     /// @return static|null The created processor if successful, otherwise null.
     fn create_fragment_at_current_node(html: &str) -> Self {
@@ -440,8 +394,6 @@ impl HtmlProcessor {
     /// Stops the parser and terminates its execution when encountering unsupported markup.
     ///
     /// @throws WP_HTML_Unsupported_Exception Halts execution of the parser.
-    ///
-    /// @since 6.7.0
     ///
     /// @param string $message Explains support is missing in order to parse the current node.
     fn bail(&mut self, message: String) -> () {
@@ -463,8 +415,6 @@ impl HtmlProcessor {
     ///     false === $processor->next_tag();
     ///     WP_HTML_Processor::ERROR_UNSUPPORTED === $processor->get_last_error();
     ///
-    /// @since 6.4.0
-    ///
     /// @see self::ERROR_UNSUPPORTED
     /// @see self::ERROR_EXCEEDED_MAX_BOOKMARKS
     ///
@@ -477,12 +427,9 @@ impl HtmlProcessor {
     ///
     /// This is meant for debugging purposes, not for production use.
     ///
-    /// @since 6.7.0
-    ///
     /// @see self::$unsupported_exception
     ///
     /// @return WP_HTML_Unsupported_Exception|null
-
     pub fn get_unsupported_exception(&self) -> Option<&UnsupportedException> {
         match &self.last_error {
             Some(HtmlProcessorError::UnsupportedException(e)) => Some(e),
@@ -493,9 +440,6 @@ impl HtmlProcessor {
     /// Finds the next tag matching the query.
     ///
     /// @todo Support matching the class name and tag name.
-    ///
-    /// @since 6.4.0
-    /// @since 6.6.0 Visits all tokens, including virtual ones.
     ///
     /// @throws Exception When unable to allocate a bookmark for the next token in the input HTML document.
     ///
@@ -588,11 +532,7 @@ impl HtmlProcessor {
     /// semantic rules for text nodes. For access to the raw tokens consider using
     /// WP_HTML_Tag_Processor instead.
     ///
-    /// @since 6.5.0 Added for internal support; do not use.
-    /// @since 6.7.1 Refactored so subclasses may extend.
-    ///
     /// @return bool Whether a token was parsed.
-
     pub fn next_token(&mut self) -> bool {
         self.next_visitable_token()
     }
@@ -635,7 +575,7 @@ impl HtmlProcessor {
         self.current_element = self.element_queue.pop_front();
         if self.current_element.is_none() {
             // There are no tokens left, so close all remaining open elements
-            while self.state.stack_of_open_elements.pop().is_some() {
+            while self.pop().is_some() {
                 continue;
             }
 
@@ -670,7 +610,11 @@ impl HtmlProcessor {
         }
 
         // Avoid sending close events for elements which don't expect a closing
-        if is_pop && !self.expects_closer(Some(&current_element.token)) {
+        if is_pop
+            && !self
+                .expects_closer(Some(&current_element.token))
+                .unwrap_or(false)
+        {
             return self.next_visitable_token();
         }
 
@@ -688,10 +632,7 @@ impl HtmlProcessor {
     ///     $p->next_tag( array( 'tag_name' => 'div', 'tag_closers' => 'visit' ) );
     ///     $p->is_tag_closer() === true;
     ///
-    /// @since 6.6.0 Subclassed for HTML Processor.
-    ///
     /// @return bool Whether the current tag is a tag closer.
-
     pub fn is_tag_closer(&self) -> bool {
         if self.is_virtual() {
             self.current_element
@@ -711,10 +652,7 @@ impl HtmlProcessor {
     /// Indicates if the currently-matched token is virtual, created by a stack operation
     /// while processing HTML, rather than a token found in the HTML text itself.
     ///
-    /// @since 6.6.0
-    ///
     /// @return bool Whether the current token is virtual.
-
     fn is_virtual(&self) -> bool {
         self.current_element
             .as_ref()
@@ -740,12 +678,9 @@ impl HtmlProcessor {
     ///     false === $processor->matches_breadcrumbs( array( 'span', 'img' ) );
     ///     true  === $processor->matches_breadcrumbs( array( 'span', '*', 'img' ) );
     ///
-    /// @since 6.4.0
-    ///
     /// @param string[] $breadcrumbs DOM sub-path at which element is found, e.g. `array( 'FIGURE', 'IMG' )`.
     ///                              May also contain the wildcard `*` which matches a single element, e.g. `array( 'SECTION', '*' )`.
     /// @return bool Whether the currently-matched tag is found at the given nested structure.
-
     pub fn matches_breadcrumbs(&self, breadcrumbs: Option<&Vec<&str>>) -> bool {
         todo!()
     }
@@ -760,20 +695,55 @@ impl HtmlProcessor {
     /// foreign content will also act just like a void tag, immediately
     /// closing as soon as the processor advances to the next token.
     ///
-    /// @since 6.6.0
-    ///
     /// @param WP_HTML_Token|null $node Optional. Node to examine, if provided.
     ///                                 Default is to examine current node.
     /// @return bool|null Whether to expect a closer for the currently-matched node,
     ///                   or `null` if not matched on any token.
+    pub fn expects_closer(&self, node: Option<&HTMLToken>) -> Option<bool> {
+        let token_name = node
+            .map(|n| n.node_name.clone())
+            .or_else(|| self.get_token_name())?;
+        let token_name_namespace = node
+            .map(|n| n.namespace.clone())
+            .unwrap_or_else(|| self.get_namespace());
+        let token_has_self_closing = node
+            .map(|n| n.has_self_closing_flag)
+            .unwrap_or_else(|| self.has_self_closing_flag());
 
-    pub fn expects_closer(&self, node: Option<&HTMLToken>) -> bool {
-        todo!()
+        let result = match token_name {
+            // Comments, text nodes, and other atomic tokens.
+            // Doctype declarations.
+            NodeName::Token(TokenType::Text)
+            | NodeName::Token(TokenType::CdataSection)
+            | NodeName::Token(TokenType::Comment)
+            | NodeName::Token(TokenType::Doctype)
+            | NodeName::Token(TokenType::PresumptuousTag)
+            | NodeName::Token(TokenType::FunkyComment) => false,
+
+            NodeName::Token(TokenType::Tag) => unreachable!("#tag NodeName should never exist"),
+
+            // Void elements.
+            // Special atomic elements.
+            NodeName::Tag(tag_name) if token_name_namespace == ParsingNamespace::Html => {
+                !(matches!(
+                    tag_name,
+                    TagName::IFRAME
+                        | TagName::NOEMBED
+                        | TagName::NOFRAMES
+                        | TagName::SCRIPT
+                        | TagName::STYLE
+                        | TagName::TEXTAREA
+                        | TagName::TITLE
+                        | TagName::XMP
+                ) || Self::is_void(tag_name))
+            }
+            // Self-closing elements in foreign content.
+            NodeName::Tag(_) => !token_has_self_closing,
+        };
+        Some(result)
     }
 
     /// Steps through the HTML document and stop at the next tag, if any.
-    ///
-    /// @since 6.4.0
     ///
     /// @throws Exception When unable to allocate a bookmark for the next token in the input HTML document.
     ///
@@ -799,8 +769,8 @@ impl HtmlProcessor {
              * on the stack is a void element, it must be closed.
              */
             if let Some(top_node) = self.state.stack_of_open_elements.current_node() {
-                if !self.expects_closer(Some(top_node)) {
-                    self.state.stack_of_open_elements.pop();
+                if !self.expects_closer(Some(top_node)).unwrap_or(false) {
+                    self.pop();
                 }
             }
         }
@@ -905,8 +875,6 @@ impl HtmlProcessor {
     ///     $processor->next_tag( 'IMG' );
     ///     $processor->get_breadcrumbs() === array( 'HTML', 'BODY', 'P', 'STRONG', 'EM', 'IMG' );
     ///
-    /// @since 6.4.0
-    ///
     /// @return string[] Array of tag names representing path to matched node.
 
     pub fn get_breadcrumbs() -> () {
@@ -932,8 +900,6 @@ impl HtmlProcessor {
     ///     // The P element is closed during `next_token()` so the depth is decreased to reflect that.
     ///     $processor->next_token();
     ///     3 === $processor->get_current_depth();
-    ///
-    /// @since 6.6.0
     ///
     /// @return int Nesting-depth of current location in the document.
 
@@ -971,8 +937,6 @@ impl HtmlProcessor {
     ///
     ///     echo WP_HTML_Processor::normalize( '<![CDATA[invalid comment]]> syntax < <> "oddities"' );
     ///     // <!--[CDATA[invalid comment]]--> syntax &lt; &lt;&gt; &quot;oddities&quot;
-    ///
-    /// @since 6.7.0
     ///
     /// @param string $html Input HTML to normalize.
     ///
@@ -1017,8 +981,6 @@ impl HtmlProcessor {
     ///     echo $processor->serialize();
     ///     // <!--[CDATA[invalid comment]]--> syntax &lt; &lt;&gt; &quot;oddities&quot;
     ///
-    /// @since 6.7.0
-    ///
     /// @return string|null Normalized HTML markup represented by processor,
     ///                     or `null` if unable to generate serialization.
     pub fn serialize(&self) -> Result<String, ()> {
@@ -1033,8 +995,6 @@ impl HtmlProcessor {
     ///
     /// @see static::serialize()
     ///
-    /// @since 6.7.0
-    ///
     /// @return string Serialization of token, or empty string if no serialization exists.
     ///
     /// @todo What do wo with this _protected_ function?
@@ -1046,8 +1006,6 @@ impl HtmlProcessor {
     ///
     /// This internal function performs the 'initial' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.7.0
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -1116,8 +1074,6 @@ impl HtmlProcessor {
     ///
     /// This internal function performs the 'before html' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.7.0
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -1201,8 +1157,6 @@ impl HtmlProcessor {
     ///
     /// This internal function performs the 'before head' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.7.0 Stub implementation.
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -1360,7 +1314,7 @@ impl HtmlProcessor {
                  * >     tentative, then change the encoding to the resulting encoding.
                  */
                 if let AttributeValue::String(_) = self.get_attribute("charset") {
-                    if (EncodingConfidence::Tentative == self.state.encoding_confidence) {
+                    if EncodingConfidence::Tentative == self.state.encoding_confidence {
                         self.bail(
                             "Cannot yet process META tags with charset to determine encoding."
                                 .to_string(),
@@ -1434,7 +1388,7 @@ impl HtmlProcessor {
              * > An end tag whose tag name is "head"
              */
             Op::TagPop(TagName::HEAD) => {
-                self.state.stack_of_open_elements.pop();
+                self.pop();
                 self.state.insertion_mode = InsertionMode::AFTER_HEAD;
                 true
             }
@@ -1479,9 +1433,7 @@ impl HtmlProcessor {
                     self.generate_implied_end_tags_thoroughly();
                     // @todo If the current node is not a TEMPLATE elemnt, then
                     // indicate a parse error once it's possible.
-                    self.state
-                        .stack_of_open_elements
-                        .pop_until(&TagName::TEMPLATE);
+                    self.pop_until(&TagName::TEMPLATE);
                     self.state
                         .active_formatting_elements
                         .clear_up_to_last_marker();
@@ -1496,10 +1448,10 @@ impl HtmlProcessor {
              * This includes handling for the end tag rules for BODY and HTML elements above that should
              * fall through to the anything else case below.
              *
-             * // Parse error: ignore the token.
+             * Parse error: ignore the token.
              */
             Op::TagPush(TagName::HEAD) => self.step(NodeToProcess::ProcessNextNode),
-            Op::TagPop(tag_name) if tag_name != TagName::BODY && tag_name != TagName::HTML => {
+            Op::TagPop(tag_name) if !matches!(tag_name, TagName::BODY | TagName::HTML) => {
                 self.step(NodeToProcess::ProcessNextNode)
             }
 
@@ -1514,7 +1466,7 @@ impl HtmlProcessor {
              * > Anything else
              */
             _ => {
-                self.state.stack_of_open_elements.pop();
+                self.pop();
                 self.state.insertion_mode = InsertionMode::AFTER_HEAD;
                 self.step(NodeToProcess::ReprocessCurrentNode)
             }
@@ -1526,25 +1478,100 @@ impl HtmlProcessor {
     /// This internal function performs the 'in head noscript' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inheadnoscript
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_head_noscript(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * Parse error: ignore the token.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                self.step_in_head()
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > An end tag whose tag name is "noscript"
+             */
+            Op::TagPop(TagName::NOSCRIPT) => {
+                self.pop();
+                self.state.insertion_mode = InsertionMode::IN_HEAD;
+                true
+            }
+
+            /*
+             * > A comment token
+             * >
+             * > A start tag whose tag name is one of: "basefont", "bgsound",
+             * > "link", "meta", "noframes", "style"
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            )
+            | Op::TagPush(
+                TagName::BASEFONT
+                | TagName::BGSOUND
+                | TagName::LINK
+                | TagName::META
+                | TagName::NOFRAMES
+                | TagName::STYLE,
+            ) => self.step_in_head(),
+
+            /*
+             * > An end tag whose tag name is "br"
+             *
+             * This should never happen, as the Tag Processor prevents showing a BR closing tag.
+             */
+
+            /*
+             * > A start tag whose tag name is one of: "head", "noscript"
+             * > Any other end tag
+             */
+            Op::TagPush(TagName::HEAD | TagName::NOSCRIPT) | Op::TagPop(_) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Anything else
+             *
+             * Anything here is a parse error.
+             */
+            _ => {
+                self.pop();
+                self.state.insertion_mode = InsertionMode::IN_HEAD;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+        }
     }
 
     /// Parses next element in the 'after head' insertion mode.
     ///
     /// This internal function performs the 'after head' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
-    ///
-    /// @since 6.7.0 Stub implementation.
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
@@ -1554,7 +1581,128 @@ impl HtmlProcessor {
     /// @return bool Whether an element was found.
 
     fn step_after_head(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                // Insert the character.
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > A start tag whose tag name is "body"
+             */
+            Op::TagPush(TagName::BODY) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                self.state.insertion_mode = InsertionMode::IN_BODY;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "frameset"
+             */
+            Op::TagPush(TagName::FRAMESET) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::IN_FRAMESET;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "base", "basefont", "bgsound",
+             * > "link", "meta", "noframes", "script", "style", "template", "title"
+             *
+             * Anything here is a parse error.
+             */
+            Op::TagPush(
+                TagName::BASE
+                | TagName::BASEFONT
+                | TagName::BGSOUND
+                | TagName::LINK
+                | TagName::META
+                | TagName::NOFRAMES
+                | TagName::SCRIPT
+                | TagName::STYLE
+                | TagName::TEMPLATE
+                | TagName::TITLE,
+            ) => {
+                /*
+                 * > Push the node pointed to by the head element pointer onto the stack of open elements.
+                 * > Process the token using the rules for the "in head" insertion mode.
+                 * > Remove the node pointed to by the head element pointer from the stack of open elements. (It might not be the current node at this point.)
+                 */
+                self.bail(
+                    "Cannot process elements after HEAD which reopen the HEAD element.".to_string(),
+                );
+                todo!()
+            }
+
+            /*
+             * > An end tag whose tag name is "template"
+             */
+            Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+
+            /*
+             * > An end tag whose tag name is one of: "body", "html", "br"
+             *
+             * This rule will be implemented a guard on the "any other close tag" rule below.
+             *
+             * BR tags are always reported by the Tag Processor as opening tags.
+             */
+
+            /*
+             * > A start tag whose tag name is "head"
+             * > Any other end tag
+             *
+                          * This includes handling for the end tag rules for BODY and HTML elements above that should
+             * fall through to the anything else case below.
+             *
+             * Parse error: ignore the token.
+             */
+            Op::TagPush(TagName::HEAD) => self.step(NodeToProcess::ProcessNextNode),
+            Op::TagPop(tag_name) if !matches!(tag_name, TagName::BODY | TagName::HTML) => {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Anything else
+             */
+            _ => {
+                self.insert_virtual_node(TagName::BODY, None);
+                self.state.insertion_mode = InsertionMode::IN_BODY;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+        }
     }
 
     /// Parses next element in the 'in body' insertion mode.
@@ -1562,17 +1710,981 @@ impl HtmlProcessor {
     /// This internal function performs the 'in body' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.4.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inbody
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_body(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is U+0000 NULL
+             *
+             * Any successive sequence of NULL bytes is ignored and won't
+             * trigger active format reconstruction. Therefore, if the text
+             * only comprises NULL bytes then the token should be ignored
+             * here, but if there are any other characters in the stream
+             * the active formats should be reconstructed.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::NullSequence =>
+            {
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION,
+             * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
+             * > U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * > Any other character token
+             */
+            Op::Token(TokenType::Text) => {
+                self.reconstruct_active_formatting_elements();
+
+                /*
+                 * Whitespace-only text does not affect the frameset-ok flag.
+                 * It is probably inter-element whitespace, but it may also
+                 * contain character references which decode only to whitespace.
+                 */
+                if self.tag_processor.text_node_classification == TextNodeClassification::Generic {
+                    self.state.frameset_ok = false;
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             * > Parse error. Ignore the token.
+             */
+            Op::Token(TokenType::Doctype) => self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .contains(&TagName::TEMPLATE)
+                {
+                    /*
+                     * > Otherwise, for each attribute on the token, check to see if the attribute
+                     * > is already present on the top element of the stack of open elements. If
+                     * > it is not, add the attribute and its corresponding value to that element.
+                     *
+                     * This parser does not currently support this behavior: ignore the token.
+                     */
+                }
+
+                // Ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "base", "basefont", "bgsound", "link",
+             * > "meta", "noframes", "script", "style", "template", "title"
+             * >
+             * > An end tag whose tag name is "template"
+             */
+            Op::TagPush(
+                TagName::BASE
+                | TagName::BASEFONT
+                | TagName::BGSOUND
+                | TagName::LINK
+                | TagName::META
+                | TagName::NOFRAMES
+                | TagName::SCRIPT
+                | TagName::STYLE
+                | TagName::TEMPLATE
+                | TagName::TITLE,
+            )
+            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+
+            /*
+             * > A start tag whose tag name is "body"
+             *
+             * This tag in the IN BODY insertion mode is a parse error.
+             */
+            Op::TagPush(TagName::BODY) => {
+                if 1 == self.state.stack_of_open_elements.count()
+                    || !matches!(
+                        self.state.stack_of_open_elements.at(2),
+                        Some(HTMLToken {
+                            node_name: NodeName::Tag(TagName::BODY),
+                            ..
+                        })
+                    )
+                    || self
+                        .state
+                        .stack_of_open_elements
+                        .contains(&TagName::TEMPLATE)
+                {
+                    // Ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    /*
+                     * > Otherwise, set the frameset-ok flag to "not ok"; then, for each attribute
+                     * > on the token, check to see if the attribute is already present on the body
+                     * > element (the second element) on the stack of open elements, and if it is
+                     * > not, add the attribute and its corresponding value to that element.
+                     *
+                     * This parser does not currently support this behavior: ignore the token.
+                     */
+                    self.state.frameset_ok = false;
+                    self.step(NodeToProcess::ProcessNextNode)
+                }
+            }
+
+            /*
+             * > A start tag whose tag name is "frameset"
+             *
+             * This tag in the IN BODY insertion mode is a parse error.
+             */
+            Op::TagPush(TagName::FRAMESET) => {
+                if 1 == self.state.stack_of_open_elements.count()
+                    || !matches!(
+                        self.state.stack_of_open_elements.at(2),
+                        Some(HTMLToken {
+                            node_name: NodeName::Tag(TagName::BODY),
+                            ..
+                        })
+                    )
+                    || !self.state.frameset_ok
+                {
+                    // Ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    /*
+                     * > Otherwise, run the following steps:
+                     */
+                    self.bail("Cannot process non-ignored FRAMESET tags.".to_string());
+                    todo!()
+                }
+            }
+
+            /*
+             * > An end tag whose tag name is "body"
+             */
+            Op::TagPop(TagName::BODY) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::BODY)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    /*
+                     * > Otherwise, if there is a node in the stack of open elements that is not either a
+                     * > dd element, a dt element, an li element, an optgroup element, an option element,
+                     * > a p element, an rb element, an rp element, an rt element, an rtc element, a tbody
+                     * > element, a td element, a tfoot element, a th element, a thread element, a tr
+                     * > element, the body element, or the html element, then this is a parse error.
+                     *
+                     * There is nothing to do for this parse error, so don't check for it.
+                     */
+
+                    self.state.insertion_mode = InsertionMode::AFTER_BODY;
+                    /*
+                     * The BODY element is not removed from the stack of open elements.
+                     * Only internal state has changed, this does not qualify as a "step"
+                     * in terms of advancing through the document to another token.
+                     * Nothing has been pushed or popped.
+                     * Proceed to parse the next item.
+                     */
+                    self.step(NodeToProcess::ProcessNextNode)
+                }
+            }
+
+            /*
+             * > An end tag whose tag name is "html"
+             */
+            Op::TagPop(TagName::HTML) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::BODY)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    /*
+                     * > Otherwise, if there is a node in the stack of open elements that is not either a
+                     * > dd element, a dt element, an li element, an optgroup element, an option element,
+                     * > a p element, an rb element, an rp element, an rt element, an rtc element, a tbody
+                     * > element, a td element, a tfoot element, a th element, a thread element, a tr
+                     * > element, the body element, or the html element, then this is a parse error.
+                     *
+                     * There is nothing to do for this parse error, so don't check for it.
+                     */
+
+                    self.state.insertion_mode = InsertionMode::AFTER_BODY;
+                    self.step(NodeToProcess::ReprocessCurrentNode)
+                }
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "address", "article", "aside",
+             * > "blockquote", "center", "details", "dialog", "dir", "div", "dl",
+             * > "fieldset", "figcaption", "figure", "footer", "header", "hgroup",
+             * > "main", "menu", "nav", "ol", "p", "search", "section", "summary", "ul"
+             */
+            Op::TagPush(
+                TagName::ADDRESS
+                | TagName::ARTICLE
+                | TagName::ASIDE
+                | TagName::BLOCKQUOTE
+                | TagName::CENTER
+                | TagName::DETAILS
+                | TagName::DIALOG
+                | TagName::DIR
+                | TagName::DIV
+                | TagName::DL
+                | TagName::FIELDSET
+                | TagName::FIGCAPTION
+                | TagName::FIGURE
+                | TagName::FOOTER
+                | TagName::HEADER
+                | TagName::HGROUP
+                | TagName::MAIN
+                | TagName::MENU
+                | TagName::NAV
+                | TagName::OL
+                | TagName::P
+                | TagName::SEARCH
+                | TagName::SECTION
+                | TagName::SUMMARY
+                | TagName::UL,
+            ) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "h1", "h2", "h3", "h4", "h5", "h6"
+             */
+            Op::TagPush(
+                TagName::H1 | TagName::H2 | TagName::H3 | TagName::H4 | TagName::H5 | TagName::H6,
+            ) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                if let Some(HTMLToken {
+                    node_name: NodeName::Tag(tag_name),
+                    ..
+                }) = self.state.stack_of_open_elements.current_node()
+                {
+                    if matches!(
+                        tag_name,
+                        TagName::H1
+                            | TagName::H2
+                            | TagName::H3
+                            | TagName::H4
+                            | TagName::H5
+                            | TagName::H6
+                    ) {
+                        // Parse error: pop the current heading element
+                        self.pop();
+                    }
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "pre", "listing"
+             */
+            Op::TagPush(TagName::PRE | TagName::LISTING) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                /*
+                 * > If the next token is a U+000A LINE FEED (LF) character token,
+                 * > then ignore that token and move on to the next one. (Newlines
+                 * > at the start of pre blocks are ignored as an authoring convenience.)
+                 *
+                 * This is handled in `get_modifiable_text()`.
+                 */
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "form"
+             */
+            Op::TagPush(TagName::FORM) => {
+                let stack_contains_template = self
+                    .state
+                    .stack_of_open_elements
+                    .contains(&TagName::TEMPLATE);
+
+                if self.state.form_element.is_some() && !stack_contains_template {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                        self.close_a_p_element();
+                    }
+
+                    self.insert_html_element(self.state.current_token.clone().unwrap());
+                    if !stack_contains_template {
+                        self.state.form_element = self.state.current_token.clone();
+                    }
+
+                    true
+                }
+            }
+
+            /*
+             * > A start tag whose tag name is "li"
+             * > A start tag whose tag name is one of: "dd", "dt"
+             */
+            Op::TagPush(tag_name @ (TagName::LI | TagName::DD | TagName::DT)) => {
+                todo!()
+            }
+
+            /*
+             * > A start tag whose tag name is "plaintext"
+             */
+            Op::TagPush(TagName::PLAINTEXT) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                /*
+                 * @todo This may need to be handled in the Tag Processor and turn into
+                 *       a single self-contained tag like TEXTAREA, whose modifiable text
+                 *       is the rest of the input document as plaintext.
+                 */
+                self.bail("Cannot process PLAINTEXT elements.".to_string());
+                todo!()
+            }
+
+            /*
+             * > A start tag whose tag name is "button"
+             */
+            Op::TagPush(TagName::BUTTON) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::BUTTON)
+                {
+                    // Parse error: this error does not impact the logic here.
+                    self.generate_implied_end_tags(None);
+                    self.pop_until(&TagName::BUTTON);
+                }
+
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "address", "article", "aside", "blockquote",
+             * > "button", "center", "details", "dialog", "dir", "div", "dl", "fieldset",
+             * > "figcaption", "figure", "footer", "header", "hgroup", "listing", "main",
+             * > "menu", "nav", "ol", "pre", "search", "section", "summary", "ul"
+             */
+            Op::TagPop(
+                tag_name @ (TagName::ADDRESS
+                | TagName::ARTICLE
+                | TagName::ASIDE
+                | TagName::BLOCKQUOTE
+                | TagName::BUTTON
+                | TagName::CENTER
+                | TagName::DETAILS
+                | TagName::DIALOG
+                | TagName::DIR
+                | TagName::DIV
+                | TagName::DL
+                | TagName::FIELDSET
+                | TagName::FIGCAPTION
+                | TagName::FIGURE
+                | TagName::FOOTER
+                | TagName::HEADER
+                | TagName::HGROUP
+                | TagName::LISTING
+                | TagName::MAIN
+                | TagName::MENU
+                | TagName::NAV
+                | TagName::OL
+                | TagName::PRE
+                | TagName::SEARCH
+                | TagName::SECTION
+                | TagName::SUMMARY
+                | TagName::UL),
+            ) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&tag_name)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.generate_implied_end_tags(None);
+                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                        // Parse error: this error doesn't impact parsing.
+                    }
+                    self.pop_until(&tag_name);
+                    true
+                }
+            }
+
+            /*
+             * > An end tag whose tag name is "form"
+             */
+            Op::TagPop(TagName::FORM) => todo!(),
+
+            /*
+             * > An end tag whose tag name is "p"
+             */
+            Op::TagPop(TagName::P) => {
+                if !self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.insert_html_element(self.state.current_token.clone().unwrap());
+                }
+
+                self.close_a_p_element();
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is "li"
+             * > An end tag whose tag name is one of: "dd", "dt"
+             */
+            Op::TagPop(tag_name @ (TagName::LI | TagName::DD | TagName::DT)) => todo!(),
+
+            /*
+             * > An end tag whose tag name is one of: "h1", "h2", "h3", "h4", "h5", "h6"
+             */
+            Op::TagPop(
+                tag_name @ (TagName::H1
+                | TagName::H2
+                | TagName::H3
+                | TagName::H4
+                | TagName::H5
+                | TagName::H6),
+            ) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_any_h1_to_h6_element_in_scope()
+                {
+                    /*
+                     * This is a parse error; ignore the token.
+                     *
+                     * @todo Indicate a parse error once it's possible.
+                     */
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.generate_implied_end_tags(None);
+
+                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                        // Parse error: this error doesn't impact parsing.
+                    }
+
+                    self.pop_until_any_h1_to_h6();
+                    true
+                }
+            }
+
+            /*
+             * > A start tag whose tag name is "a"
+             */
+            Op::TagPush(TagName::A) => todo!(),
+
+            /*
+             * > A start tag whose tag name is one of: "b", "big", "code", "em", "font", "i",
+             * > "s", "small", "strike", "strong", "tt", "u"
+             */
+            Op::TagPush(
+                TagName::B
+                | TagName::BIG
+                | TagName::CODE
+                | TagName::EM
+                | TagName::FONT
+                | TagName::I
+                | TagName::S
+                | TagName::SMALL
+                | TagName::STRIKE
+                | TagName::STRONG
+                | TagName::TT
+                | TagName::U,
+            ) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state
+                    .active_formatting_elements
+                    .push(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "nobr"
+             */
+            Op::TagPush(TagName::NOBR) => {
+                self.reconstruct_active_formatting_elements();
+
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::NOBR)
+                {
+                    // Parse error.
+                    self.run_adoption_agency_algorithm();
+                    self.reconstruct_active_formatting_elements();
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state
+                    .active_formatting_elements
+                    .push(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "a", "b", "big", "code", "em", "font", "i",
+             * > "nobr", "s", "small", "strike", "strong", "tt", "u"
+             */
+            Op::TagPop(
+                TagName::A
+                | TagName::B
+                | TagName::BIG
+                | TagName::CODE
+                | TagName::EM
+                | TagName::FONT
+                | TagName::I
+                | TagName::NOBR
+                | TagName::S
+                | TagName::SMALL
+                | TagName::STRIKE
+                | TagName::STRONG
+                | TagName::TT
+                | TagName::U,
+            ) => {
+                self.run_adoption_agency_algorithm();
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "applet", "marquee", "object"
+             */
+            Op::TagPush(TagName::APPLET | TagName::MARQUEE | TagName::OBJECT) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.active_formatting_elements.insert_marker();
+                self.state.frameset_ok = false;
+                true
+            }
+
+            /*
+             * > A end tag token whose tag name is one of: "applet", "marquee", "object"
+             */
+            Op::TagPop(tag_name @ (TagName::APPLET | TagName::MARQUEE | TagName::OBJECT)) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&tag_name)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.generate_implied_end_tags(None);
+                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                        // This is a parse error.
+                    }
+
+                    self.pop_until(&self.get_tag().unwrap());
+                    self.state
+                        .active_formatting_elements
+                        .clear_up_to_last_marker();
+                    true
+                }
+            }
+
+            /*
+             * > A start tag whose tag name is "table"
+             */
+            Op::TagPush(TagName::TABLE) => {
+                /*
+                 * > If the Document is not set to quirks mode, and the stack of open elements
+                 * > has a p element in button scope, then close a p element.
+                 */
+                if self.tag_processor.compat_mode != CompatMode::Quirks
+                    && self.state.stack_of_open_elements.has_p_in_button_scope()
+                {
+                    self.close_a_p_element();
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                self.state.insertion_mode = InsertionMode::IN_TABLE;
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is "br"
+             *
+             * This is prevented from happening because the Tag Processor
+             * reports all closing BR tags as if they were opening tags.
+             */
+
+            /*
+             * > A start tag whose tag name is one of: "area", "br", "embed", "img", "keygen", "wbr"
+             */
+            Op::TagPush(
+                TagName::AREA
+                | TagName::BR
+                | TagName::EMBED
+                | TagName::IMG
+                | TagName::KEYGEN
+                | TagName::WBR,
+            ) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "input"
+             */
+            Op::TagPush(TagName::INPUT) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+
+                /*
+                 * > If the token does not have an attribute with the name "type", or if it does,
+                 * > but that attribute's value is not an ASCII case-insensitive match for the
+                 * > string "hidden", then: set the frameset-ok flag to "not ok".
+                 */
+                match self.get_attribute("type") {
+                    AttributeValue::String(type_attr_value)
+                        if !type_attr_value.eq_ignore_ascii_case(b"hidden") =>
+                    {
+                        self.state.frameset_ok = false;
+                    }
+                    AttributeValue::String(_) => {}
+                    AttributeValue::BooleanFalse | AttributeValue::BooleanTrue => {
+                        self.state.frameset_ok = false;
+                    }
+                }
+
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "param", "source", "track"
+             */
+            Op::TagPush(TagName::PARAM | TagName::SOURCE | TagName::TRACK) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "hr"
+             */
+            Op::TagPush(TagName::HR) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+                true
+            }
+
+            /*
+               * > A start tag whose tag name is "image"
+               * > Parse error. Change the token's tag name to "img" and reprocess it. (Don't ask.)
+               *
+               * Note that this is handled elsewhere, so it should not be possible to reach this code.
+               */
+
+
+            /*
+             * > A start tag whose tag name is "textarea"
+             */
+            Op::TagPush(TagName::TEXTAREA) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+
+                /*
+                 * > If the next token is a U+000A LINE FEED (LF) character token, then ignore
+                 * > that token and move on to the next one. (Newlines at the start of
+                 * > textarea elements are ignored as an authoring convenience.)
+                 *
+                 * This is handled in `get_modifiable_text()`.
+                 */
+
+                self.state.frameset_ok = false;
+
+                /*
+                 * > Switch the insertion mode to "text".
+                 *
+                 * As a self-contained node, this behavior is handled in the Tag Processor.
+                 */
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "xmp"
+             */
+            Op::TagPush(TagName::XMP) => {
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                self.reconstruct_active_formatting_elements();
+                self.state.frameset_ok = false;
+
+                /*
+                 * > Follow the generic raw text element parsing algorithm.
+                 *
+                 * As a self-contained node, this behavior is handled in the Tag Processor.
+                 */
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * A start tag whose tag name is "iframe"
+             */
+            Op::TagPush(TagName::IFRAME) => {
+                self.state.frameset_ok = false;
+
+                /*
+                 * > Follow the generic raw text element parsing algorithm.
+                 *
+                 * As a self-contained node, this behavior is handled in the Tag Processor.
+                 */
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "noembed"
+             * > A start tag whose tag name is "noscript", if the scripting flag is enabled
+             *
+             * The scripting flag is never enabled in this parser.
+             */
+            Op::TagPush(TagName::NOEMBED) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "select"
+             */
+            Op::TagPush(TagName::SELECT) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.frameset_ok = false;
+
+                match self.state.insertion_mode {
+                    /*
+                     * > If the insertion mode is one of "in table", "in caption", "in table body", "in row",
+                     * > or "in cell", then switch the insertion mode to "in select in table".
+                     */
+                    InsertionMode::IN_TABLE
+                    | InsertionMode::IN_CAPTION
+                    | InsertionMode::IN_TABLE_BODY
+                    | InsertionMode::IN_ROW
+                    | InsertionMode::IN_CELL => {
+                        self.state.insertion_mode = InsertionMode::IN_SELECT_IN_TABLE;
+                    }
+
+                    /*
+                     * > Otherwise, switch the insertion mode to "in select".
+                     */
+                    _ => {
+                        self.state.insertion_mode = InsertionMode::IN_SELECT;
+                    }
+                }
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "optgroup", "option"
+             */
+            Op::TagPush(TagName::OPTGROUP | TagName::OPTION) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&TagName::OPTION)
+                {
+                    self.pop();
+                }
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "rb", "rtc"
+             */
+            Op::TagPush(TagName::RB | TagName::RTC) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::RUBY)
+                {
+                    self.generate_implied_end_tags(None);
+
+                    if self
+                        .state
+                        .stack_of_open_elements
+                        .current_node_is(&TagName::RUBY)
+                    {
+                        // @todo Indicate a parse error once it's possible.
+                    }
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "rp", "rt"
+             */
+            Op::TagPush(TagName::RP | TagName::RT) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::RUBY)
+                {
+                    self.generate_implied_end_tags(Some(&TagName::RTC));
+
+                    let current_node_name = self
+                        .state
+                        .stack_of_open_elements
+                        .current_node()
+                        .unwrap()
+                        .node_name
+                        .clone();
+                    if matches!(
+                        current_node_name,
+                        NodeName::Tag(TagName::RUBY | TagName::RTC)
+                    ) {
+                        // @todo Indicate a parse error once it's possible.
+                    }
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "math"
+             */
+            Op::TagPush(TagName::MATH) => {
+                self.reconstruct_active_formatting_elements();
+
+                /*
+                 * @todo Adjust MathML attributes for the token. (This fixes the case of MathML attributes that are not all lowercase.)
+                 * @todo Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink.)
+                 *
+                 * These ought to be handled in the attribute methods.
+                 */
+                let token = self.state.current_token.as_mut().unwrap();
+                token.namespace = ParsingNamespace::MathML;
+                let token = token.clone();
+                let has_self_closing_flag = token.has_self_closing_flag;
+                self.insert_html_element(token);
+                if has_self_closing_flag {
+                    self.pop();
+                }
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "svg"
+             */
+            Op::TagPush(TagName::SVG) => {
+                self.reconstruct_active_formatting_elements();
+
+                /*
+                 * @todo Adjust SVG attributes for the token. (This fixes the case of SVG attributes that are not all lowercase.)
+                 * @todo Adjust foreign attributes for the token. (This fixes the use of namespaced attributes, in particular XLink in SVG.)
+                 *
+                 * These ought to be handled in the attribute methods.
+                 */
+                let token = self.state.current_token.as_mut().unwrap();
+                token.namespace = ParsingNamespace::Svg;
+                let token = token.clone();
+                let has_self_closing_flag = token.has_self_closing_flag;
+                self.insert_html_element(token);
+                if has_self_closing_flag {
+                    self.pop();
+                }
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "caption", "col", "colgroup",
+             * > "frame", "head", "tbody", "td", "tfoot", "th", "thead", "tr"
+             *
+            	* Parse error. Ignore the token.
+             */
+            Op::TagPush(
+                TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::FRAME
+                | TagName::HEAD
+                | TagName::TBODY
+                | TagName::TD
+                | TagName::TFOOT
+                | TagName::TH
+                | TagName::THEAD
+                | TagName::TR,
+            ) => self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > Any other start tag
+             */
+            Op::TagPush(_) => {
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > Any other end tag
+             */
+            Op::TagPop(_) => {
+                todo!()
+            }
+
+            Op::Token(TokenType::CdataSection) => unreachable!("CDATA does not exist in HTML5."),
+            Op::Token(TokenType::Tag) => {
+                unreachable!("#tag token operations are handled by Op::TagPush and Op::TagPop.")
+            }
+        }
     }
 
     /// Parses next element in the 'in table' insertion mode.
@@ -1580,15 +2692,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in table' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intable
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_table(&mut self) -> bool {
         todo!()
     }
@@ -1598,15 +2707,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in table text' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intabletext
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_table_text(&mut self) -> bool {
         todo!()
     }
@@ -1616,15 +2722,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in caption' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incaption
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_caption(&mut self) -> bool {
         todo!()
     }
@@ -1634,15 +2737,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in column group' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-incolgroup
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_column_group(&mut self) -> bool {
         todo!()
     }
@@ -1652,15 +2752,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in table body' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intbody
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_table_body(&mut self) -> bool {
         todo!()
     }
@@ -1670,15 +2767,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in row' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intr
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_row(&mut self) -> bool {
         todo!()
     }
@@ -1688,15 +2782,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in cell' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intd
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_cell(&mut self) -> bool {
         todo!()
     }
@@ -1706,15 +2797,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in select' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inselect
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_select(&mut self) -> bool {
         todo!()
     }
@@ -1724,15 +2812,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in select in table' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inselectintable
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_select_in_table(&mut self) -> bool {
         todo!()
     }
@@ -1742,15 +2827,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in template' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-intemplate
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_template(&mut self) -> bool {
         todo!()
     }
@@ -1760,15 +2842,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'after body' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterbody
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_body(&mut self) -> bool {
         todo!()
     }
@@ -1778,15 +2857,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'in frameset' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inframeset
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_frameset(&mut self) -> bool {
         todo!()
     }
@@ -1796,15 +2872,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'after frameset' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-afterframeset
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_frameset(&mut self) -> bool {
         todo!()
     }
@@ -1814,15 +2887,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'after after body' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#the-after-after-body-insertion-mode
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_after_body(&mut self) -> bool {
         todo!()
     }
@@ -1832,15 +2902,12 @@ impl HtmlProcessor {
     /// This internal function performs the 'after after frameset' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#the-after-after-frameset-insertion-mode
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_after_frameset(&mut self) -> bool {
         todo!()
     }
@@ -1850,22 +2917,19 @@ impl HtmlProcessor {
     /// This internal function performs the 'in foreign content' insertion mode
     /// logic for the generalized WP_HTML_Processor::step() function.
     ///
-    /// @since 6.7.0 Stub implementation.
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#parsing-main-inforeign
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_in_foreign_content(&mut self) -> bool {
         todo!()
     }
 
-    ///
-    /// Internal helpers
-    ///
+    /*
+     * Internal helpers
+     */
 
     /// Creates a new bookmark for the currently-matched token and returns the generated name.
     ///
@@ -1883,12 +2947,13 @@ impl HtmlProcessor {
             .map_err(|_| HtmlProcessorError::ExceededMaxBookmarks)
     }
 
-    /// HTML semantic overrides for Tag Processor
+    /*
+     * HTML semantic overrides for Tag Processor
+     */
 
     /// Indicates the namespace of the current token, or "html" if there is none.
     ///
     /// @return string One of "html", "math", or "svg".
-
     pub fn get_namespace(&self) -> ParsingNamespace {
         todo!()
     }
@@ -1909,10 +2974,7 @@ impl HtmlProcessor {
     ///     $processor->next_tag() === false;
     ///     $processor->get_tag() === null;
     ///
-    /// @since 6.4.0
-    ///
     /// @return string|null Name of currently matched tag in input HTML, or `null` if none found.
-
     pub fn get_tag(&self) -> Option<TagName> {
         if self.last_error.is_some() {
             return None;
@@ -1954,10 +3016,7 @@ impl HtmlProcessor {
     /// This function does not determine if a tag is self-closing,
     /// but only if the self-closing flag is present in the syntax.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return bool Whether the currently matched tag contains the self-closing flag.
-
     pub fn has_self_closing_flag(&self) -> bool {
         if self.is_virtual() {
             false
@@ -1981,10 +3040,7 @@ impl HtmlProcessor {
     /// hasn't yet found a token or because it reached the end
     /// of the document without matching a token.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return string|null Name of the matched token.
-
     pub fn get_token_name(&self) -> Option<NodeName> {
         if self.is_virtual() {
             Some(
@@ -2017,10 +3073,7 @@ impl HtmlProcessor {
     ///  - `#presumptuous-tag` when matched on an empty tag closer.
     ///  - `#funky-comment` when matched on a funky comment.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return string|null What kind of token is matched, or null.
-
     pub fn get_token_type(&self) -> Option<TokenType> {
         if self.is_virtual() {
             /*
@@ -2051,11 +3104,8 @@ impl HtmlProcessor {
     ///     $p->next_tag() === false;
     ///     $p->get_attribute( 'class' ) === null;
     ///
-    /// @since 6.6.0 Subclassed for HTML Processor.
-    ///
     /// @param string $name Name of attribute whose value is requested.
     /// @return string|true|null Value of attribute or `null` if not available. Boolean attributes return `true`.
-
     pub fn get_attribute(&self, name: &str) -> AttributeValue {
         if self.is_virtual() {
             AttributeValue::BooleanFalse
@@ -2072,12 +3122,9 @@ impl HtmlProcessor {
     ///
     /// For string attributes, the value is escaped using the `esc_attr` function.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @param string      $name  The attribute name to target.
     /// @param string|bool $value The new attribute value.
     /// @return bool Whether an attribute value was set.
-
     pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {
         if self.is_virtual() {
             false
@@ -2088,11 +3135,8 @@ impl HtmlProcessor {
 
     /// Remove an attribute from the currently-matched tag.
     ///
-    /// @since 6.6.0 Subclassed for HTML Processor.
-    ///
     /// @param string $name The attribute name to remove.
     /// @return bool Whether an attribute was removed.
-
     pub fn remove_attribute(&mut self, name: &str) -> bool {
         if self.is_virtual() {
             false
@@ -2119,13 +3163,10 @@ impl HtmlProcessor {
     ///     $p->next_tag() === false;
     ///     $p->get_attribute_names_with_prefix( 'data-' ) === null;
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @see https://html.spec.whatwg.org/multipage/syntax.html#attributes-2:ascii-case-insensitive
     ///
     /// @param string $prefix Prefix of requested attribute names.
     /// @return array|null List of attribute names, or `null` when no tag opener is matched.
-
     pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Rc<str>>> {
         if self.is_virtual() {
             None
@@ -2136,11 +3177,8 @@ impl HtmlProcessor {
 
     /// Adds a new class name to the currently matched tag.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @param string $class_name The class name to add.
     /// @return bool Whether the class was set to be added.
-
     pub fn add_class(&mut self, class_name: &str) -> bool {
         if self.is_virtual() {
             false
@@ -2151,11 +3189,8 @@ impl HtmlProcessor {
 
     /// Removes a class name from the currently matched tag.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @param string $class_name The class name to remove.
     /// @return bool Whether the class was set to be removed.
-
     pub fn remove_class(&mut self, class_name: &str) -> bool {
         if self.is_virtual() {
             false
@@ -2166,15 +3201,12 @@ impl HtmlProcessor {
 
     /// Returns if a matched tag contains the given ASCII case-insensitive class name.
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @todo When reconstructing active formatting elements with attributes, find a way
     ///       to indicate if the virtually-reconstructed formatting elements contain the
     ///       wanted class name.
     ///
     /// @param string $wanted_class Look for this CSS class name, ASCII case-insensitive.
     /// @return bool|null Whether the matched tag contains the given class name, or null if not matched.
-
     pub fn has_class(&self, wanted_class: &str) -> Option<bool> {
         if self.is_virtual() {
             None
@@ -2195,9 +3227,6 @@ impl HtmlProcessor {
     ///         echo "{$class_name} ";
     ///     }
     ///     // Outputs: "free <egg> lang-en "
-    ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-
     pub fn class_list(&self) -> () {
         todo!();
         //if self.is_virtual() {
@@ -2222,8 +3251,6 @@ impl HtmlProcessor {
     /// that a token has modifiable text, and a token with modifiable text may
     /// have an empty string (e.g. a comment with no contents).
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return string
     pub fn get_modifiable_text(&self) -> Rc<str> {
         if self.is_virtual() {
@@ -2247,8 +3274,6 @@ impl HtmlProcessor {
     /// @see self::COMMENT_AS_HTML_COMMENT
     /// @see self::COMMENT_AS_PI_NODE_LOOKALIKE
     ///
-    /// @since 6.6.0 Subclassed for the HTML Processor.
-    ///
     /// @return string|null
     pub fn get_comment_type(&self) -> Option<CommentType> {
         if self.is_virtual() {
@@ -2262,8 +3287,6 @@ impl HtmlProcessor {
     ///
     /// Releasing a bookmark frees up the small
     /// performance overhead it requires.
-    ///
-    /// @since 6.4.0
     ///
     /// @param string $bookmark_name Name of the bookmark to remove.
     /// @return bool Whether the bookmark already existed before removal.
@@ -2281,8 +3304,6 @@ impl HtmlProcessor {
     /// maximum limit on the number of times seek() can be called.
     ///
     /// @throws Exception When unable to allocate a bookmark for the next token in the input HTML document.
-    ///
-    /// @since 6.4.0
     ///
     /// @param string $bookmark_name Jump to the place in the document identified by this bookmark name.
     /// @return bool Whether the internal cursor was successfully moved to the bookmark's location.
@@ -2369,8 +3390,6 @@ impl HtmlProcessor {
     /// `TBODY`, `TR`, and `TD`. The `TBODY` and `TR` tags do not appear in
     /// the original HTML and cannot be used as bookmarks.
     ///
-    /// @since 6.4.0
-    ///
     /// @param string $bookmark_name Identifies this particular bookmark.
     /// @return bool Whether the bookmark was successfully created.
     pub fn set_bookmark(&mut self, bookmark_name: &str) -> bool {
@@ -2379,8 +3398,6 @@ impl HtmlProcessor {
 
     /// Checks whether a bookmark with the given name exists.
     ///
-    /// @since 6.5.0
-    ///
     /// @param string $bookmark_name Name to identify a bookmark that potentially exists.
     /// @return bool Whether that bookmark exists.
     pub fn has_bookmark(&self, bookmark_name: &str) -> bool {
@@ -2388,42 +3405,63 @@ impl HtmlProcessor {
         // self.tag_processor.has_bookmark( "_{$bookmark_name}" )
     }
 
-    ///
-    ///
-    /// HTML Parsing Algorithms
-    ///
-    ///
+    /*
+     *
+     * HTML Parsing Algorithms
+     *
+     */
 
     /// Closes a P element.
-    ///
-    /// @since 6.4.0
     ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#close-a-p-element
     fn close_a_p_element(&mut self) -> () {
-        todo!()
+        self.generate_implied_end_tags(Some(&TagName::P));
+        self.pop_until(&TagName::P);
     }
 
     /// Closes elements that have implied end tags.
     ///
-    /// @since 6.4.0
-    /// @since 6.7.0 Full spec support.
+    /// > while the current node is a dd element, a dt element, an li element,
+    /// > an optgroup element, an option element, a p element, an rb element,
+    /// > an rp element, an rt element, or an rtc element,
+    /// > the UA must pop the current node off the stack of open elements.
     ///
     /// @see https://html.spec.whatwg.org/#generate-implied-end-tags
     ///
     /// @param string|null $except_for_this_element Perform as if this element doesn't exist in the stack of open elements.
-    fn generate_implied_end_tags(&mut self, except_for_this_element: Option<TagName>) -> () {
-        todo!()
+    fn generate_implied_end_tags(&mut self, except_for_this_element: Option<&TagName>) -> () {
+        while let Some(token) = self.state.stack_of_open_elements.current_node() {
+            if token.namespace != ParsingNamespace::Html {
+                return;
+            }
+
+            match &token.node_name {
+                NodeName::Tag(
+                    current_tag @ (TagName::DD
+                    | TagName::DT
+                    | TagName::LI
+                    | TagName::OPTGROUP
+                    | TagName::OPTION
+                    | TagName::P
+                    | TagName::RB
+                    | TagName::RP
+                    | TagName::RT
+                    | TagName::RTC),
+                ) if Some(current_tag) != except_for_this_element => {
+                    self.pop();
+                }
+                NodeName::Tag(_) => return,
+                NodeName::Token(_) => return,
+            }
+        }
     }
 
     /// Closes elements that have implied end tags, thoroughly.
     ///
     /// See the HTML specification for an explanation why this is
     /// different from generating end tags in the normal sense.
-    ///
-    /// @since 6.4.0
-    /// @since 6.7.0 Full spec support.
     ///
     /// @see WP_HTML_Processor::generate_implied_end_tags
     /// @see https://html.spec.whatwg.org/#generate-implied-end-tags
@@ -2455,36 +3493,62 @@ impl HtmlProcessor {
     /// > in the current body, cell, or caption (whichever is youngest) that haven't
     /// > been explicitly closed.
     ///
-    /// @since 6.4.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#reconstruct-the-active-formatting-elements
     ///
     /// @return bool Whether any formatting elements needed to be reconstructed.
-
     fn reconstruct_active_formatting_elements(&mut self) -> bool {
+        /*
+         * > If there are no entries in the list of active formatting elements, then there is nothing
+         * > to reconstruct; stop this algorithm.
+         */
+        if self.state.active_formatting_elements.count() == 0 {
+            return false;
+        }
+
+        let last_entry = self
+            .state
+            .active_formatting_elements
+            .current_node()
+            .unwrap();
+
+        let last_entry = match last_entry {
+            ActiveFormattingElement::Token(token) => token,
+            /*
+             * > If the last (most recently added) entry in the list of active formatting elements is a marker;
+             * > stop this algorithm.
+             */
+            ActiveFormattingElement::Marker => {
+                return false;
+            }
+        };
+
+        /*
+         * > If the last (most recently added) entry in the list of active formatting elements is an
+         * > element that is in the stack of open elements, then there is nothing to reconstruct;
+         * > stop this algorithm.
+         */
+        if self.state.stack_of_open_elements.contains_node(last_entry) {
+            return false;
+        }
+
+        self.bail( "Cannot reconstruct active formatting elements when advancing and rewinding is required.".to_string() );
         todo!()
     }
 
     /// Runs the reset the insertion mode appropriately algorithm.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#reset-the-insertion-mode-appropriately
-
     fn reset_insertion_mode_appropriately(&mut self) -> () {
         todo!()
     }
 
     /// Runs the adoption agency algorithm.
     ///
-    /// @since 6.4.0
-    ///
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#adoption-agency-algorithm
-
     fn run_adoption_agency_algorithm(&mut self) -> () {
         todo!()
     }
@@ -2499,28 +3563,20 @@ impl HtmlProcessor {
     /// >   5. Switch the insertion mode to "in row".
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#close-the-cell
-    ///
-    /// @since 6.7.0
-
     fn close_cell(&mut self) -> () {
         todo!()
     }
 
     /// Inserts an HTML element on the stack of open elements.
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#insert-a-foreign-element
     ///
     /// @param WP_HTML_Token $token Name of bookmark pointing to element in original input HTML.
-
     fn insert_html_element(&mut self, token: HTMLToken) -> () {
-        self.state.stack_of_open_elements.push(token);
+        self.push(token);
     }
 
     /// Inserts a foreign element on to the stack of open elements.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#insert-a-foreign-element
     ///
@@ -2533,8 +3589,6 @@ impl HtmlProcessor {
     }
 
     /// Inserts a virtual element on the stack of open elements.
-    ///
-    /// @since 6.7.0
     ///
     /// @param string      $token_name    Name of token to create and insert into the stack of open elements.
     /// @param string|null $bookmark_name Optional. Name to give bookmark for created virtual node.
@@ -2565,20 +3619,17 @@ impl HtmlProcessor {
         token
     }
 
-    ///
-    ///
-    /// HTML Specification Helpers
-    ///
-    ///
+    /*
+     *
+     * HTML Specification Helpers
+     *
+     */
 
     /// Indicates if the current token is a MathML integration point.
-    ///
-    /// @since 6.7.0
     ///
     /// @see https://html.spec.whatwg.org/#mathml-text-integration-point
     ///
     /// @return bool Whether the current token is a MathML integration point.
-
     fn is_mathml_integration_point(&self) -> bool {
         todo!()
     }
@@ -2591,25 +3642,19 @@ impl HtmlProcessor {
     /// Otherwise it would be required to scan the HTML and ensure that
     /// no other accounting is overlooked.
     ///
-    /// @since 6.7.0
-    ///
     /// @see https://html.spec.whatwg.org/#html-integration-point
     ///
     /// @return bool Whether the current token is an HTML integration point.
-
     fn is_html_integration_point(&self) -> bool {
         todo!()
     }
 
     /// Returns whether an element of a given name is in the HTML special category.
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#special
     ///
     /// @param WP_HTML_Token|string $tag_name Node to check, or only its name if in the HTML namespace.
     /// @return bool Whether the element of the given name is in the special category.
-
     pub fn is_special(tag_name: TagName) -> bool {
         todo!()
     }
@@ -2618,15 +3663,32 @@ impl HtmlProcessor {
     ///
     /// > area, base, br, col, embed, hr, img, input, link, meta, source, track, wbr
     ///
-    /// @since 6.4.0
-    ///
     /// @see https://html.spec.whatwg.org/#void-elements
     ///
     /// @param string $tag_name Name of HTML tag to check.
     /// @return bool Whether the given tag is an HTML Void Element.
-
     pub fn is_void(tag_name: TagName) -> bool {
-        todo!()
+        matches!(
+            tag_name,
+            TagName::AREA
+                | TagName::BASE
+                | TagName::BASEFONT // Obsolete but still treated as void.
+                | TagName::BGSOUND // Obsolete but still treated as void.
+                | TagName::BR
+                | TagName::COL
+                | TagName::EMBED
+                | TagName::FRAME
+                | TagName::HR
+                | TagName::IMG
+                | TagName::INPUT
+                | TagName::KEYGEN // Obsolete but still treated as void.
+                | TagName::LINK
+                | TagName::META
+                | TagName::PARAM // Obsolete but still treated as void.
+                | TagName::SOURCE
+                | TagName::TRACK
+                | TagName::WBR
+        )
     }
 
     /// Gets an encoding from a given string.
@@ -2645,8 +3707,6 @@ impl HtmlProcessor {
     /// @todo As this parser only supports UTF-8, only the UTF-8
     ///       encodings are detected. Add more as desired, but the
     ///       parser will bail on non-UTF-8 encodings.
-    ///
-    /// @since 6.7.0
     ///
     /// @param string $label A string which may specify a known encoding.
     /// @return string|null Known encoding if matched, otherwise null.
@@ -2668,6 +3728,132 @@ impl HtmlProcessor {
             Some(NodeName::Token(token_type)) => Op::Token(token_type),
             None => unreachable!("Op should never be made when no token is available."),
         }
+    }
+
+    fn push(&mut self, token: HTMLToken) -> () {
+        let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
+        let same_node = self.state.current_token.is_some()
+            && token.node_name == self.state.current_token.as_ref().unwrap().node_name;
+        let provenance = if !same_node || is_virtual {
+            StackProvenance::Virtual
+        } else {
+            StackProvenance::Real
+        };
+        self.element_queue.push_back(HTMLStackEvent {
+            token: token.clone(),
+            operation: StackOperation::Push,
+            provenance,
+        });
+
+        self.tag_processor
+            .change_parsing_namespace(if let Some(_) = token.integration_node_type {
+                ParsingNamespace::Html
+            } else {
+                token.namespace.clone()
+            });
+
+        self.state.stack_of_open_elements._push(token);
+    }
+
+    fn pop(&mut self) -> Option<HTMLToken> {
+        let token = self.state.stack_of_open_elements._pop()?;
+
+        let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
+        let same_node = self.state.current_token.is_some()
+            && token.node_name == self.state.current_token.as_ref().unwrap().node_name;
+        let provenance = if !same_node || is_virtual {
+            StackProvenance::Virtual
+        } else {
+            StackProvenance::Real
+        };
+        self.element_queue.push_back(HTMLStackEvent {
+            token: token.clone(),
+            operation: StackOperation::Push,
+            provenance,
+        });
+
+        if let Some(adjusted_current_node) = self.get_adjusted_current_node() {
+            self.tag_processor.change_parsing_namespace(
+                if let Some(_) = adjusted_current_node.integration_node_type {
+                    ParsingNamespace::Html
+                } else {
+                    adjusted_current_node.namespace.clone()
+                },
+            );
+        } else {
+            self.tag_processor
+                .change_parsing_namespace(ParsingNamespace::Html);
+        };
+
+        Some(token)
+    }
+
+    /// Pops nodes off of the stack of open elements until an HTML tag with the given name has been popped.
+    ///
+    /// In the PHP implementation, this method exists on the stack of open elements class.
+    ///
+    /// @param string $html_tag_name Name of tag that needs to be popped off of the stack of open elements.
+    /// @return bool Whether a tag of the given name was found and popped off of the stack of open elements.
+    fn pop_until(&mut self, html_tag_name: &TagName) -> bool {
+        while let Some(HTMLToken {
+            node_name: token_node_name,
+            namespace: token_namespace,
+            ..
+        }) = self.pop()
+        {
+            if token_namespace != ParsingNamespace::Html {
+                continue;
+            }
+
+            match token_node_name {
+                NodeName::Tag(tag_name) => {
+                    if tag_name == *html_tag_name {
+                        return true;
+                    }
+                }
+                NodeName::Token(_) => {}
+            }
+        }
+
+        false
+    }
+
+    /// Pop until any H1-H6 element has been popped off of the stack of open elements.
+    ///
+    /// !!! This function does not exist in the PHP implementation !!!
+    ///
+    /// Most pop_until usage is for a single element. The H1-H6 elements are an
+    /// exception and this additional method prevents needing to implement checks for multiple
+    /// elements.
+    ///
+    /// The
+    pub fn pop_until_any_h1_to_h6(&mut self) -> bool {
+        while let Some(HTMLToken {
+            node_name: token_node_name,
+            namespace: token_namespace,
+            ..
+        }) = self.pop()
+        {
+            if token_namespace != ParsingNamespace::Html {
+                continue;
+            }
+
+            if matches!(
+                token_node_name,
+                NodeName::Tag(
+                    TagName::H1
+                        | TagName::H2
+                        | TagName::H3
+                        | TagName::H4
+                        | TagName::H5
+                        | TagName::H6
+                )
+            ) {
+                return true;
+            }
+        }
+
+        false
     }
 }
 

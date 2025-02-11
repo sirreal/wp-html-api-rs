@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::tag_processor::{NodeName, ParsingNamespace};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) struct HTMLToken {
     ///
     /// Name of bookmark corresponding to source of token in input HTML string.

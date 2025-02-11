@@ -1501,8 +1501,87 @@ impl TagProcessor {
         b'/' == self.html_bytes[self.token_starts_at.unwrap() + self.token_length.unwrap() - 2]
     }
 
+    /**
+     * Subdivides a matched text node, splitting NULL byte sequences and decoded whitespace as
+     * distinct nodes prefixes.
+     *
+     * Note that once anything that's neither a NULL byte nor decoded whitespace is
+     * encountered, then the remainder of the text node is left intact as generic text.
+     *
+     *  - The HTML Processor uses this to apply distinct rules for different kinds of text.
+     *  - Inter-element whitespace can be detected and skipped with this method.
+     *
+     * Text nodes aren't eagerly subdivided because there's no need to split them unless
+     * decisions are being made on NULL byte sequences or whitespace-only text.
+     *
+     * Example:
+     *
+     *     $processor = new WP_HTML_Tag_Processor( "\x00Apples & Oranges" );
+     *     true  === $processor->next_token();                   // Text is "Apples & Oranges".
+     *     true  === $processor->subdivide_text_appropriately(); // Text is "".
+     *     true  === $processor->next_token();                   // Text is "Apples & Oranges".
+     *     false === $processor->subdivide_text_appropriately();
+     *
+     *     $processor = new WP_HTML_Tag_Processor( "&#x13; \r\n\tMore" );
+     *     true  === $processor->next_token();                   // Text is "␤ ␤␉More".
+     *     true  === $processor->subdivide_text_appropriately(); // Text is "␤ ␤␉".
+     *     true  === $processor->next_token();                   // Text is "More".
+     *     false === $processor->subdivide_text_appropriately();
+     *
+     * @return bool Whether the text node was subdivided.
+     */
     pub(crate) fn subdivide_text_appropriately(&mut self) -> bool {
-        todo!()
+        if self.parser_state != ParserState::TextNode {
+            return false;
+        }
+
+        self.text_node_classification = TextNodeClassification::Generic;
+
+        /*
+         * NULL bytes are treated categorically different than numeric character
+         * references whose number is zero. `&#x00;` is not the same as `"\x00"`.
+         */
+        let leading_nulls = strspn!(&self.html_bytes, b'\x00', self.text_starts_at.unwrap());
+        if leading_nulls > 0 {
+            self.token_length = Some(leading_nulls);
+            self.text_length = Some(leading_nulls);
+            self.bytes_already_parsed = self.token_length.unwrap() + leading_nulls;
+            self.text_node_classification = TextNodeClassification::NullSequence;
+            return true;
+        }
+
+        let mut at = self.text_starts_at.unwrap();
+        let end = self.text_starts_at.unwrap() + self.text_length.unwrap();
+        while at < end {
+            let skipped = strspn!(
+                self.html_bytes,
+                b' ' | b'\t' | 0x0c | b'\r' | b'\n' | b'/' | b'>',
+                at
+            );
+            at += skipped;
+
+            if at < end && b'&' == self.html_bytes[at] {
+                todo!("implement character reference handling");
+            }
+
+            break;
+        }
+
+        if (at > self.text_starts_at.unwrap()) {
+            let new_length = at - self.text_starts_at.unwrap();
+            self.text_length = Some(new_length);
+            self.token_length = Some(new_length);
+            self.bytes_already_parsed = at;
+            self.text_node_classification = TextNodeClassification::Whitespace;
+            return true;
+        }
+
+        false
+    }
+
+    pub fn change_parsing_namespace(&mut self, namespace: ParsingNamespace) -> bool {
+        self.parsing_namespace = namespace;
+        true
     }
 }
 
@@ -1857,6 +1936,12 @@ pub enum TagName {
     FORM,
     FRAME,
     FRAMESET,
+    H1,
+    H2,
+    H3,
+    H4,
+    H5,
+    H6,
     HEAD,
     HEADER,
     HGROUP,
@@ -1931,6 +2016,21 @@ pub enum TagName {
 
     // Some tags we're interested in for special parsing ru
     Arbitrary(Rc<[u8]>),
+
+    // MathML tags we're interested in
+    // @todo add arbitrary mathml tag
+    MathML_MI,
+    MathML_MO,
+    MathML_MN,
+    MathML_MS,
+    MathML_MTEXT,
+    MathML_ANNOTATION_XML,
+
+    // SVG tags we're interested in
+    // @todo add arbitrary svg tag
+    SVG_FOREIGNOBJECT,
+    SVG_DESC,
+    SVG_TITLE,
 }
 
 impl From<&[u8]> for TagName {
@@ -2044,6 +2144,128 @@ impl From<&[u8]> for TagName {
             b"XMP" => Self::XMP,
             _ => Self::Arbitrary(value.into()),
         }
+    }
+}
+
+impl Into<Box<[u8]>> for TagName {
+    fn into(self) -> Box<[u8]> {
+        match self {
+            TagName::A => b"A".as_slice(),
+            TagName::ADDRESS => b"ADDRESS".as_slice(),
+            TagName::APPLET => b"APPLET".as_slice(),
+            TagName::AREA => b"AREA".as_slice(),
+            TagName::ARTICLE => b"ARTICLE".as_slice(),
+            TagName::ASIDE => b"ASIDE".as_slice(),
+            TagName::B => b"B".as_slice(),
+            TagName::BASE => b"BASE".as_slice(),
+            TagName::BASEFONT => b"BASEFONT".as_slice(),
+            TagName::BGSOUND => b"BGSOUND".as_slice(),
+            TagName::BIG => b"BIG".as_slice(),
+            TagName::BLOCKQUOTE => b"BLOCKQUOTE".as_slice(),
+            TagName::BODY => b"BODY".as_slice(),
+            TagName::BR => b"BR".as_slice(),
+            TagName::BUTTON => b"BUTTON".as_slice(),
+            TagName::CAPTION => b"CAPTION".as_slice(),
+            TagName::CENTER => b"CENTER".as_slice(),
+            TagName::CODE => b"CODE".as_slice(),
+            TagName::COL => b"COL".as_slice(),
+            TagName::COLGROUP => b"COLGROUP".as_slice(),
+            TagName::DD => b"DD".as_slice(),
+            TagName::DETAILS => b"DETAILS".as_slice(),
+            TagName::DIALOG => b"DIALOG".as_slice(),
+            TagName::DIR => b"DIR".as_slice(),
+            TagName::DIV => b"DIV".as_slice(),
+            TagName::DL => b"DL".as_slice(),
+            TagName::DT => b"DT".as_slice(),
+            TagName::EM => b"EM".as_slice(),
+            TagName::EMBED => b"EMBED".as_slice(),
+            TagName::FIELDSET => b"FIELDSET".as_slice(),
+            TagName::FIGCAPTION => b"FIGCAPTION".as_slice(),
+            TagName::FIGURE => b"FIGURE".as_slice(),
+            TagName::FONT => b"FONT".as_slice(),
+            TagName::FOOTER => b"FOOTER".as_slice(),
+            TagName::FORM => b"FORM".as_slice(),
+            TagName::FRAME => b"FRAME".as_slice(),
+            TagName::FRAMESET => b"FRAMESET".as_slice(),
+            TagName::H1 => b"H1".as_slice(),
+            TagName::H2 => b"H2".as_slice(),
+            TagName::H3 => b"H3".as_slice(),
+            TagName::H4 => b"H4".as_slice(),
+            TagName::H5 => b"H5".as_slice(),
+            TagName::H6 => b"H6".as_slice(),
+            TagName::HEAD => b"HEAD".as_slice(),
+            TagName::HEADER => b"HEADER".as_slice(),
+            TagName::HGROUP => b"HGROUP".as_slice(),
+            TagName::HR => b"HR".as_slice(),
+            TagName::HTML => b"HTML".as_slice(),
+            TagName::I => b"I".as_slice(),
+            TagName::IFRAME => b"IFRAME".as_slice(),
+            TagName::IMG => b"IMG".as_slice(),
+            TagName::INPUT => b"INPUT".as_slice(),
+            TagName::KEYGEN => b"KEYGEN".as_slice(),
+            TagName::LI => b"LI".as_slice(),
+            TagName::LINK => b"LINK".as_slice(),
+            TagName::LISTING => b"LISTING".as_slice(),
+            TagName::MAIN => b"MAIN".as_slice(),
+            TagName::MARQUEE => b"MARQUEE".as_slice(),
+            TagName::MATH => b"MATH".as_slice(),
+            TagName::MENU => b"MENU".as_slice(),
+            TagName::META => b"META".as_slice(),
+            TagName::NAV => b"NAV".as_slice(),
+            TagName::NOBR => b"NOBR".as_slice(),
+            TagName::NOEMBED => b"NOEMBED".as_slice(),
+            TagName::NOFRAMES => b"NOFRAMES".as_slice(),
+            TagName::NOSCRIPT => b"NOSCRIPT".as_slice(),
+            TagName::OBJECT => b"OBJECT".as_slice(),
+            TagName::OL => b"OL".as_slice(),
+            TagName::OPTGROUP => b"OPTGROUP".as_slice(),
+            TagName::OPTION => b"OPTION".as_slice(),
+            TagName::P => b"P".as_slice(),
+            TagName::PARAM => b"PARAM".as_slice(),
+            TagName::PLAINTEXT => b"PLAINTEXT".as_slice(),
+            TagName::PRE => b"PRE".as_slice(),
+            TagName::RB => b"RB".as_slice(),
+            TagName::RP => b"RP".as_slice(),
+            TagName::RT => b"RT".as_slice(),
+            TagName::RTC => b"RTC".as_slice(),
+            TagName::RUBY => b"RUBY".as_slice(),
+            TagName::S => b"S".as_slice(),
+            TagName::SCRIPT => b"SCRIPT".as_slice(),
+            TagName::SEARCH => b"SEARCH".as_slice(),
+            TagName::SECTION => b"SECTION".as_slice(),
+            TagName::SELECT => b"SELECT".as_slice(),
+            TagName::SMALL => b"SMALL".as_slice(),
+            TagName::SOURCE => b"SOURCE".as_slice(),
+            TagName::SPAN => b"SPAN".as_slice(),
+            TagName::STRIKE => b"STRIKE".as_slice(),
+            TagName::STRONG => b"STRONG".as_slice(),
+            TagName::STYLE => b"STYLE".as_slice(),
+            TagName::SUB => b"SUB".as_slice(),
+            TagName::SUMMARY => b"SUMMARY".as_slice(),
+            TagName::SUP => b"SUP".as_slice(),
+            TagName::SVG => b"SVG".as_slice(),
+            TagName::TABLE => b"TABLE".as_slice(),
+            TagName::TBODY => b"TBODY".as_slice(),
+            TagName::TD => b"TD".as_slice(),
+            TagName::TEMPLATE => b"TEMPLATE".as_slice(),
+            TagName::TEXTAREA => b"TEXTAREA".as_slice(),
+            TagName::TFOOT => b"TFOOT".as_slice(),
+            TagName::TH => b"TH".as_slice(),
+            TagName::THEAD => b"THEAD".as_slice(),
+            TagName::TITLE => b"TITLE".as_slice(),
+            TagName::TR => b"TR".as_slice(),
+            TagName::TRACK => b"TRACK".as_slice(),
+            TagName::TT => b"TT".as_slice(),
+            TagName::U => b"U".as_slice(),
+            TagName::UL => b"UL".as_slice(),
+            TagName::VAR => b"VAR".as_slice(),
+            TagName::WBR => b"WBR".as_slice(),
+            TagName::XMP => b"XMP".as_slice(),
+            TagName::Doctype => b"html".as_slice(),
+            // TagName::Arbitrary(arbitrary_name) => arbitrary_name.clone().as_ref(),
+            _ => todo!(),
+        }
+        .into()
     }
 }
 
