@@ -1468,8 +1468,32 @@ impl TagProcessor {
         todo!()
     }
 
-    pub fn get_attribute(&self, name: &str) -> AttributeValue {
-        todo!()
+    pub fn get_attribute(&self, name: &[u8]) -> Option<AttributeValue> {
+        if self.parser_state != ParserState::MatchedTag {
+            return None;
+        }
+
+        if !self.lexical_updates.is_empty() {
+            todo!("Get attribute lexical update handlin.");
+        }
+
+        Some(
+            if let Some(attr_token) = self.attributes.iter().find(|&token| {
+                let attr_name = &self.html_bytes[token.start..token.start + token.name_length];
+                attr_name.eq_ignore_ascii_case(name)
+            }) {
+                if attr_token.is_true {
+                    AttributeValue::BooleanTrue
+                } else {
+                    let raw_value = &self.html_bytes[attr_token.value_starts_at
+                        ..attr_token.value_starts_at + attr_token.value_length];
+                    // TODO: decode attribute value.
+                    AttributeValue::String(Rc::from(raw_value))
+                }
+            } else {
+                AttributeValue::BooleanFalse
+            },
+        )
     }
 
     /// Indicates if the currently matched tag contains the self-closing flag.

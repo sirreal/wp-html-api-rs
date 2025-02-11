@@ -1313,7 +1313,7 @@ impl HtmlProcessor {
                  * >     its value results in an encoding, and the confidence is currently
                  * >     tentative, then change the encoding to the resulting encoding.
                  */
-                if let AttributeValue::String(_) = self.get_attribute("charset") {
+                if let Some(AttributeValue::String(_)) = self.get_attribute(b"charset") {
                     if EncodingConfidence::Tentative == self.state.encoding_confidence {
                         self.bail(
                             "Cannot yet process META tags with charset to determine encoding."
@@ -1332,9 +1332,9 @@ impl HtmlProcessor {
                  * >     then change the encoding to the extracted encoding.
                  */
 
-                if let (AttributeValue::String(http_equiv), AttributeValue::String(_)) = (
-                    self.get_attribute("http-equiv"),
-                    self.get_attribute("content"),
+                if let (Some(AttributeValue::String(http_equiv)), Some(AttributeValue::String(_))) = (
+                    self.get_attribute(b"http-equiv"),
+                    self.get_attribute(b"content"),
                 ) {
                     if http_equiv.eq_ignore_ascii_case(b"Content-Type")
                         && self.state.encoding_confidence == EncodingConfidence::Tentative
@@ -2384,16 +2384,17 @@ impl HtmlProcessor {
                  * > but that attribute's value is not an ASCII case-insensitive match for the
                  * > string "hidden", then: set the frameset-ok flag to "not ok".
                  */
-                match self.get_attribute("type") {
-                    AttributeValue::String(type_attr_value)
+                match self.get_attribute(b"type") {
+                    Some(AttributeValue::String(type_attr_value))
                         if !type_attr_value.eq_ignore_ascii_case(b"hidden") =>
                     {
                         self.state.frameset_ok = false;
                     }
-                    AttributeValue::String(_) => {}
-                    AttributeValue::BooleanFalse | AttributeValue::BooleanTrue => {
+                    Some(AttributeValue::String(_)) => {}
+                    Some(AttributeValue::BooleanFalse | AttributeValue::BooleanTrue) => {
                         self.state.frameset_ok = false;
                     }
+                    None => {}
                 }
 
                 true
@@ -3106,9 +3107,9 @@ impl HtmlProcessor {
     ///
     /// @param string $name Name of attribute whose value is requested.
     /// @return string|true|null Value of attribute or `null` if not available. Boolean attributes return `true`.
-    pub fn get_attribute(&self, name: &str) -> AttributeValue {
+    pub fn get_attribute(&self, name: &[u8]) -> Option<AttributeValue> {
         if self.is_virtual() {
-            AttributeValue::BooleanFalse
+            None
         } else {
             self.tag_processor.get_attribute(name)
         }
