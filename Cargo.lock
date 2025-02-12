@@ -1070,10 +1070,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
-name = "php-cruft"
-version = "0.1.0"
-
-[[package]]
 name = "pkg-config"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1788,9 +1784,6 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 [[package]]
 name = "wp-html-api"
 version = "0.1.0"
-dependencies = [
- "php-cruft",
-]
 
 [[package]]
 name = "wp-html-api-php-ext"
