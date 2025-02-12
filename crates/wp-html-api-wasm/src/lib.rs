@@ -1,4 +1,4 @@
-#![allow(non_camel_case_types)]
+#![allow(non_camel_case_types, unused_macros)]
 
 extern crate wasm_bindgen;
 use wp_html_api::html_processor::HtmlProcessor;

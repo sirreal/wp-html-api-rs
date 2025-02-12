@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 mod tag_processor;
 use std::fs;
 use tag_processor::TagProcessor;

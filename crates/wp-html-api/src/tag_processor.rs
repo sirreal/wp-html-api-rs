@@ -1,5 +1,4 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
+#![allow(dead_code, unused_variables, non_camel_case_types)]
 
 use crate::{strcspn, strspn};
 
@@ -1577,7 +1576,7 @@ impl TagProcessor {
             break;
         }
 
-        if (at > self.text_starts_at.unwrap()) {
+        if at > self.text_starts_at.unwrap() {
             let new_length = at - self.text_starts_at.unwrap();
             self.text_length = Some(new_length);
             self.token_length = Some(new_length);

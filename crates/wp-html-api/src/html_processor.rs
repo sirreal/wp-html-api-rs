@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unreachable_code)]
+#![allow(dead_code, unused_variables, unreachable_code, non_camel_case_types)]
 
 mod active_formatting_elements;
 mod html_stack_event;
@@ -2782,7 +2780,7 @@ impl HtmlProcessor {
                 }
             }
 
-            /**
+            /*
              * > An end tag whose tag name is one of: "body", "col", "colgroup", "html", "tbody", "td", "tfoot", "th", "thead", "tr"
              */
             Op::TagPop(
@@ -3937,12 +3935,12 @@ impl HtmlProcessor {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum HtmlProcessorError {
+pub enum HtmlProcessorError {
     ExceededMaxBookmarks,
     UnsupportedException(UnsupportedException),
 }
 #[derive(Clone, Debug)]
-pub(crate) enum UnsupportedException {}
+pub enum UnsupportedException {}
 
 #[derive(Debug, PartialEq)]
 enum Op {
