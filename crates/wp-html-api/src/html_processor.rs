@@ -1046,19 +1046,18 @@ impl HtmlProcessor {
              * > A DOCTYPE token
              */
             Op::Token(TokenType::Doctype) => {
-                todo!("Doctype token handling");
+                if let Some(doctype) = self.tag_processor.get_doctype_info() {
+                    if doctype.indicated_compatability_mode == CompatMode::Quirks {
+                        self.tag_processor.compat_mode = CompatMode::Quirks;
+                    }
+                }
 
-                // $doctype = $this->get_doctype_info();
-                // if ( null !== $doctype && 'quirks' === $doctype->indicated_compatability_mode ) {
-                // 	$this->compat_mode = WP_HTML_Tag_Processor::QUIRKS_MODE;
-                // }
-
-                // /*
-                //  * > Then, switch the insertion mode to "before html".
-                //  */
-                // $this->state->insertion_mode = WP_HTML_Processor_State::INSERTION_MODE_BEFORE_HTML;
-                // $this->insert_html_element( $this->state->current_token );
-                // return true;
+                /*
+                 * > Then, switch the insertion mode to "before html".
+                 */
+                self.state.insertion_mode = InsertionMode::BEFORE_HTML;
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
             }
             /*
              * > Anything else

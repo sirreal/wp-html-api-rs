@@ -1,5 +1,4 @@
 use crate::tag_processor::CompatMode;
-use crate::{strcspn, strspn};
 
 /**
  * HTML API: WP_HTML_Doctype_Info class
@@ -54,7 +53,7 @@ use crate::{strcspn, strspn};
  *
  * @see WP_HTML_Processor
  */
-struct HtmlDoctypeInfo {
+pub struct HtmlDoctypeInfo {
     /**
      * Name of the DOCTYPE: should be "html" for HTML documents.
      *

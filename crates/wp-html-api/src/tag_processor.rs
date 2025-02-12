@@ -1,5 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
+use crate::doctype::HtmlDoctypeInfo;
+
 use super::tag_name::TagName;
 
 use std::{collections::HashMap, rc::Rc};
@@ -1591,6 +1593,28 @@ impl TagProcessor {
     pub fn change_parsing_namespace(&mut self, namespace: ParsingNamespace) -> bool {
         self.parsing_namespace = namespace;
         true
+    }
+
+    /// Gets DOCTYPE declaration info from a DOCTYPE token.
+    ///
+    /// DOCTYPE tokens may appear in many places in an HTML document. In most places, they are
+    /// simply ignored. The main parsing functions find the basic shape of DOCTYPE tokens but
+    /// do not perform detailed parsing.
+    ///
+    /// This method can be called to perform a full parse of the DOCTYPE token and retrieve
+    /// its information.
+    ///
+    /// @return WP_HTML_Doctype_Info|null The DOCTYPE declaration information or `null` if not
+    ///                                   currently at a DOCTYPE node.
+    pub fn get_doctype_info(&self) -> Option<HtmlDoctypeInfo> {
+        if self.parser_state != ParserState::Doctype {
+            None
+        } else {
+            HtmlDoctypeInfo::from_doctype_token(
+                &self.html_bytes[self.token_starts_at.unwrap()
+                    ..self.token_starts_at.unwrap() + self.token_length.unwrap()],
+            )
+        }
     }
 }
 
