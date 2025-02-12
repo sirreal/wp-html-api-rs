@@ -1402,8 +1402,8 @@ impl TagProcessor {
     }
 
     /// Returns the namespace of the matched token.
-    pub fn get_namespace(&self) -> &str {
-        todo!()
+    pub fn get_namespace(&self) -> ParsingNamespace {
+        self.parsing_namespace.clone()
     }
 
     /// Returns the adjusted tag name for a given token, taking into

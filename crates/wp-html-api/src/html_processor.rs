@@ -3033,7 +3033,11 @@ impl HtmlProcessor {
     ///
     /// @return string One of "html", "math", or "svg".
     pub fn get_namespace(&self) -> ParsingNamespace {
-        todo!()
+        if let Some(current_element) = self.current_element.as_ref() {
+            current_element.token.namespace.clone()
+        } else {
+            self.tag_processor.get_namespace()
+        }
     }
 
     /// Returns the uppercase name of the matched tag.
