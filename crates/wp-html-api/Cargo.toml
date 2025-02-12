@@ -6,4 +6,4 @@ edition = "2021"
 [lib]
 
 [dependencies]
-
+php-cruft = { path = "../php-cruft" }
