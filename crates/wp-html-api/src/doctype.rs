@@ -516,9 +516,28 @@ impl HtmlDoctypeInfo {
          * @see https://infra.spec.whatwg.org/#normalize-newlines
          */
 
-        // TODO normalize
-        // $doctype_html = str_replace( "\r\n", "\n", $doctype_html );
-        // $doctype_html = str_replace( "\r", "\n", $doctype_html );
+        let mut doctype_html_normalized: Vec<u8> = Vec::new();
+        let mut chars = doctype_html.iter().peekable();
+        while let Some(&c) = chars.next() {
+            match c {
+                b'\r' => {
+                    if chars.peek() == Some(&&b'\n') {
+                        chars.next(); // consume the \n
+                        doctype_html_normalized.push(b'\n');
+                    } else {
+                        doctype_html_normalized.push(b'\n');
+                    }
+                }
+                b'\0' => {
+                    "\u{FFFD}"
+                        .as_bytes()
+                        .iter()
+                        .for_each(|c| doctype_html_normalized.push(*c));
+                }
+                _ => doctype_html_normalized.push(c),
+            }
+        }
+        let doctype_html = doctype_html_normalized.as_slice();
 
         let end = doctype_html.len() - 1;
 
@@ -559,15 +578,8 @@ impl HtmlDoctypeInfo {
         }
 
         let name_length = strcspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
-        let doctype_name = &doctype_html[at..at + name_length];
-        doctype_name.iter_mut().for_each(|b| {
-            if *b == b'\0' {
-                *b = 0xFFFD
-            } else {
-                *b = b.to_ascii_lowercase()
-            }
-        });
-        let doctype_name = Some(doctype_name.into());
+        let doctype_name = doctype_html[at..at + name_length].to_ascii_lowercase();
+        let doctype_name: Option<Box<[u8]>> = Some(doctype_name.into());
 
         at += name_length;
         at += strspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
@@ -677,11 +689,6 @@ impl HtmlDoctypeInfo {
         let identifier_length = strcspn!(doctype_html, closer_quote, at);
 
         let doctype_public_id = &doctype_html[at..at + identifier_length];
-        doctype_public_id.iter_mut().for_each(|b| {
-            if *b == b'\0' {
-                *b = 0xFFFD
-            }
-        });
         let doctype_public_id = Some(doctype_public_id.into());
 
         at += identifier_length;
@@ -742,11 +749,6 @@ impl HtmlDoctypeInfo {
 
         let identifier_length = strcspn!(doctype_html, closer_quote, at);
         let doctype_system_id = &doctype_html[at..at + identifier_length];
-        doctype_system_id.iter_mut().for_each(|b| {
-            if *b == b'\0' {
-                *b = 0xFFFD
-            }
-        });
         let doctype_system_id = Some(doctype_system_id.into());
 
         at += identifier_length;
