@@ -1,25 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use crate::{strcspn, strspn};
+
 use std::{collections::HashMap, rc::Rc};
-
-macro_rules! strspn {
-    ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
-        $expression[$offset..]
-            .iter()
-            .position(|&b| !matches!(b, $pattern))
-            .unwrap_or(0)
-    }};
-}
-
-macro_rules! strcspn {
-    ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
-        $expression[$offset..]
-            .iter()
-            .position(|&b| matches!(b, $pattern))
-            .unwrap_or($expression.len() - $offset)
-    }};
-}
 
 const MAX_BOOKMARKS: usize = 10;
 
@@ -81,6 +65,8 @@ pub enum CompatMode {
     ///
     /// @see https://developer.mozilla.org/en-US/docs/Web/HTML/Quirks_Mode_and_Standards_Mode
     Quirks,
+
+    LimitedQuirks,
 }
 
 #[derive(Default, PartialEq, Debug, Clone)]
