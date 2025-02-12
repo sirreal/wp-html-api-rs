@@ -77,7 +77,7 @@ enum EncodingConfidence {
 /// Insertion mode.
 ///
 /// @see https://html.spec.whatwg.org/#the-insertion-mode
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum InsertionMode {
     /// Initial insertion mode for full HTML parser.
     ///
@@ -335,8 +335,6 @@ impl HtmlProcessor {
     fn new(html: &[u8]) -> Self {
         let tag_processor = TagProcessor::new(html);
         let state = ProcessorState::new();
-
-        // TODO stack push/pop handlers???
 
         Self {
             tag_processor,
@@ -1451,13 +1449,6 @@ impl HtmlProcessor {
             Op::TagPush(TagName::HEAD) => self.step(NodeToProcess::ProcessNextNode),
             Op::TagPop(tag_name) if !matches!(tag_name, TagName::BODY | TagName::HTML) => {
                 self.step(NodeToProcess::ProcessNextNode)
-            }
-
-            Op::TagPop(TagName::BODY | TagName::HTML) => {
-                /*
-                 * > Act as described in the "anything else" entry below.
-                 */
-                todo!();
             }
 
             /*
@@ -3851,7 +3842,7 @@ impl HtmlProcessor {
         };
         self.element_queue.push_back(HTMLStackEvent {
             token: token.clone(),
-            operation: StackOperation::Push,
+            operation: StackOperation::Pop,
             provenance,
         });
 
