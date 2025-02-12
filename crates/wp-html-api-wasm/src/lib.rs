@@ -2,7 +2,7 @@
 
 extern crate wasm_bindgen;
 use wp_html_api::html_processor::HtmlProcessor;
-use wp_html_api::tag_processor::{TagName, TagProcessor};
+use wp_html_api::tag_processor::TagProcessor;
 
 use wasm_bindgen::prelude::*;
 
@@ -41,11 +41,11 @@ impl WP_HTML_Tag_Processor {
     }
 
     pub fn get_tag(&self) -> Option<Box<[u8]>> {
-        self.processor.get_tag().map(TagName::into)
+        self.processor.get_tag().map(Into::into)
     }
 
     pub fn get_token_type(&self) -> Option<String> {
-        self.processor.get_token_type().map(|t| t.into())
+        self.processor.get_token_type().map(Into::into)
     }
 
     pub fn get_token_name(&self) -> Option<Box<[u8]>> {
@@ -80,7 +80,7 @@ impl WP_HTML_Processor {
     }
 
     pub fn get_tag(&self) -> Option<Box<[u8]>> {
-        self.processor.get_tag().map(TagName::into)
+        self.processor.get_tag().map(Into::into)
     }
 
     pub fn get_token_type(&self) -> Option<String> {
