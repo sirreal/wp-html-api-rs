@@ -1,4 +1,3 @@
-#[macro_export]
 macro_rules! strspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
         $expression[$offset..]
@@ -8,7 +7,6 @@ macro_rules! strspn {
     }};
 }
 
-#[macro_export]
 macro_rules! strcspn {
     ($expression:expr, $pattern:pat, $offset:expr $(,)?) => {{
         $expression[$offset..]

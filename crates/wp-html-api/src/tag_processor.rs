@@ -1,7 +1,5 @@
 #![allow(dead_code, unused_variables)]
 
-use crate::{strcspn, strspn};
-
 use super::tag_name::TagName;
 
 use std::{collections::HashMap, rc::Rc};
