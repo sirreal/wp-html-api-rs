@@ -613,7 +613,7 @@ impl HtmlDoctypeInfo {
          * > case-insensitive match for the word "PUBLIC", then consume those characters
          * > and switch to the after DOCTYPE public keyword state.
          */
-        if doctype_html[at..at + 6].eq_ignore_ascii_case(b"PUBLIC") {
+        let mut next_parse = if doctype_html[at..at + 6].eq_ignore_ascii_case(b"PUBLIC") {
             at += 6;
             at += strcspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
             if at >= end {
@@ -624,15 +624,14 @@ impl HtmlDoctypeInfo {
                     true,
                 ));
             }
-            todo!("goto parse_doctype_public_identifier");
+            Proceed::ParseDoctypePublicIdentifier
         }
-
         /*
          * > Otherwise, if the six characters starting from the current input character are an ASCII
          * > case-insensitive match for the word "SYSTEM", then consume those characters and switch
          * > to the after DOCTYPE system keyword state.
          */
-        if doctype_html[at..at + 6].eq_ignore_ascii_case(b"SYSTEM") {
+        else if doctype_html[at..at + 6].eq_ignore_ascii_case(b"SYSTEM") {
             at += 6;
             at += strcspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
             if at >= end {
@@ -643,121 +642,129 @@ impl HtmlDoctypeInfo {
                     true,
                 ));
             }
-            todo!("goto parse_doctype_system_identifier");
-        }
-
-        /*
-         * > Otherwise, this is an invalid-character-sequence-after-doctype-name parse error.
-         * > Set the current DOCTYPE token's force-quirks flag to on. Reconsume in the bogus
-         * > DOCTYPE state.
-         */
-        return Some(Self::new(
-            doctype_name,
-            doctype_public_id,
-            doctype_system_id,
-            true,
-        ));
-
-        // GOTO TARGET parse_doctype_public_identifier:
-
-        /*
-         * The parser should enter "DOCTYPE public identifier (double-quoted) state" or
-         * "DOCTYPE public identifier (single-quoted) state" by finding one of the valid quotes.
-         * Anything else forces quirks mode and ignores the rest of the contents.
-         *
-         * @see https://html.spec.whatwg.org/#doctype-public-identifier-(double-quoted)-state
-         * @see https://html.spec.whatwg.org/#doctype-public-identifier-(single-quoted)-state
-         */
-        let closer_quote = doctype_html[at];
-
-        /*
-         * > This is a missing-quote-before-doctype-public-identifier parse error. Set the
-         * > current DOCTYPE token's force-quirks flag to on. Reconsume in the bogus DOCTYPE state.
-         */
-        if b'"' != closer_quote && b'\'' != closer_quote {
+            Proceed::ParseDoctypePublicIdentifier
+        } else {
+            /*
+             * > Otherwise, this is an invalid-character-sequence-after-doctype-name parse error.
+             * > Set the current DOCTYPE token's force-quirks flag to on. Reconsume in the bogus
+             * > DOCTYPE state.
+             */
             return Some(Self::new(
                 doctype_name,
                 doctype_public_id,
                 doctype_system_id,
                 true,
             ));
-        }
+        };
 
-        at += 1;
+        loop {
+            next_parse = match next_parse {
+                // GOTO TARGET parse_doctype_public_identifier:
+                Proceed::ParseDoctypePublicIdentifier => {
+                    /*
+                     * The parser should enter "DOCTYPE public identifier (double-quoted) state" or
+                     * "DOCTYPE public identifier (single-quoted) state" by finding one of the valid quotes.
+                     * Anything else forces quirks mode and ignores the rest of the contents.
+                     *
+                     * @see https://html.spec.whatwg.org/#doctype-public-identifier-(double-quoted)-state
+                     * @see https://html.spec.whatwg.org/#doctype-public-identifier-(single-quoted)-state
+                     */
+                    let closer_quote = doctype_html[at];
 
-        let identifier_length = strcspn!(doctype_html, closer_quote, at);
+                    /*
+                     * > This is a missing-quote-before-doctype-public-identifier parse error. Set the
+                     * > current DOCTYPE token's force-quirks flag to on. Reconsume in the bogus DOCTYPE state.
+                     */
+                    if b'"' != closer_quote && b'\'' != closer_quote {
+                        return Some(Self::new(
+                            doctype_name,
+                            doctype_public_id,
+                            doctype_system_id,
+                            true,
+                        ));
+                    }
 
-        let doctype_public_id = &doctype_html[at..at + identifier_length];
-        let doctype_public_id = Some(doctype_public_id.into());
+                    at += 1;
 
-        at += identifier_length;
-        if at >= end || closer_quote != doctype_html[at] {
-            return Some(Self::new(
-                doctype_name,
-                doctype_public_id,
-                doctype_system_id,
-                true,
-            ));
-        }
+                    let identifier_length = strcspn!(doctype_html, x if x == closer_quote, at);
 
-        at += 1;
+                    let doctype_public_id = &doctype_html[at..at + identifier_length];
+                    let doctype_public_id = Some(doctype_public_id.into());
 
-        /*
-         * "Between DOCTYPE public and system identifiers state"
-         *
-         * Advance through whitespace between public and system identifiers.
-         *
-         * @see https://html.spec.whatwg.org/#between-doctype-public-and-system-identifiers-state
-         */
-        at += strspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
-        if at >= end {
-            return Some(Self::new(
-                doctype_name,
-                doctype_public_id,
-                doctype_system_id,
-                false,
-            ));
-        }
+                    at += identifier_length;
+                    if at >= end || closer_quote != doctype_html[at] {
+                        return Some(Self::new(
+                            doctype_name,
+                            doctype_public_id,
+                            doctype_system_id,
+                            true,
+                        ));
+                    }
 
-        // GOTO TARGET parse_doctype_system_identifier:
+                    at += 1;
 
-        /*
-         * The parser should enter "DOCTYPE system identifier (double-quoted) state" or
-         * "DOCTYPE system identifier (single-quoted) state" by finding one of the valid quotes.
-         * Anything else forces quirks mode and ignores the rest of the contents.
-         *
-         * @see https://html.spec.whatwg.org/#doctype-system-identifier-(double-quoted)-state
-         * @see https://html.spec.whatwg.org/#doctype-system-identifier-(single-quoted)-state
-         */
-        let closer_quote = doctype_html[at];
+                    /*
+                     * "Between DOCTYPE public and system identifiers state"
+                     *
+                     * Advance through whitespace between public and system identifiers.
+                     *
+                     * @see https://html.spec.whatwg.org/#between-doctype-public-and-system-identifiers-state
+                     */
+                    at += strspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
+                    if at >= end {
+                        return Some(Self::new(
+                            doctype_name,
+                            doctype_public_id,
+                            doctype_system_id,
+                            false,
+                        ));
+                    }
+                    Proceed::ParseDoctypeSystemIdentifier
+                }
+                // GOTO TARGET parse_doctype_system_identifier:
+                Proceed::ParseDoctypeSystemIdentifier => {
+                    /*
+                     * The parser should enter "DOCTYPE system identifier (double-quoted) state" or
+                     * "DOCTYPE system identifier (single-quoted) state" by finding one of the valid quotes.
+                     * Anything else forces quirks mode and ignores the rest of the contents.
+                     *
+                     * @see https://html.spec.whatwg.org/#doctype-system-identifier-(double-quoted)-state
+                     * @see https://html.spec.whatwg.org/#doctype-system-identifier-(single-quoted)-state
+                     */
+                    let closer_quote = doctype_html[at];
 
-        /*
-         * > This is a missing-quote-before-doctype-system-identifier parse error. Set the
-         * > current DOCTYPE token's force-quirks flag to on. Reconsume in the bogus DOCTYPE state.
-         */
-        if b'"' != closer_quote && b'\'' != closer_quote {
-            return Some(Self::new(
-                doctype_name,
-                doctype_public_id,
-                doctype_system_id,
-                true,
-            ));
-        }
+                    /*
+                     * > This is a missing-quote-before-doctype-system-identifier parse error. Set the
+                     * > current DOCTYPE token's force-quirks flag to on. Reconsume in the bogus DOCTYPE state.
+                     */
+                    if b'"' != closer_quote && b'\'' != closer_quote {
+                        return Some(Self::new(
+                            doctype_name,
+                            doctype_public_id,
+                            doctype_system_id,
+                            true,
+                        ));
+                    }
 
-        at += 1;
+                    at += 1;
 
-        let identifier_length = strcspn!(doctype_html, closer_quote, at);
-        let doctype_system_id = &doctype_html[at..at + identifier_length];
-        let doctype_system_id = Some(doctype_system_id.into());
+                    let identifier_length = strcspn!(doctype_html, x if x == closer_quote, at);
+                    let doctype_system_id = &doctype_html[at..at + identifier_length];
+                    let doctype_system_id = Some(doctype_system_id.into());
 
-        at += identifier_length;
-        if at >= end || closer_quote != doctype_html[at] {
-            return Some(Self::new(
-                doctype_name,
-                doctype_public_id,
-                doctype_system_id,
-                true,
-            ));
+                    at += identifier_length;
+                    if at >= end || closer_quote != doctype_html[at] {
+                        return Some(Self::new(
+                            doctype_name,
+                            doctype_public_id,
+                            doctype_system_id,
+                            true,
+                        ));
+                    }
+                    Proceed::Exit
+                }
+                Proceed::Exit => break,
+            }
         }
 
         return Some(Self::new(
@@ -767,4 +774,10 @@ impl HtmlDoctypeInfo {
             false,
         ));
     }
+}
+
+enum Proceed {
+    ParseDoctypePublicIdentifier,
+    ParseDoctypeSystemIdentifier,
+    Exit,
 }
