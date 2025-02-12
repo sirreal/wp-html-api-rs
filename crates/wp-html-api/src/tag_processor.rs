@@ -968,7 +968,7 @@ impl TagProcessor {
     pub fn get_token_name(&self) -> Option<NodeName> {
         match self.parser_state {
             ParserState::MatchedTag => Some(NodeName::Tag(self.get_tag().unwrap())),
-            ParserState::Doctype => Some(NodeName::Tag(TagName::Doctype)),
+            ParserState::Doctype => Some(NodeName::Token(TokenType::Doctype)),
             _ => self.get_token_type().map(|t| NodeName::Token(t)),
         }
     }

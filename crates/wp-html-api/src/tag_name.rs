@@ -116,9 +116,6 @@ pub enum TagName {
     WBR,
     XMP,
 
-    // Doctypes to align with PHP impl
-    Doctype,
-
     // Some tags we're interested in for special parsing ru
     Arbitrary(Rc<[u8]>),
 
@@ -366,7 +363,6 @@ impl Into<Box<[u8]>> for TagName {
             TagName::VAR => b"VAR".as_slice(),
             TagName::WBR => b"WBR".as_slice(),
             TagName::XMP => b"XMP".as_slice(),
-            TagName::Doctype => b"html".as_slice(),
             // TagName::Arbitrary(arbitrary_name) => arbitrary_name.clone().as_ref(),
             _ => todo!(),
         }
