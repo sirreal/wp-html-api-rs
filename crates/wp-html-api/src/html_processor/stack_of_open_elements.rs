@@ -20,18 +20,58 @@ use crate::{
 pub(super) struct StackOfOpenElements {
     /// Holds the stack of open element references.
     pub stack: Vec<HTMLToken>,
+
+    /// Whether a P element is in button scope currently.
+    ///
+    /// This class optimizes scope lookup by pre-calculating
+    /// this value when elements are added and removed to the
+    /// stack of open elements which might change its value.
+    /// This avoids frequent iteration over the stack.
+    has_p_in_button_scope: bool,
+
+    /// A function that will be called when an item is popped off the stack of open elements.
+    ///
+    /// The function will be called with the popped item as its argument.
+    pop_handler: Option<Box<dyn Fn(&HTMLToken)>>,
+
+    /// A function that will be called when an item is pushed onto the stack of open elements.
+    ///
+    /// The function will be called with the pushed item as its argument.
+    push_handler: Option<Box<dyn Fn(&HTMLToken)>>,
 }
 impl StackOfOpenElements {
     pub fn new() -> Self {
-        Self { stack: Vec::new() }
+        Self {
+            stack: Vec::new(),
+            has_p_in_button_scope: false,
+            pop_handler: None,
+            push_handler: None,
+        }
+    }
+
+    pub fn set_push_handler(&mut self, handler: Box<dyn Fn(&HTMLToken)>) {
+        self.push_handler = Some(handler);
+    }
+
+    pub fn set_pop_handler(&mut self, handler: Box<dyn Fn(&HTMLToken)>) {
+        self.pop_handler = Some(handler);
     }
 
     pub fn _push(&mut self, element: HTMLToken) {
-        self.stack.push(element)
+        self.stack.push(element.clone());
+        if let Some(handler) = &self.push_handler {
+            handler(&element);
+        }
     }
 
     pub fn _pop(&mut self) -> Option<HTMLToken> {
-        self.stack.pop()
+        let element = self.stack.pop();
+        if let Some(element) = &element {
+            if let Some(handler) = &self.pop_handler {
+                handler(element);
+            }
+        }
+        element
     }
 
     pub fn current_node(&self) -> Option<&HTMLToken> {
@@ -60,8 +100,76 @@ impl StackOfOpenElements {
         todo!()
     }
 
-    pub fn has_element_in_scope(&self, body: &TagName) -> bool {
-        todo!()
+    /// Returns whether a particular element is in table scope.
+    ///
+    /// > The stack of open elements is said to have a particular element
+    /// > in table scope when it has that element in the specific scope
+    /// > consisting of the following element types:
+    /// >
+    /// >   - html in the HTML namespace
+    /// >   - table in the HTML namespace
+    /// >   - template in the HTML namespace
+    ///
+    /// @see https://html.spec.whatwg.org/#has-an-element-in-table-scope
+    pub fn has_element_in_table_scope(&self, tag_name: &TagName) -> bool {
+        self.has_element_in_specific_scope(
+            tag_name,
+            &[
+                TagName::HTML,
+                TagName::TABLE,
+                TagName::TEMPLATE,
+            ],
+        )
+    }
+
+    /// Returns whether a particular element is in scope.
+    ///
+    /// > The stack of open elements is said to have a particular element in
+    /// > scope when it has that element in the specific scope consisting of
+    /// > the following element types:
+    /// >
+    /// >   - applet
+    /// >   - caption
+    /// >   - html
+    /// >   - table
+    /// >   - td
+    /// >   - th
+    /// >   - marquee
+    /// >   - object
+    /// >   - template
+    /// >   - MathML mi
+    /// >   - MathML mo
+    /// >   - MathML mn
+    /// >   - MathML ms
+    /// >   - MathML mtext
+    /// >   - MathML annotation-xml
+    /// >   - SVG foreignObject
+    /// >   - SVG desc
+    /// >   - SVG title
+    pub fn has_element_in_scope(&self, tag_name: &TagName) -> bool {
+        self.has_element_in_specific_scope(
+            tag_name,
+            &[
+                TagName::APPLET,
+                TagName::CAPTION,
+                TagName::HTML,
+                TagName::TABLE,
+                TagName::TD,
+                TagName::TH,
+                TagName::MARQUEE,
+                TagName::OBJECT,
+                TagName::TEMPLATE,
+                TagName::MathML_MI,
+                TagName::MathML_MO,
+                TagName::MathML_MN,
+                TagName::MathML_MS,
+                TagName::MathML_MTEXT,
+                TagName::MathML_ANNOTATION_XML,
+                TagName::SVG_FOREIGNOBJECT,
+                TagName::SVG_DESC,
+                TagName::SVG_TITLE,
+            ],
+        )
     }
 
     /// Returns whether a P is in BUTTON scope.

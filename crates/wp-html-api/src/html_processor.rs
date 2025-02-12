@@ -2729,7 +2729,84 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_caption(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > An end tag whose tag name is "caption"
+             * > A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"
+             * > An end tag whose tag name is "table"
+             *
+             * These tag handling rules are identical except for the final instruction.
+             * Handle them in a single block.
+             */
+            Op::TagPop(TagName::CAPTION)
+            | Op::TagPush(
+                TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::TBODY
+                | TagName::TD
+                | TagName::TFOOT
+                | TagName::TH
+                | TagName::THEAD
+                | TagName::TR,
+            )
+            | Op::TagPop(TagName::TABLE) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&TagName::CAPTION)
+                {
+                    // Parse error: ignore the token.
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                self.generate_implied_end_tags(None);
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&TagName::CAPTION)
+                {
+                    // @todo Indicate a parse error once it's possible.
+                }
+
+                self.pop_until(&TagName::CAPTION);
+                self.state
+                    .active_formatting_elements
+                    .clear_up_to_last_marker();
+                self.state.insertion_mode = InsertionMode::IN_TABLE;
+
+                // If this is not a CAPTION end tag, the token should be reprocessed.
+                match self.make_op() {
+                    Op::TagPop(TagName::CAPTION) => true,
+                    _ => self.step(NodeToProcess::ReprocessCurrentNode),
+                }
+            }
+
+            /**
+             * > An end tag whose tag name is one of: "body", "col", "colgroup", "html", "tbody", "td", "tfoot", "th", "thead", "tr"
+             */
+            Op::TagPop(
+                TagName::BODY
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::HTML
+                | TagName::TBODY
+                | TagName::TD
+                | TagName::TFOOT
+                | TagName::TH
+                | TagName::THEAD
+                | TagName::TR,
+            ) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Anything else
+             * >   Process the token using the rules for the "in body" insertion mode.
+             */
+            _ => self.step_in_body(),
+        }
     }
 
     /// Parses next element in the 'in column group' insertion mode.
