@@ -1,7 +1,4 @@
-use crate::{
-    html_processor::HTMLToken,
-    tag_processor::{NodeName, TagName},
-};
+use crate::{html_processor::HTMLToken, tag_name::TagName, tag_processor::NodeName};
 
 /// Core class used by the HTML processor during HTML parsing
 /// for managing the stack of open elements.
@@ -114,11 +111,7 @@ impl StackOfOpenElements {
     pub fn has_element_in_table_scope(&self, tag_name: &TagName) -> bool {
         self.has_element_in_specific_scope(
             tag_name,
-            &[
-                TagName::HTML,
-                TagName::TABLE,
-                TagName::TEMPLATE,
-            ],
+            &[TagName::HTML, TagName::TABLE, TagName::TEMPLATE],
         )
     }
 

@@ -7,9 +7,12 @@ mod stack_of_open_elements;
 
 use std::{collections::VecDeque, rc::Rc};
 
-use crate::tag_processor::{
-    AttributeValue, CommentType, CompatMode, HtmlSpan, NodeName, ParserState, ParsingNamespace,
-    TagName, TagProcessor, TextNodeClassification, TokenType,
+use crate::{
+    tag_name::TagName,
+    tag_processor::{
+        AttributeValue, CommentType, CompatMode, HtmlSpan, NodeName, ParserState, ParsingNamespace,
+        TagProcessor, TextNodeClassification, TokenType,
+    },
 };
 use active_formatting_elements::*;
 use html_stack_event::*;
