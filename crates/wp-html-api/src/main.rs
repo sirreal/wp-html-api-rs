@@ -1,15 +1,15 @@
 #![allow(unused_imports)]
 
-mod tag_processor;
 use std::fs;
-use tag_processor::TagProcessor;
-mod html_processor;
-use html_processor::HtmlProcessor;
+
+use wp_html_api::html_processor::HtmlProcessor;
+use wp_html_api::tag_processor::TagProcessor;
 
 pub fn main() {
     let html = fs::read_to_string("./html-standard.html").expect("Missing input!");
     let mut c = 0u32;
 
+    // let mut p = TagProcessor::new(html.as_bytes());
     let mut p = HtmlProcessor::create_full_parser(html.as_bytes(), "UTF-8").unwrap();
 
     while p.next_token() {
