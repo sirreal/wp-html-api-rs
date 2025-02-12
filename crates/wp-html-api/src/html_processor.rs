@@ -2739,7 +2739,7 @@ impl HtmlProcessor {
              * These tag handling rules are identical except for the final instruction.
              * Handle them in a single block.
              */
-            Op::TagPop(TagName::CAPTION)
+            op @ (Op::TagPop(TagName::CAPTION)
             | Op::TagPush(
                 TagName::CAPTION
                 | TagName::COL
@@ -2751,7 +2751,7 @@ impl HtmlProcessor {
                 | TagName::THEAD
                 | TagName::TR,
             )
-            | Op::TagPop(TagName::TABLE) => {
+            | Op::TagPop(TagName::TABLE)) => {
                 if !self
                     .state
                     .stack_of_open_elements
@@ -2777,9 +2777,10 @@ impl HtmlProcessor {
                 self.state.insertion_mode = InsertionMode::IN_TABLE;
 
                 // If this is not a CAPTION end tag, the token should be reprocessed.
-                match self.make_op() {
-                    Op::TagPop(TagName::CAPTION) => true,
-                    _ => self.step(NodeToProcess::ReprocessCurrentNode),
+                if op != Op::TagPop(TagName::CAPTION) {
+                    self.step(NodeToProcess::ReprocessCurrentNode)
+                } else {
+                    true
                 }
             }
 
