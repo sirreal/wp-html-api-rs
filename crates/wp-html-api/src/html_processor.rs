@@ -3239,7 +3239,7 @@ impl HtmlProcessor {
     ///
     /// @param string $prefix Prefix of requested attribute names.
     /// @return array|null List of attribute names, or `null` when no tag opener is matched.
-    pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Rc<str>>> {
+    pub fn get_attribute_names_with_prefix(&self, prefix: &[u8]) -> Option<Vec<&[u8]>> {
         if self.is_virtual() {
             None
         } else {

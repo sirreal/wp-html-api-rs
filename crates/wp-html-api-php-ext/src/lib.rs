@@ -59,6 +59,19 @@ impl WP_HTML_Tag_Processor {
     ) -> bool {
         this.processor.set_modifiable_text(updated_text.as_str())
     }
+
+    pub fn get_attribute_names_with_prefix(
+        #[this] this: &mut ZendClassObject<Self>,
+        prefix: BinarySlice<u8>,
+    ) -> Option<Vec<Binary<u8>>> {
+        this.processor
+            .get_attribute_names_with_prefix(&prefix)
+            .map(|vec| {
+                vec.iter()
+                    .map(|&name| name.to_vec().into())
+                    .collect::<Vec<Binary<u8>>>()
+            })
+    }
 }
 
 #[php_class]
@@ -114,6 +127,19 @@ impl WP_HTML_Processor {
                 token_name.as_bytes().to_vec().into()
             }
         })
+    }
+
+    pub fn get_attribute_names_with_prefix(
+        #[this] this: &mut ZendClassObject<Self>,
+        prefix: BinarySlice<u8>,
+    ) -> Option<Vec<Binary<u8>>> {
+        this.processor
+            .get_attribute_names_with_prefix(&prefix)
+            .map(|vec| {
+                vec.iter()
+                    .map(|&name| name.to_vec().into())
+                    .collect::<Vec<Binary<u8>>>()
+            })
     }
 }
 

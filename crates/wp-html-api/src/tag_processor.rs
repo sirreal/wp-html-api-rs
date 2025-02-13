@@ -1397,8 +1397,32 @@ impl TagProcessor {
     ///
     ///     $p->next_tag() === false;
     ///     $p->get_attribute_names_with_prefix( 'data-' ) === null;
-    pub fn get_attribute_names_with_prefix(&self, prefix: &str) -> Option<Vec<Rc<str>>> {
-        todo!()
+    pub fn get_attribute_names_with_prefix(&self, prefix: &[u8]) -> Option<Vec<&[u8]>> {
+        if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(false) {
+            return None;
+        }
+
+        Some(
+            self.attributes
+                .iter()
+                .filter_map(
+                    |AttributeToken {
+                         start, name_length, ..
+                     }| {
+                        if *name_length < prefix.len() {
+                            None
+                        } else {
+                            let name = &self.html_bytes[*start..start + prefix.len()];
+                            if name.eq_ignore_ascii_case(prefix) {
+                                Some(&self.html_bytes[*start..start + name_length])
+                            } else {
+                                None
+                            }
+                        }
+                    },
+                )
+                .collect::<Vec<_>>(),
+        )
     }
 
     /// Returns the namespace of the matched token.
@@ -1461,7 +1485,7 @@ impl TagProcessor {
         }
 
         if !self.lexical_updates.is_empty() {
-            todo!("Get attribute lexical update handlin.");
+            todo!("Get attribute lexical update handling.");
         }
 
         Some(
