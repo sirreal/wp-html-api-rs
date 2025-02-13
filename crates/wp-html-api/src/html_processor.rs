@@ -2054,7 +2054,71 @@ impl HtmlProcessor {
              * > A start tag whose tag name is one of: "dd", "dt"
              */
             Op::TagPush(tag_name @ (TagName::LI | TagName::DD | TagName::DT)) => {
-                todo!()
+                self.state.frameset_ok = false;
+                let mut node = self.state.stack_of_open_elements.current_node();
+                let is_li = tag_name == TagName::LI;
+
+                /*
+                 * The logic for LI and DT/DD is the same except for one point: LI elements _only_
+                 * close other LI elements, but a DT or DD element closes _any_ open DT or DD element.
+                 */
+                loop {
+                    match node {
+                        Some(HTMLToken {
+                            node_name: NodeName::Tag(current_tag_name),
+                            ..
+                        }) => {
+                            let current_tag_name = current_tag_name.clone();
+                            let match_tag_name_test = if is_li {
+                                current_tag_name == TagName::LI
+                            } else {
+                                matches!(current_tag_name, TagName::DD | TagName::DT)
+                            };
+                            if match_tag_name_test {
+                                self.generate_implied_end_tags(Some(&current_tag_name));
+                                if !self
+                                    .state
+                                    .stack_of_open_elements
+                                    .current_node_is(&NodeName::Tag(current_tag_name.clone()))
+                                {
+                                    // @todo Indicate a parse error once it's possible. This error does not impact the logic here.
+                                }
+
+                                self.pop_until(&current_tag_name);
+                                break;
+                            }
+
+                            /*
+                             * > If node is in the special category, but is not an address, div,
+                             * > or p element, then jump to the step labeled done below.
+                             */
+                            if !matches!(
+                                current_tag_name,
+                                TagName::ADDRESS | TagName::DIV | TagName::P
+                            ) && Self::is_special(&current_tag_name)
+                            {
+                                break;
+                            }
+
+                            /*
+                             * > Otherwise, set node to the previous entry in the stack of open elements
+                             * > and return to the step labeled loop.
+                             */
+                            node = self.state.stack_of_open_elements.walk_up(node).next();
+                            continue;
+                        }
+                        None => break,
+                        _ => {
+                            node = self.state.stack_of_open_elements.walk_up(node).next();
+                        }
+                    }
+                }
+                if self.state.stack_of_open_elements.has_p_in_button_scope() {
+                    self.close_a_p_element();
+                }
+
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
             }
 
             /*
