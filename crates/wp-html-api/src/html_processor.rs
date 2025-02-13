@@ -4023,7 +4023,105 @@ impl HtmlProcessor {
     /// @param WP_HTML_Token|string $tag_name Node to check, or only its name if in the HTML namespace.
     /// @return bool Whether the element of the given name is in the special category.
     pub fn is_special(tag_name: &TagName) -> bool {
-        todo!()
+        matches!(
+            tag_name,
+            TagName::ADDRESS|
+            TagName::APPLET|
+            TagName::AREA|
+            TagName::ARTICLE|
+            TagName::ASIDE|
+            TagName::BASE|
+            TagName::BASEFONT|
+            TagName::BGSOUND|
+            TagName::BLOCKQUOTE|
+            TagName::BODY|
+            TagName::BR|
+            TagName::BUTTON|
+            TagName::CAPTION|
+            TagName::CENTER|
+            TagName::COL|
+            TagName::COLGROUP|
+            TagName::DD|
+            TagName::DETAILS|
+            TagName::DIR|
+            TagName::DIV|
+            TagName::DL|
+            TagName::DT|
+            TagName::EMBED|
+            TagName::FIELDSET|
+            TagName::FIGCAPTION|
+            TagName::FIGURE|
+            TagName::FOOTER|
+            TagName::FORM|
+            TagName::FRAME|
+            TagName::FRAMESET|
+            TagName::H1|
+            TagName::H2|
+            TagName::H3|
+            TagName::H4|
+            TagName::H5|
+            TagName::H6|
+            TagName::HEAD|
+            TagName::HEADER|
+            TagName::HGROUP|
+            TagName::HR|
+            TagName::HTML|
+            TagName::IFRAME|
+            TagName::IMG|
+            TagName::INPUT|
+            TagName::KEYGEN|
+            TagName::LI|
+            TagName::LINK|
+            TagName::LISTING|
+            TagName::MAIN|
+            TagName::MARQUEE|
+            TagName::MENU|
+            TagName::META|
+            TagName::NAV|
+            TagName::NOEMBED|
+            TagName::NOFRAMES|
+            TagName::NOSCRIPT|
+            TagName::OBJECT|
+            TagName::OL|
+            TagName::P|
+            TagName::PARAM|
+            TagName::PLAINTEXT|
+            TagName::PRE|
+            TagName::SCRIPT|
+            TagName::SEARCH|
+            TagName::SECTION|
+            TagName::SELECT|
+            TagName::SOURCE|
+            TagName::STYLE|
+            TagName::SUMMARY|
+            TagName::TABLE|
+            TagName::TBODY|
+            TagName::TD|
+            TagName::TEMPLATE|
+            TagName::TEXTAREA|
+            TagName::TFOOT|
+            TagName::TH|
+            TagName::THEAD|
+            TagName::TITLE|
+            TagName::TR|
+            TagName::TRACK|
+            TagName::UL|
+            TagName::WBR|
+            TagName::XMP|
+
+            // MathML.
+            TagName::MathML_MI|
+            TagName::MathML_MO|
+            TagName::MathML_MN|
+            TagName::MathML_MS|
+            TagName::MathML_MTEXT|
+            TagName::MathML_ANNOTATION_XML|
+
+            // SVG.
+            TagName::SVG_DESC|
+            TagName::SVG_FOREIGNOBJECT|
+            TagName::SVG_TITLE
+        )
     }
 
     /// Returns whether a given element is an HTML Void Element
