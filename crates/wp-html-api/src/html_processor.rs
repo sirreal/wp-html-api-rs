@@ -3817,6 +3817,8 @@ impl HtmlProcessor {
     }
 
     fn push(&mut self, token: HTMLToken) -> () {
+        self.state.stack_of_open_elements._push(token.clone());
+
         let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
         let same_node = self.state.current_token.is_some()
             && token.node_name == self.state.current_token.as_ref().unwrap().node_name;
@@ -3835,10 +3837,8 @@ impl HtmlProcessor {
             .change_parsing_namespace(if let Some(_) = token.integration_node_type {
                 ParsingNamespace::Html
             } else {
-                token.namespace.clone()
+                token.namespace
             });
-
-        self.state.stack_of_open_elements._push(token);
     }
 
     fn pop(&mut self) -> Option<HTMLToken> {
