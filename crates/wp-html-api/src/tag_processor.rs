@@ -6,7 +6,7 @@ use super::tag_name::TagName;
 
 use std::{collections::HashMap, rc::Rc};
 
-const MAX_BOOKMARKS: usize = 10;
+const MAX_BOOKMARKS: usize = 100_000;
 
 pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
