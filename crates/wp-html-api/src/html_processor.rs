@@ -2706,9 +2706,62 @@ impl HtmlProcessor {
 
             /*
              * > Any other end tag
+             *
+             * @todo this can probably be refactored to pop N times with an enumerate instead of
+             * cloning the token.
              */
-            Op::TagPop(_) => {
-                todo!()
+            Op::TagPop(tag_name) => {
+                // > Run these steps:
+                // >   1. Initialize node to be the current node (the bottommost node of the stack).
+                // >   2. Loop: If node is an HTML element with the same tag name as the token, then:
+                // >      1. Generate implied end tags, except for HTML elements with the same tag name as the token.
+                // >      2. If node is not the current node, then this is a parse error.
+                // >      3. Pop all the nodes from the current node up to node, including node, then stop these steps.
+                // >   3. Otherwise, if node is in the special category, then this is a parse error; ignore the token, and return.
+                // >   4. Set node to the previous entry in the stack of open elements.
+                // >   5. Return to the step labeled loop.
+
+                let mut found_special = false;
+                let mut found_node = None;
+                for node @ HTMLToken {
+                    node_name,
+                    namespace,
+                    ..
+                } in self.state.stack_of_open_elements.walk_up(None)
+                {
+                    if namespace == &ParsingNamespace::Html {
+                        if let NodeName::Tag(node_tag_name) = node_name {
+                            if node_tag_name == &tag_name {
+                                found_node = Some(node.clone());
+                                break;
+                            }
+                        }
+                    }
+
+                    if Self::is_special(&tag_name) {
+                        found_special = true;
+                        break;
+                    }
+                }
+
+                // This is a parse error, ignore the token.
+                if found_special {
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                if let Some(found_node) = found_node {
+                    self.generate_implied_end_tags(Some(&tag_name));
+
+                    // @todo If node is not the current node, then this is a parse error.
+                    //
+                    while let Some(popped_node) = self.pop() {
+                        if popped_node == found_node {
+                            break;
+                        }
+                    }
+                }
+
+                true
             }
 
             Op::Token(TokenType::CdataSection) => unreachable!("CDATA does not exist in HTML5."),
