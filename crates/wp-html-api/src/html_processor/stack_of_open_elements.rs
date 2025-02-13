@@ -38,58 +38,18 @@ const ELEMENT_IN_SCOPE_TERMINATION_LIST: [TagName; 18] = [
 pub(super) struct StackOfOpenElements {
     /// Holds the stack of open element references.
     pub stack: Vec<HTMLToken>,
-
-    /// Whether a P element is in button scope currently.
-    ///
-    /// This class optimizes scope lookup by pre-calculating
-    /// this value when elements are added and removed to the
-    /// stack of open elements which might change its value.
-    /// This avoids frequent iteration over the stack.
-    has_p_in_button_scope: bool,
-
-    /// A function that will be called when an item is popped off the stack of open elements.
-    ///
-    /// The function will be called with the popped item as its argument.
-    pop_handler: Option<Box<dyn Fn(&HTMLToken)>>,
-
-    /// A function that will be called when an item is pushed onto the stack of open elements.
-    ///
-    /// The function will be called with the pushed item as its argument.
-    push_handler: Option<Box<dyn Fn(&HTMLToken)>>,
 }
 impl StackOfOpenElements {
     pub fn new() -> Self {
-        Self {
-            stack: Vec::new(),
-            has_p_in_button_scope: false,
-            pop_handler: None,
-            push_handler: None,
-        }
-    }
-
-    pub fn set_push_handler(&mut self, handler: Box<dyn Fn(&HTMLToken)>) {
-        self.push_handler = Some(handler);
-    }
-
-    pub fn set_pop_handler(&mut self, handler: Box<dyn Fn(&HTMLToken)>) {
-        self.pop_handler = Some(handler);
+        Self { stack: Vec::new() }
     }
 
     pub fn _push(&mut self, element: HTMLToken) {
         self.stack.push(element.clone());
-        if let Some(handler) = &self.push_handler {
-            handler(&element);
-        }
     }
 
     pub fn _pop(&mut self) -> Option<HTMLToken> {
-        let element = self.stack.pop();
-        if let Some(element) = &element {
-            if let Some(handler) = &self.pop_handler {
-                handler(element);
-            }
-        }
-        element
+        self.stack.pop()
     }
 
     pub fn current_node(&self) -> Option<&HTMLToken> {
