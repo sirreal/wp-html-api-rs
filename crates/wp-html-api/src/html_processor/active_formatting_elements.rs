@@ -124,6 +124,17 @@ impl ActiveFormattingElements {
             false
         }
     }
+
+    /// Checks if a node exists in the stack of active formatting elements.
+    ///
+    /// @param WP_HTML_Token $token Check if this node exists in the stack.
+    /// @return bool Whether the node exists in the stack of active formatting elements.
+    pub fn contains_node(&self, token: &HTMLToken) -> bool {
+        self.walk_up().any(|item| match item {
+            ActiveFormattingElement::Token(item_token) => item_token == token,
+            _ => false,
+        })
+    }
 }
 
 #[derive(Debug, PartialEq)]
