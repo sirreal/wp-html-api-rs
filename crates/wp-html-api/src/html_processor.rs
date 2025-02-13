@@ -798,6 +798,7 @@ impl HtmlProcessor {
                     self.has_self_closing_flag(),
                 ));
             } else {
+                self.last_error = Some(HtmlProcessorError::ExceededMaxBookmarks);
                 return false;
             }
         }
