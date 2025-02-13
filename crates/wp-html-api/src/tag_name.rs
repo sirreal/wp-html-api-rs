@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use std::rc::Rc;
+use std::{fmt::Display, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TagName {
@@ -176,6 +176,12 @@ impl From<&[u8]> for TagName {
             b"FORM" => Self::FORM,
             b"FRAME" => Self::FRAME,
             b"FRAMESET" => Self::FRAMESET,
+            b"H1" => Self::H1,
+            b"H2" => Self::H2,
+            b"H3" => Self::H3,
+            b"H4" => Self::H4,
+            b"H5" => Self::H5,
+            b"H6" => Self::H6,
             b"HEAD" => Self::HEAD,
             b"HEADER" => Self::HEADER,
             b"HGROUP" => Self::HGROUP,
@@ -367,5 +373,16 @@ impl Into<Box<[u8]>> for TagName {
             _ => todo!("Unimplemented tag name stringify {:?}", self),
         }
         .into()
+    }
+}
+
+impl Display for TagName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Arbitrary(name) => {
+                write!(f, "Arbitrary({})", String::from_utf8_lossy(name))
+            }
+            _ => write!(f, "{:?}", self),
+        }
     }
 }

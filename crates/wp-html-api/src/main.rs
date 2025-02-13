@@ -14,8 +14,19 @@ pub fn main() {
 
     while p.next_token() {
         c += 1;
-        let closer = if p.is_tag_closer() { "/" } else { "" };
-        println!("{closer}{:?}", p.get_token_name());
+        match p.get_token_name() {
+            Some(node) => match node {
+                wp_html_api::tag_processor::NodeName::Tag(tag_name) => {
+                    let closer = if p.is_tag_closer() { "/" } else { "" };
+                    println!("{closer}{}", tag_name);
+                }
+                wp_html_api::tag_processor::NodeName::Token(token_type) => {
+                    let s: String = token_type.into();
+                    println!("{}", s);
+                }
+            },
+            None => {}
+        };
     }
     if p.get_last_error().is_some() {
         println!("{:?}", p.get_last_error());
