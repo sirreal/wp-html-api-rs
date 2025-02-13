@@ -69,8 +69,15 @@ impl ActiveFormattingElements {
         }
     }
 
-    pub fn push(&self, unwrap: HTMLToken) {
-        todo!()
+    /// Pushes a node onto the stack of active formatting elements.
+    ///
+    /// @since 6.4.0
+    ///
+    /// @see https://html.spec.whatwg.org/#push-onto-the-list-of-active-formatting-elements
+    ///
+    /// @param WP_HTML_Token $token Push this node onto the stack.
+    pub fn push(&mut self, token: HTMLToken) {
+        self.stack.push(ActiveFormattingElement::Token(token))
     }
 
     /// Returns the node at the end of the stack of active formatting elements,
@@ -79,6 +86,43 @@ impl ActiveFormattingElements {
     /// @return WP_HTML_Token|null Last node in the stack of active formatting elements, if one exists, otherwise null.
     pub fn current_node(&self) -> Option<&ActiveFormattingElement> {
         self.stack.last()
+    }
+
+    /// Steps through the stack of active formatting elements, starting with the
+    /// bottom element (added last) and walking upwards to the one added first.
+    ///
+    /// This generator function is designed to be used inside a "foreach" loop.
+    ///
+    /// Example:
+    ///
+    ///     $html = '<em><strong><a>We are here';
+    ///     foreach ( $stack->walk_up() as $node ) {
+    ///         echo "{$node->node_name} -> ";
+    ///     }
+    ///     > A -> STRONG -> EM ->
+    ///
+    /// To start with the first added element and walk towards the bottom,
+    /// see WP_HTML_Active_Formatting_Elements::walk_down().
+    pub fn walk_up(&self) -> impl Iterator<Item = &ActiveFormattingElement> {
+        self.stack.iter().rev()
+    }
+
+    /// Removes a node from the stack of active formatting elements.
+    ///
+    /// @param WP_HTML_Token $token Remove this node from the stack, if it's there already.
+    /// @return bool Whether the node was found and removed from the stack of active formatting elements.
+    pub fn remove_node(&mut self, token: &HTMLToken) -> bool {
+        if let Some(idx) = self.stack.iter().rev().position(|item| match item {
+            ActiveFormattingElement::Token(item_token) => item_token == token,
+            _ => false,
+        }) {
+            let idx = self.stack.len() - 1 - idx;
+            self.stack.remove(idx);
+            true
+        } else {
+            unreachable!("Failed to remove node.");
+            false
+        }
     }
 }
 

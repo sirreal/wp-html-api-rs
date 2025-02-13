@@ -2215,7 +2215,35 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "a"
              */
-            Op::TagPush(TagName::A) => todo!(),
+            Op::TagPush(TagName::A) => {
+                let item =
+                    self.state
+                        .active_formatting_elements
+                        .walk_up()
+                        .find(|item| match item {
+                            ActiveFormattingElement::Marker => true,
+                            ActiveFormattingElement::Token(HTMLToken {
+                                node_name: NodeName::Tag(TagName::A),
+                                ..
+                            }) => true,
+                            _ => false,
+                        });
+                if let Some(ActiveFormattingElement::Token(a_token)) = item {
+                    let remove_token = a_token.clone();
+                    self.run_adoption_agency_algorithm();
+                    self.state
+                        .active_formatting_elements
+                        .remove_node(&remove_token);
+                    self.remove_node_from_stack_of_open_elements(&remove_token);
+                }
+
+                self.reconstruct_active_formatting_elements();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state
+                    .active_formatting_elements
+                    .push(self.state.current_token.clone().unwrap());
+                true
+            }
 
             /*
              * > A start tag whose tag name is one of: "b", "big", "code", "em", "font", "i",
@@ -3844,7 +3872,11 @@ impl HtmlProcessor {
 
     fn pop(&mut self) -> Option<HTMLToken> {
         let token = self.state.stack_of_open_elements._pop()?;
+        self.after_pop(&token);
+        Some(token)
+    }
 
+    fn after_pop(&mut self, token: &HTMLToken) {
         let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
         let same_node = self.state.current_token.is_some()
             && token.node_name == self.state.current_token.as_ref().unwrap().node_name;
@@ -3871,8 +3903,6 @@ impl HtmlProcessor {
             self.tag_processor
                 .change_parsing_namespace(ParsingNamespace::Html);
         };
-
-        Some(token)
     }
 
     /// Pops nodes off of the stack of open elements until an HTML tag with the given name has been popped.
@@ -3941,6 +3971,29 @@ impl HtmlProcessor {
         }
 
         false
+    }
+
+    /// Removes a specific node from the stack of open elements.
+    ///
+    /// @param WP_HTML_Token $token The node to remove from the stack of open elements.
+    /// @return bool Whether the node was found and removed from the stack of open elements.
+    pub fn remove_node_from_stack_of_open_elements(&mut self, token: &HTMLToken) -> bool {
+        if let Some(idx) = self
+            .state
+            .stack_of_open_elements
+            .stack
+            .iter()
+            .rev()
+            .position(|item| item == token)
+        {
+            let idx = self.state.stack_of_open_elements.stack.len() - 1 - idx;
+            self.state.stack_of_open_elements.stack.remove(idx);
+            self.after_pop(token);
+            true
+        } else {
+            unreachable!("Failed to remove node.");
+            false
+        }
     }
 }
 
