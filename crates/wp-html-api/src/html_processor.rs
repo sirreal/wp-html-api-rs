@@ -2138,7 +2138,11 @@ impl HtmlProcessor {
                     self.step(NodeToProcess::ProcessNextNode)
                 } else {
                     self.generate_implied_end_tags(None);
-                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                    if !self
+                        .state
+                        .stack_of_open_elements
+                        .current_node_is(&NodeName::Tag(tag_name.clone()))
+                    {
                         // Parse error: this error doesn't impact parsing.
                     }
                     self.pop_until(&tag_name);
@@ -2194,7 +2198,11 @@ impl HtmlProcessor {
                 } else {
                     self.generate_implied_end_tags(None);
 
-                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                    if !self
+                        .state
+                        .stack_of_open_elements
+                        .current_node_is(&NodeName::Tag(tag_name))
+                    {
                         // Parse error: this error doesn't impact parsing.
                     }
 
@@ -2305,7 +2313,11 @@ impl HtmlProcessor {
                     self.step(NodeToProcess::ProcessNextNode)
                 } else {
                     self.generate_implied_end_tags(None);
-                    if !self.state.stack_of_open_elements.current_node_is(&tag_name) {
+                    if !self
+                        .state
+                        .stack_of_open_elements
+                        .current_node_is(&NodeName::Tag(tag_name))
+                    {
                         // This is a parse error.
                     }
 
@@ -2525,7 +2537,7 @@ impl HtmlProcessor {
                 if self
                     .state
                     .stack_of_open_elements
-                    .current_node_is(&TagName::OPTION)
+                    .current_node_is(&NodeName::Tag(TagName::OPTION))
                 {
                     self.pop();
                 }
@@ -2548,7 +2560,7 @@ impl HtmlProcessor {
                     if self
                         .state
                         .stack_of_open_elements
-                        .current_node_is(&TagName::RUBY)
+                        .current_node_is(&NodeName::Tag(TagName::RUBY))
                     {
                         // @todo Indicate a parse error once it's possible.
                     }
@@ -2754,7 +2766,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .current_node_is(&TagName::CAPTION)
+                    .current_node_is(&NodeName::Tag(TagName::CAPTION))
                 {
                     // @todo Indicate a parse error once it's possible.
                 }

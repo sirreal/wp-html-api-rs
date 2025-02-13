@@ -173,8 +173,37 @@ impl StackOfOpenElements {
         self.has_element_in_button_scope(&TagName::P)
     }
 
-    pub fn current_node_is(&self, tag_name: &TagName) -> bool {
-        todo!()
+    /// Indicates if the current node is of a given type or name.
+    ///
+    /// It's possible to pass either a node type or a node name to this function.
+    /// In the case there is no current element it will always return `false`.
+    ///
+    /// Example:
+    ///
+    ///     // Is the current node a text node?
+    ///     $stack->current_node_is( '#text' );
+    ///
+    ///     // Is the current node a DIV element?
+    ///     $stack->current_node_is( 'DIV' );
+    ///
+    ///     // Is the current node any element/tag?
+    ///     $stack->current_node_is( '#tag' );
+    ///
+    /// @see WP_HTML_Tag_Processor::get_token_type
+    /// @see WP_HTML_Tag_Processor::get_token_name
+    ///
+    /// @since 6.7.0
+    ///
+    /// @access private
+    ///
+    /// @param string $identity Check if the current node has this name or type (depending on what is provided).
+    /// @return bool Whether there is a current element that matches the given identity, whether a token name or type.
+    pub fn current_node_is(&self, identity: &NodeName) -> bool {
+        if let Some(HTMLToken { node_name, .. }) = self.stack.last() {
+            node_name == identity
+        } else {
+            false
+        }
     }
 
     pub(super) fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
