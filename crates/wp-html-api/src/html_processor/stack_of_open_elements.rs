@@ -1,5 +1,26 @@
 use crate::{html_processor::HTMLToken, tag_name::TagName, tag_processor::NodeName};
 
+const ELEMENT_IN_SCOPE_TERMINATION_LIST: [TagName; 18] = [
+    TagName::APPLET,
+    TagName::CAPTION,
+    TagName::HTML,
+    TagName::TABLE,
+    TagName::TD,
+    TagName::TH,
+    TagName::MARQUEE,
+    TagName::OBJECT,
+    TagName::TEMPLATE,
+    TagName::MathML_MI,
+    TagName::MathML_MO,
+    TagName::MathML_MN,
+    TagName::MathML_MS,
+    TagName::MathML_MTEXT,
+    TagName::MathML_ANNOTATION_XML,
+    TagName::SVG_FOREIGNOBJECT,
+    TagName::SVG_DESC,
+    TagName::SVG_TITLE,
+];
+
 /// Core class used by the HTML processor during HTML parsing
 /// for managing the stack of open elements.
 ///
@@ -140,29 +161,7 @@ impl StackOfOpenElements {
     /// >   - SVG desc
     /// >   - SVG title
     pub fn has_element_in_scope(&self, tag_name: &TagName) -> bool {
-        self.has_element_in_specific_scope(
-            tag_name,
-            &[
-                TagName::APPLET,
-                TagName::CAPTION,
-                TagName::HTML,
-                TagName::TABLE,
-                TagName::TD,
-                TagName::TH,
-                TagName::MARQUEE,
-                TagName::OBJECT,
-                TagName::TEMPLATE,
-                TagName::MathML_MI,
-                TagName::MathML_MO,
-                TagName::MathML_MN,
-                TagName::MathML_MS,
-                TagName::MathML_MTEXT,
-                TagName::MathML_ANNOTATION_XML,
-                TagName::SVG_FOREIGNOBJECT,
-                TagName::SVG_DESC,
-                TagName::SVG_TITLE,
-            ],
-        )
+        self.has_element_in_specific_scope(tag_name, &ELEMENT_IN_SCOPE_TERMINATION_LIST)
     }
 
     /// Returns whether a P is in BUTTON scope.
@@ -178,8 +177,32 @@ impl StackOfOpenElements {
         todo!()
     }
 
-    pub fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
-        todo!()
+    pub(super) fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
+        for node in self.walk_up(None) {
+            if let HTMLToken {
+                node_name: NodeName::Tag(node_tag),
+                ..
+            } = node
+            {
+                if matches!(
+                    node_tag,
+                    TagName::H1
+                        | TagName::H2
+                        | TagName::H3
+                        | TagName::H4
+                        | TagName::H5
+                        | TagName::H6
+                ) {
+                    return true;
+                }
+
+                if ELEMENT_IN_SCOPE_TERMINATION_LIST.contains(node_tag) {
+                    return false;
+                }
+            }
+        }
+        // If we've walked through the entire stack without finding the tag, it's not in scope
+        false
     }
 
     /// Steps through the stack of open elements, starting with the top element

@@ -3901,7 +3901,7 @@ impl HtmlProcessor {
     /// elements.
     ///
     /// The
-    pub fn pop_until_any_h1_to_h6(&mut self) -> bool {
+    fn pop_until_any_h1_to_h6(&mut self) -> bool {
         while let Some(HTMLToken {
             node_name: token_node_name,
             namespace: token_namespace,
