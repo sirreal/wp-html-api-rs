@@ -363,8 +363,8 @@ impl Into<Box<[u8]>> for TagName {
             TagName::VAR => b"VAR".as_slice(),
             TagName::WBR => b"WBR".as_slice(),
             TagName::XMP => b"XMP".as_slice(),
-            // TagName::Arbitrary(arbitrary_name) => arbitrary_name.clone().as_ref(),
-            _ => todo!(),
+            TagName::Arbitrary(arbitrary_name) => return Box::from(arbitrary_name.as_ref()),
+            _ => todo!("Unimplemented tag name stringify {:?}", self),
         }
         .into()
     }
