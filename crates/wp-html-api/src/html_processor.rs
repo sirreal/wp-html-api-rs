@@ -3378,7 +3378,116 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_row(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A start tag whose tag name is one of: "th", "td"
+             */
+            Op::TagPush(TagName::TH | TagName::TD) => {
+                self.clear_to_table_row_context();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::IN_CELL;
+                self.state.active_formatting_elements.insert_marker();
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is "tr"
+             */
+            Op::TagPop(TagName::TR) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&TagName::TR)
+                {
+                    // Parse error: ignore the token.
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                self.clear_to_table_row_context();
+                self.pop();
+                self.state.insertion_mode = InsertionMode::IN_TABLE_BODY;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "tfoot", "thead", "tr"
+             * > An end tag whose tag name is "table"
+             */
+            Op::TagPush(
+                TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::TBODY
+                | TagName::TFOOT
+                | TagName::THEAD
+                | TagName::TR,
+            )
+            | Op::TagPop(TagName::TABLE) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&TagName::TR)
+                {
+                    // Parse error: ignore the token.
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                self.clear_to_table_row_context();
+                self.pop();
+                self.state.insertion_mode = InsertionMode::IN_TABLE_BODY;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "tbody", "tfoot", "thead"
+             */
+            Op::TagPop(tag_name @ (TagName::TBODY | TagName::TFOOT | TagName::THEAD)) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&tag_name)
+                {
+                    // Parse error: ignore the token.
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&TagName::TR)
+                {
+                    // Ignore the token.
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                self.clear_to_table_row_context();
+                self.pop();
+                self.state.insertion_mode = InsertionMode::IN_TABLE_BODY;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html", "td", "th"
+             */
+            Op::TagPop(
+                TagName::BODY
+                | TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::HTML
+                | TagName::TD
+                | TagName::TH,
+            ) => {
+                // Parse error: ignore the token.
+                return self.step(NodeToProcess::ProcessNextNode);
+            }
+
+            /*
+             * > Anything else
+             * >   Process the token using the rules for the "in table" insertion mode.
+             */
+            _ => self.step_in_table(),
+        }
     }
 
     /// Parses next element in the 'in cell' insertion mode.
@@ -5032,7 +5141,7 @@ impl HtmlProcessor {
     ///
     /// @param WP_HTML_Token $token The node to remove from the stack of open elements.
     /// @return bool Whether the node was found and removed from the stack of open elements.
-    pub fn remove_node_from_stack_of_open_elements(&mut self, token: &HTMLToken) -> bool {
+    fn remove_node_from_stack_of_open_elements(&mut self, token: &HTMLToken) -> bool {
         if let Some(idx) = self
             .state
             .stack_of_open_elements
@@ -5051,6 +5160,27 @@ impl HtmlProcessor {
         }
     }
 
+    /// Clear the stack back to a table context.
+    ///
+    /// > When the steps above require the UA to clear the stack back to a table context, it means
+    /// > that the UA must, while the current node is not a table, template, or html element, pop
+    /// > elements from the stack of open elements.
+    ///
+    /// @see https://html.spec.whatwg.org/multipage/parsing.html#clear-the-stack-back-to-a-table-context
+    fn clear_to_table_context(&mut self) {
+        while let Some(HTMLToken { node_name, .. }) =
+            self.state.stack_of_open_elements.current_node()
+        {
+            if matches!(
+                node_name,
+                NodeName::Tag(TagName::TABLE | TagName::TEMPLATE | TagName::HTML)
+            ) {
+                break;
+            }
+            self.pop();
+        }
+    }
+
     /// Clear the stack back to a table body context.
     ///
     /// > When the steps above require the UA to clear the stack back to a table body context, it
@@ -5058,7 +5188,7 @@ impl HtmlProcessor {
     /// > html element, pop elements from the stack of open elements.
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#clear-the-stack-back-to-a-table-body-context
-    pub fn clear_to_table_body_context(&mut self) {
+    fn clear_to_table_body_context(&mut self) {
         while let Some(HTMLToken { node_name, .. }) =
             self.state.stack_of_open_elements.current_node()
         {
@@ -5078,20 +5208,20 @@ impl HtmlProcessor {
         }
     }
 
-    /// Clear the stack back to a table context.
+    /// Clear the stack back to a table row context.
     ///
-    /// > When the steps above require the UA to clear the stack back to a table context, it means
-    /// > that the UA must, while the current node is not a table, template, or html element, pop
+    /// > When the steps above require the UA to clear the stack back to a table row context, it
+    /// > means that the UA must, while the current node is not a tr, template, or html element, pop
     /// > elements from the stack of open elements.
     ///
-    /// @see https://html.spec.whatwg.org/multipage/parsing.html#clear-the-stack-back-to-a-table-context
-    fn clear_to_table_context(&mut self) {
+    /// @see https://html.spec.whatwg.org/multipage/parsing.html#clear-the-stack-back-to-a-table-row-context
+    fn clear_to_table_row_context(&mut self) {
         while let Some(HTMLToken { node_name, .. }) =
             self.state.stack_of_open_elements.current_node()
         {
             if matches!(
                 node_name,
-                NodeName::Tag(TagName::TABLE | TagName::TEMPLATE | TagName::HTML)
+                NodeName::Tag(TagName::TR | TagName::TEMPLATE | TagName::HTML)
             ) {
                 break;
             }
