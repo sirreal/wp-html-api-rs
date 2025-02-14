@@ -78,8 +78,19 @@ impl StackOfOpenElements {
         })
     }
 
-    pub fn at(&self, nth: usize) -> Option<HTMLToken> {
-        todo!()
+    /// Returns the name of the node at the nth position on the stack
+    /// of open elements, or `null` if no such position exists.
+    ///
+    /// Note that this uses a 1-based index, which represents the
+    /// "nth item" on the stack, counting from the top, where the
+    /// top-most element is the 1st, the second is the 2nd, etc...
+    ///
+    /// @param int $nth Retrieve the nth item on the stack, with 1 being
+    ///                 the top element, 2 being the second, etc...
+    /// @return WP_HTML_Token|null Name of the node on the stack at the given location,
+    ///                            or `null` if the location isn't on the stack.
+    pub fn at(&self, nth: usize) -> Option<&HTMLToken> {
+        self.stack.get(nth - 1)
     }
 
     /// Returns whether a particular element is in table scope.
