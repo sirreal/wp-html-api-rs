@@ -4773,7 +4773,26 @@ impl HtmlProcessor {
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#close-the-cell
     fn close_cell(&mut self) -> () {
-        todo!()
+        self.generate_implied_end_tags(None);
+
+        // @todo Parse error if the current node is a "td" or "th" element.
+        while let Some(HTMLToken {
+            node_name: popped_token_node_name,
+            ..
+        }) = self.pop()
+        {
+            if matches!(
+                popped_token_node_name,
+                NodeName::Tag(TagName::TD | TagName::TH)
+            ) {
+                break;
+            }
+        }
+
+        self.state
+            .active_formatting_elements
+            .clear_up_to_last_marker();
+        self.state.insertion_mode = InsertionMode::IN_ROW;
     }
 
     /// Inserts an HTML element on the stack of open elements.
