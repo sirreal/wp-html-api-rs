@@ -2857,7 +2857,276 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_table(&mut self) -> bool {
-        todo!()
+        let HTMLToken {
+            node_name: current_node_tag_name,
+            ..
+        } = self
+            .state
+            .stack_of_open_elements
+            .current_node()
+            .expect("Step in table expects a current node.");
+        let current_node_tag_name = match current_node_tag_name {
+            NodeName::Tag(tag_name) => tag_name,
+            NodeName::Token(_) => {
+                unreachable!("Step in table should never have a non-tag current node.")
+            }
+        };
+
+        match self.make_op() {
+            /*
+             * > A character token, if the current node is table,
+             * > tbody, template, tfoot, thead, or tr element
+             */
+            Op::Token(TokenType::Text)
+                if matches!(
+                    current_node_tag_name,
+                    TagName::TABLE
+                        | TagName::TBODY
+                        | TagName::TEMPLATE
+                        | TagName::TFOOT
+                        | TagName::THEAD
+                        | TagName::TR
+                ) =>
+            {
+                match self.tag_processor.text_node_classification {
+                    /*
+                     * If the text is empty after processing HTML entities and stripping
+                     * U+0000 NULL bytes then ignore the token.
+                     */
+                    TextNodeClassification::NullSequence => {
+                        self.step(NodeToProcess::ProcessNextNode)
+                    }
+                    /*
+                     * This follows the rules for "in table text" insertion mode.
+                     *
+                     * Whitespace-only text nodes are inserted in-place. Otherwise
+                     * foster parenting is enabled and the nodes would be
+                     * inserted out-of-place.
+                     *
+                     * > If any of the tokens in the pending table character tokens
+                     * > list are character tokens that are not ASCII whitespace,
+                     * > then this is a parse error: reprocess the character tokens
+                     * > in the pending table character tokens list using the rules
+                     * > given in the "anything else" entry in the "in table"
+                     * > insertion mode.
+                     * >
+                     * > Otherwise, insert the characters given by the pending table
+                     * > character tokens list.
+                     *
+                     * @see https://html.spec.whatwg.org/#parsing-main-intabletext
+                     */
+                    TextNodeClassification::Whitespace => {
+                        self.insert_html_element(self.state.current_token.clone().unwrap());
+                        true
+                    }
+
+                    // Non-whitespace would trigger fostering, unsupported at this time.
+                    TextNodeClassification::Generic => {
+                        self.bail("Foster parenting is not supported.".to_string());
+                        todo!()
+                    }
+                }
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             *
+             * Parse error: ignore the token.
+             */
+            Op::Token(TokenType::Doctype) => self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > A start tag whose tag name is "caption"
+             */
+            Op::TagPush(TagName::CAPTION) => {
+                self.clear_to_table_context();
+                self.state.active_formatting_elements.insert_marker();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::IN_CAPTION;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "colgroup"
+             */
+            Op::TagPush(TagName::COLGROUP) => {
+                self.clear_to_table_context();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::IN_COLUMN_GROUP;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "col"
+             */
+            Op::TagPush(TagName::COL) => {
+                self.clear_to_table_context();
+
+                /*
+                 * > Insert an HTML element for a "colgroup" start tag token with no attributes,
+                 * > then switch the insertion mode to "in column group".
+                 */
+                self.insert_virtual_node(TagName::COLGROUP, None);
+                self.state.insertion_mode = InsertionMode::IN_COLUMN_GROUP;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "tbody", "tfoot", "thead"
+             */
+            Op::TagPush(TagName::TBODY | TagName::TFOOT | TagName::THEAD) => {
+                self.clear_to_table_context();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::IN_TABLE_BODY;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "td", "th", "tr"
+             */
+            Op::TagPush(TagName::TD | TagName::TH | TagName::TR) => {
+                self.clear_to_table_context();
+
+                /*
+                 * > Insert an HTML element for a "tbody" start tag token with no attributes,
+                 * > then switch the insertion mode to "in table body".
+                 */
+                self.insert_virtual_node(TagName::TBODY, None);
+                self.state.insertion_mode = InsertionMode::IN_TABLE_BODY;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "table"
+             *
+             * This tag in the IN TABLE insertion mode is a parse error.
+             */
+            Op::TagPush(TagName::TABLE) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&TagName::TABLE)
+                {
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.pop_until(&TagName::TABLE);
+                    self.reset_insertion_mode_appropriately();
+                    self.step(NodeToProcess::ReprocessCurrentNode)
+                }
+            }
+
+            /*
+             * > An end tag whose tag name is "table"
+             */
+            Op::TagPop(TagName::TABLE) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&TagName::TABLE)
+                {
+                    // @todo Indicate a parse error once it's possible.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.pop_until(&TagName::TABLE);
+                    self.reset_insertion_mode_appropriately();
+                    true
+                }
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html", "tbody", "td", "tfoot", "th", "thead", "tr"
+             *
+            	* Parse error: ignore the token.
+             */
+            Op::TagPop(
+                TagName::BODY
+                | TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::HTML
+                | TagName::TBODY
+                | TagName::TD
+                | TagName::TFOOT
+                | TagName::TH
+                | TagName::THEAD
+                | TagName::TR,
+            ) => self.step(NodeToProcess::ProcessNextNode),
+
+            /*
+             * > A start tag whose tag name is one of: "style", "script", "template"
+             * > An end tag whose tag name is "template"
+             *
+             *   > Process the token using the rules for the "in head" insertion mode.
+             */
+            Op::TagPush(TagName::STYLE | TagName::SCRIPT | TagName::TEMPLATE)
+            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+
+            /*
+             * > A start tag whose tag name is "input"
+             *
+             * > If the token does not have an attribute with the name "type", or if it does, but
+             * > that attribute's value is not an ASCII case-insensitive match for the string
+             * > "hidden", then: act as described in the "anything else" entry below.
+             */
+            Op::TagPush(TagName::INPUT)
+                if self
+                    .get_attribute(b"type")
+                    .map_or(false, |type_value| match type_value {
+                        AttributeValue::String(type_value) => {
+                            type_value.eq_ignore_ascii_case(b"hidden")
+                        }
+                        _ => false,
+                    }) =>
+            {
+                // @todo Indicate a parse error once it's possible.
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "form"
+             *
+             * This tag in the IN TABLE insertion mode is a parse error.
+             */
+            Op::TagPush(TagName::FORM) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_scope(&TagName::TEMPLATE)
+                    || self.state.form_element.is_some()
+                {
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    // This FORM is special because it immediately closes and cannot have other children.
+                    self.insert_html_element(self.state.current_token.clone().unwrap());
+                    self.state.form_element = Some(self.state.current_token.clone().unwrap());
+                    self.pop();
+                    true
+                }
+            }
+
+            /*
+             * > Anything else
+             * > Parse error. Enable foster parenting, process the token using the rules for the
+             * > "in body" insertion mode, and then disable foster parenting.
+             *
+             * @todo Indicate a parse error once it's possible.
+             */
+            _ => {
+                self.bail("Foster parenting is not supported.".to_string());
+                todo!("bail")
+            }
+        }
     }
 
     /// Parses next element in the 'in table text' insertion mode.
@@ -2995,7 +3264,106 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_table_body(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A start tag whose tag name is "tr"
+             */
+            Op::TagPush(TagName::TR) => {
+                self.clear_to_table_body_context();
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.state.insertion_mode = InsertionMode::IN_ROW;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "th", "td"
+             */
+            Op::TagPush(TagName::TH | TagName::TD) => {
+                // @todo Indicate a parse error once it's possible.
+                self.clear_to_table_body_context();
+                self.insert_virtual_node(TagName::TR, None);
+                self.state.insertion_mode = InsertionMode::IN_ROW;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "tbody", "tfoot", "thead"
+             */
+            Op::TagPop(tag_name @ (TagName::TBODY | TagName::TFOOT | TagName::THEAD)) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&tag_name)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.clear_to_table_body_context();
+                    self.pop();
+                    self.state.insertion_mode = InsertionMode::IN_TABLE;
+                    true
+                }
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "tfoot", "thead"
+             * > An end tag whose tag name is "table"
+             */
+            Op::TagPush(
+                TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::TBODY
+                | TagName::TFOOT
+                | TagName::THEAD,
+            )
+            | Op::TagPop(TagName::TABLE) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&TagName::TBODY)
+                    && !self
+                        .state
+                        .stack_of_open_elements
+                        .has_element_in_table_scope(&TagName::THEAD)
+                    && !self
+                        .state
+                        .stack_of_open_elements
+                        .has_element_in_table_scope(&TagName::TFOOT)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.clear_to_table_body_context();
+                    self.pop();
+                    self.state.insertion_mode = InsertionMode::IN_TABLE;
+                    self.step(NodeToProcess::ReprocessCurrentNode)
+                }
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html", "td", "th", "tr"
+             */
+            Op::TagPop(
+                TagName::BODY
+                | TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::HTML
+                | TagName::TD
+                | TagName::TH
+                | TagName::TR,
+            ) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Anything else
+             * > Process the token using the rules for the "in table" insertion mode.
+             */
+            _ => self.step_in_table(),
+        }
     }
 
     /// Parses next element in the 'in row' insertion mode.
@@ -3555,7 +3923,7 @@ impl HtmlProcessor {
         }
     }
 
-    /// Indicates the kind of matched token, if any.
+    /// Indicates what kind of matched token, if any.
     ///
     /// This differs from `get_token_name()` in that it always
     /// returns a static string indicating the type, whereas
@@ -4680,6 +5048,54 @@ impl HtmlProcessor {
         } else {
             unreachable!("Failed to remove node.");
             false
+        }
+    }
+
+    /// Clear the stack back to a table body context.
+    ///
+    /// > When the steps above require the UA to clear the stack back to a table body context, it
+    /// > means that the UA must, while the current node is not a tbody, tfoot, thead, template, or
+    /// > html element, pop elements from the stack of open elements.
+    ///
+    /// @see https://html.spec.whatwg.org/multipage/parsing.html#clear-the-stack-back-to-a-table-body-context
+    pub fn clear_to_table_body_context(&mut self) {
+        while let Some(HTMLToken { node_name, .. }) =
+            self.state.stack_of_open_elements.current_node()
+        {
+            if matches!(
+                node_name,
+                NodeName::Tag(
+                    TagName::TBODY
+                        | TagName::TFOOT
+                        | TagName::THEAD
+                        | TagName::TEMPLATE
+                        | TagName::HTML
+                )
+            ) {
+                break;
+            }
+            self.pop();
+        }
+    }
+
+    /// Clear the stack back to a table context.
+    ///
+    /// > When the steps above require the UA to clear the stack back to a table context, it means
+    /// > that the UA must, while the current node is not a table, template, or html element, pop
+    /// > elements from the stack of open elements.
+    ///
+    /// @see https://html.spec.whatwg.org/multipage/parsing.html#clear-the-stack-back-to-a-table-context
+    fn clear_to_table_context(&mut self) {
+        while let Some(HTMLToken { node_name, .. }) =
+            self.state.stack_of_open_elements.current_node()
+        {
+            if matches!(
+                node_name,
+                NodeName::Tag(TagName::TABLE | TagName::TEMPLATE | TagName::HTML)
+            ) {
+                break;
+            }
+            self.pop();
         }
     }
 }
