@@ -77,7 +77,7 @@ enum EncodingConfidence {
 /// Insertion mode.
 ///
 /// @see https://html.spec.whatwg.org/#the-insertion-mode
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum InsertionMode {
     /// Initial insertion mode for full HTML parser.
     ///
@@ -4613,7 +4613,205 @@ impl HtmlProcessor {
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#reset-the-insertion-mode-appropriately
     fn reset_insertion_mode_appropriately(&mut self) -> () {
-        todo!()
+        // Set the first node.
+        let mut first_node = None;
+        for node in self.state.stack_of_open_elements.walk_up() {
+            first_node = Some(node.clone());
+            break;
+        }
+
+        /*
+         * > 1. Let _last_ be false.
+         */
+        let mut last = false;
+        for node in self.state.stack_of_open_elements.walk_up() {
+            /*
+             * > 2. Let _node_ be the last node in the stack of open elements.
+             * > 3. _Loop_: If _node_ is the first node in the stack of open elements, then set _last_
+             * >            to true, and, if the parser was created as part of the HTML fragment parsing
+             * >            algorithm (fragment case), set node to the context element passed to
+             * >            that algorithm.
+             * > …
+             */
+            if let Some(first_node) = &first_node {
+                if node.bookmark_name == first_node.bookmark_name {
+                    last = true;
+                    if self.context_node.is_some() {
+                        // node = self.context_node; // TODO: Assign node to context node
+                        // For now, skip this assignment as it requires more investigation
+                    }
+                }
+            }
+
+            // All of the following rules are for matching HTML elements.
+            if node.namespace != ParsingNamespace::Html {
+                continue;
+            }
+
+            match &node.node_name {
+                /*
+                 * > 4. If node is a `select` element, run these substeps:
+                 * >   1. If _last_ is true, jump to the step below labeled done.
+                 * >   2. Let _ancestor_ be _node_.
+                 * >   3. _Loop_: If _ancestor_ is the first node in the stack of open elements,
+                 * >      jump to the step below labeled done.
+                 * >   4. Let ancestor be the node before ancestor in the stack of open elements.
+                 * >   …
+                 * >   7. Jump back to the step labeled _loop_.
+                 * >   8. _Done_: Switch the insertion mode to "in select" and return.
+                 */
+                NodeName::Tag(TagName::SELECT) => {
+                    if !last {
+                        for ancestor in self.state.stack_of_open_elements.walk_up() {
+                            if ancestor.namespace != ParsingNamespace::Html {
+                                continue;
+                            }
+
+                            match &ancestor.node_name {
+                                /*
+                                 * > 5. If _ancestor_ is a `template` node, jump to the step below
+                                 * >    labeled _done_.
+                                 */
+                                NodeName::Tag(TagName::TEMPLATE) => {
+                                    break;
+                                }
+
+                                /*
+                                 * > 6. If _ancestor_ is a `table` node, switch the insertion mode to
+                                 * >    "in select in table" and return.
+                                 */
+                                NodeName::Tag(TagName::TABLE) => {
+                                    self.state.insertion_mode = InsertionMode::IN_SELECT_IN_TABLE;
+                                    return;
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    self.state.insertion_mode = InsertionMode::IN_SELECT;
+                    return;
+                }
+
+                /*
+                 * > 5. If _node_ is a `td` or `th` element and _last_ is false, then switch the
+                 * >    insertion mode to "in cell" and return.
+                 */
+                NodeName::Tag(TagName::TD) | NodeName::Tag(TagName::TH) => {
+                    if !last {
+                        self.state.insertion_mode = InsertionMode::IN_CELL;
+                        return;
+                    }
+                }
+
+                /*
+                 * > 6. If _node_ is a `tr` element, then switch the insertion mode to "in row"
+                 * >    and return.
+                 */
+                NodeName::Tag(TagName::TR) => {
+                    self.state.insertion_mode = InsertionMode::IN_ROW;
+                    return;
+                }
+
+                /*
+                 * > 7. If _node_ is a `tbody`, `thead`, or `tfoot` element, then switch the insertion mode to "in table body" and return.
+                 */
+                NodeName::Tag(TagName::TBODY)
+                | NodeName::Tag(TagName::THEAD)
+                | NodeName::Tag(TagName::TFOOT) => {
+                    self.state.insertion_mode = InsertionMode::IN_TABLE_BODY;
+                    return;
+                }
+
+                /*
+                 * > 8. If _node_ is a `caption` element, then switch the insertion mode to "in caption" and return.
+                 */
+                NodeName::Tag(TagName::CAPTION) => {
+                    self.state.insertion_mode = InsertionMode::IN_CAPTION;
+                    return;
+                }
+
+                /*
+                 * > 9. If _node_ is a `colgroup` element, then switch the insertion mode to "in column group" and return.
+                 */
+                NodeName::Tag(TagName::COLGROUP) => {
+                    self.state.insertion_mode = InsertionMode::IN_COLUMN_GROUP;
+                    return;
+                }
+
+                /*
+                 * > 10. If _node_ is a `table` element, then switch the insertion mode to "in table" and return.
+                 */
+                NodeName::Tag(TagName::TABLE) => {
+                    self.state.insertion_mode = InsertionMode::IN_TABLE;
+                    return;
+                }
+
+                /*
+                 * > 11. If _node_ is a `template` element, then switch the insertion mode to the
+                 * >     current template insertion mode and return.
+                 */
+                NodeName::Tag(TagName::TEMPLATE) => {
+                    if let Some(mode) = self.state.stack_of_template_insertion_modes.last() {
+                        self.state.insertion_mode = mode.clone();
+                        return;
+                    }
+                }
+
+                /*
+                 * > 12. If _node_ is a `head` element and _last_ is false, then switch the
+                 * >     insertion mode to "in head" and return.
+                 */
+                NodeName::Tag(TagName::HEAD) => {
+                    if !last {
+                        self.state.insertion_mode = InsertionMode::IN_HEAD;
+                        return;
+                    }
+                }
+
+                /*
+                 * > 13. If _node_ is a `body` element, then switch the insertion mode to "in body"
+                 * >     and return.
+                 */
+                NodeName::Tag(TagName::BODY) => {
+                    self.state.insertion_mode = InsertionMode::IN_BODY;
+                    return;
+                }
+
+                /*
+                 * > 14. If _node_ is a `frameset` element, then switch the insertion mode to
+                 * >     "in frameset" and return. (fragment case)
+                 */
+                NodeName::Tag(TagName::FRAMESET) => {
+                    self.state.insertion_mode = InsertionMode::IN_FRAMESET;
+                    return;
+                }
+
+                /*
+                 * > 15. If _node_ is an `html` element, run these substeps:
+                 * >     1. If the head element pointer is null, switch the insertion mode to
+                 * >        "before head" and return. (fragment case)
+                 * >     2. Otherwise, the head element pointer is not null, switch the insertion
+                 * >        mode to "after head" and return.
+                 */
+                NodeName::Tag(TagName::HTML) => {
+                    self.state.insertion_mode = if self.state.head_element.is_none() {
+                        InsertionMode::BEFORE_HEAD
+                    } else {
+                        InsertionMode::AFTER_HEAD
+                    };
+                    return;
+                }
+                _ => {}
+            }
+        }
+
+        /*
+         * > 16. If _last_ is true, then switch the insertion mode to "in body"
+         * >     and return. (fragment case)
+         *
+         * This is only reachable if `$last` is true, as per the fragment parsing case.
+         */
+        self.state.insertion_mode = InsertionMode::IN_BODY;
     }
 
     /// Runs the adoption agency algorithm.
