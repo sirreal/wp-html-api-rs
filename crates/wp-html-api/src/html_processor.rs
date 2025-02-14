@@ -814,7 +814,10 @@ impl HtmlProcessor {
                     || (adjusted_current_node.integration_node_type
                         == Some(IntegrationNodeType::MathML)
                         && ((is_start_tag
-                            && (!matches!( &token_name, NodeName::Tag( TagName::Arbitrary(arbitrary_name) ) if &**arbitrary_name == b"MGLYPH" || &**arbitrary_name == b"MALIGNMARK"  )))
+                            && (!matches!(
+                                &token_name,
+                                NodeName::Tag(TagName::MathML_MALIGNMARK | TagName::MathML_MGLYPH)
+                            )))
                             || token_name == TokenType::Text.into()))
                     || (adjusted_current_node.namespace == ParsingNamespace::MathML
                         && matches!(
@@ -2696,7 +2699,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "math"
              */
-            Op::TagPush(TagName::MATH) => {
+            Op::TagPush(TagName::MathML_MATH) => {
                 self.reconstruct_active_formatting_elements();
 
                 /*
@@ -2719,7 +2722,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "svg"
              */
-            Op::TagPush(TagName::SVG) => {
+            Op::TagPush(TagName::SVG_SVG) => {
                 self.reconstruct_active_formatting_elements();
 
                 /*
@@ -3150,7 +3153,73 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_foreign_content(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            Op::Token(TokenType::Text) => {
+                /*
+                 * > A character token that is U+0000 NULL
+                 *
+                 * This is handled by `get_modifiable_text()`.
+                 */
+
+                /*
+                 * Whitespace-only text does not affect the frameset-ok flag.
+                 * It is probably inter-element whitespace, but it may also
+                 * contain character references which decode only to whitespace.
+                 */
+                if self.tag_processor.text_node_classification == TextNodeClassification::Generic {
+                    self.state.frameset_ok = false;
+                }
+
+                self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
+                true
+            }
+
+            /*
+             * CDATA sections are alternate wrappers for text content and therefore
+             * ought to follow the same rules as text nodes.
+             */
+            Op::Token(TokenType::CdataSection) => {
+                /*
+                 * NULL bytes and whitespace do not change the frameset-ok flag.
+                 */
+
+                todo!("Null-byte CDATA handling");
+                //$current_token        = $this->bookmarks[ $this->state->current_token->bookmark_name ];
+                //$cdata_content_start  = $current_token->start + 9;
+                //$cdata_content_length = $current_token->length - 12;
+                //if ( strspn( $this->html, "\0 \t\n\f\r", $cdata_content_start, $cdata_content_length ) !== $cdata_content_length ) {
+                //	$this->state->frameset_ok = false;
+                //}
+
+                self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
+                true
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            Op::TagPop(tag) | Op::TagPush(tag) => {
+                todo!("Tag op: {}", tag);
+            }
+            op => {
+                todo!("op: {:?}", op);
+            }
+        }
     }
 
     /*
@@ -3483,11 +3552,7 @@ impl HtmlProcessor {
     ///
     /// @return string
     pub fn get_modifiable_text(&self) -> Rc<str> {
-        if self.is_virtual() {
-            "".into()
-        } else {
-            self.tag_processor.get_modifiable_text()
-        }
+        todo!("get_modifiable_text");
     }
 
     /// Indicates what kind of comment produced the comment node.
@@ -3951,8 +4016,36 @@ impl HtmlProcessor {
     ///                                                 insertion point will be updated correctly.
     /// @param bool          $only_add_to_element_stack Whether to skip the "insert an element at the adjusted
     ///                                                 insertion location" algorithm when adding this element.
-    fn insert_foreign_element(&mut self, token: HTMLToken, only_add_to_element_stack: bool) -> () {
-        todo!()
+    fn insert_foreign_element(
+        &mut self,
+        mut token: HTMLToken,
+        only_add_to_element_stack: bool,
+    ) -> () {
+        let adjusted_current_node = self.get_adjusted_current_node();
+        token.namespace = adjusted_current_node
+            .map(|n| n.namespace.clone())
+            .unwrap_or(ParsingNamespace::Html);
+
+        if self.is_mathml_integration_point() {
+            token.integration_node_type = Some(IntegrationNodeType::MathML);
+        } else if self.is_html_integration_point() {
+            token.integration_node_type = Some(IntegrationNodeType::HTML);
+        }
+
+        if !only_add_to_element_stack {
+            /*
+             * @todo Implement the "appropriate place for inserting a node" and the
+             *       "insert an element at the adjusted insertion location" algorithms.
+             *
+             * These algorithms mostly impacts DOM tree construction and not the HTML API.
+             * Here, there's no DOM node onto which the element will be appended, so the
+             * parser will skip this step.
+             *
+             * @see https://html.spec.whatwg.org/#insert-an-element-at-the-adjusted-insertion-location
+             */
+        }
+
+        self.insert_html_element(token);
     }
 
     /// Inserts a virtual element on the stack of open elements.
@@ -3998,7 +4091,28 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether the current token is a MathML integration point.
     fn is_mathml_integration_point(&self) -> bool {
-        todo!()
+        let current_token = match &self.state.current_token {
+            Some(token) => token,
+            None => return false,
+        };
+
+        if current_token.namespace != ParsingNamespace::MathML {
+            return false;
+        }
+
+        let tag_name = match &current_token.node_name {
+            NodeName::Tag(tag_name) => tag_name,
+            NodeName::Token(_) => return false,
+        };
+
+        matches!(
+            tag_name,
+            TagName::MathML_MI
+                | TagName::MathML_MO
+                | TagName::MathML_MN
+                | TagName::MathML_MS
+                | TagName::MathML_MTEXT
+        )
     }
 
     /// Indicates if the current token is an HTML integration point.
@@ -4013,7 +4127,37 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether the current token is an HTML integration point.
     fn is_html_integration_point(&self) -> bool {
-        todo!()
+        let current_token = match &self.state.current_token {
+            Some(token) => token,
+            None => return false,
+        };
+
+        let tag_name = match &current_token.node_name {
+            NodeName::Tag(tag_name) => tag_name,
+            NodeName::Token(_) => return false,
+        };
+
+        match current_token.namespace {
+            ParsingNamespace::Html => false,
+            ParsingNamespace::MathML => {
+                tag_name == &TagName::MathML_ANNOTATION_XML
+                    && self
+                        .get_attribute(b"encoding")
+                        .map_or(false, |encoding| match encoding {
+                            AttributeValue::String(encoding) => {
+                                encoding.eq_ignore_ascii_case(b"application/xhtml+xml")
+                                    || encoding.eq_ignore_ascii_case(b"text/html")
+                            }
+                            _ => false,
+                        })
+            }
+            ParsingNamespace::Svg => {
+                matches!(
+                    tag_name,
+                    TagName::SVG_DESC | TagName::SVG_FOREIGNOBJECT | TagName::SVG_TITLE
+                )
+            }
+        }
     }
 
     /// Returns whether an element of a given name is in the HTML special category.
@@ -4025,102 +4169,98 @@ impl HtmlProcessor {
     pub fn is_special(tag_name: &TagName) -> bool {
         matches!(
             tag_name,
-            TagName::ADDRESS|
-            TagName::APPLET|
-            TagName::AREA|
-            TagName::ARTICLE|
-            TagName::ASIDE|
-            TagName::BASE|
-            TagName::BASEFONT|
-            TagName::BGSOUND|
-            TagName::BLOCKQUOTE|
-            TagName::BODY|
-            TagName::BR|
-            TagName::BUTTON|
-            TagName::CAPTION|
-            TagName::CENTER|
-            TagName::COL|
-            TagName::COLGROUP|
-            TagName::DD|
-            TagName::DETAILS|
-            TagName::DIR|
-            TagName::DIV|
-            TagName::DL|
-            TagName::DT|
-            TagName::EMBED|
-            TagName::FIELDSET|
-            TagName::FIGCAPTION|
-            TagName::FIGURE|
-            TagName::FOOTER|
-            TagName::FORM|
-            TagName::FRAME|
-            TagName::FRAMESET|
-            TagName::H1|
-            TagName::H2|
-            TagName::H3|
-            TagName::H4|
-            TagName::H5|
-            TagName::H6|
-            TagName::HEAD|
-            TagName::HEADER|
-            TagName::HGROUP|
-            TagName::HR|
-            TagName::HTML|
-            TagName::IFRAME|
-            TagName::IMG|
-            TagName::INPUT|
-            TagName::KEYGEN|
-            TagName::LI|
-            TagName::LINK|
-            TagName::LISTING|
-            TagName::MAIN|
-            TagName::MARQUEE|
-            TagName::MENU|
-            TagName::META|
-            TagName::NAV|
-            TagName::NOEMBED|
-            TagName::NOFRAMES|
-            TagName::NOSCRIPT|
-            TagName::OBJECT|
-            TagName::OL|
-            TagName::P|
-            TagName::PARAM|
-            TagName::PLAINTEXT|
-            TagName::PRE|
-            TagName::SCRIPT|
-            TagName::SEARCH|
-            TagName::SECTION|
-            TagName::SELECT|
-            TagName::SOURCE|
-            TagName::STYLE|
-            TagName::SUMMARY|
-            TagName::TABLE|
-            TagName::TBODY|
-            TagName::TD|
-            TagName::TEMPLATE|
-            TagName::TEXTAREA|
-            TagName::TFOOT|
-            TagName::TH|
-            TagName::THEAD|
-            TagName::TITLE|
-            TagName::TR|
-            TagName::TRACK|
-            TagName::UL|
-            TagName::WBR|
-            TagName::XMP|
-
-            // MathML.
-            TagName::MathML_MI|
-            TagName::MathML_MO|
-            TagName::MathML_MN|
-            TagName::MathML_MS|
-            TagName::MathML_MTEXT|
-            TagName::MathML_ANNOTATION_XML|
-
-            // SVG.
-            TagName::SVG_DESC|
-            TagName::SVG_FOREIGNOBJECT|
-            TagName::SVG_TITLE
+            TagName::ADDRESS
+                | TagName::APPLET
+                | TagName::AREA
+                | TagName::ARTICLE
+                | TagName::ASIDE
+                | TagName::BASE
+                | TagName::BASEFONT
+                | TagName::BGSOUND
+                | TagName::BLOCKQUOTE
+                | TagName::BODY
+                | TagName::BR
+                | TagName::BUTTON
+                | TagName::CAPTION
+                | TagName::CENTER
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::DD
+                | TagName::DETAILS
+                | TagName::DIR
+                | TagName::DIV
+                | TagName::DL
+                | TagName::DT
+                | TagName::EMBED
+                | TagName::FIELDSET
+                | TagName::FIGCAPTION
+                | TagName::FIGURE
+                | TagName::FOOTER
+                | TagName::FORM
+                | TagName::FRAME
+                | TagName::FRAMESET
+                | TagName::H1
+                | TagName::H2
+                | TagName::H3
+                | TagName::H4
+                | TagName::H5
+                | TagName::H6
+                | TagName::HEAD
+                | TagName::HEADER
+                | TagName::HGROUP
+                | TagName::HR
+                | TagName::HTML
+                | TagName::IFRAME
+                | TagName::IMG
+                | TagName::INPUT
+                | TagName::KEYGEN
+                | TagName::LI
+                | TagName::LINK
+                | TagName::LISTING
+                | TagName::MAIN
+                | TagName::MARQUEE
+                | TagName::MENU
+                | TagName::META
+                | TagName::NAV
+                | TagName::NOEMBED
+                | TagName::NOFRAMES
+                | TagName::NOSCRIPT
+                | TagName::OBJECT
+                | TagName::OL
+                | TagName::P
+                | TagName::PARAM
+                | TagName::PLAINTEXT
+                | TagName::PRE
+                | TagName::SCRIPT
+                | TagName::SEARCH
+                | TagName::SECTION
+                | TagName::SELECT
+                | TagName::SOURCE
+                | TagName::STYLE
+                | TagName::SUMMARY
+                | TagName::TABLE
+                | TagName::TBODY
+                | TagName::TD
+                | TagName::TEMPLATE
+                | TagName::TEXTAREA
+                | TagName::TFOOT
+                | TagName::TH
+                | TagName::THEAD
+                | TagName::TITLE
+                | TagName::TR
+                | TagName::TRACK
+                | TagName::UL
+                | TagName::WBR
+                | TagName::XMP
+                | TagName::MathML_MI
+                | TagName::MathML_MO
+                | TagName::MathML_MN
+                | TagName::MathML_MS
+                | TagName::MathML_MTEXT
+                | TagName::MathML_ANNOTATION_XML
+                | TagName::SVG_DESC
+                | TagName::SVG_FOREIGNOBJECT
+                | TagName::SVG_TITLE
         )
     }
 

@@ -62,7 +62,6 @@ pub enum TagName {
     LISTING,
     MAIN,
     MARQUEE,
-    MATH,
     MENU,
     META,
     NAV,
@@ -97,7 +96,6 @@ pub enum TagName {
     SUB,
     SUMMARY,
     SUP,
-    SVG,
     TABLE,
     TBODY,
     TD,
@@ -121,18 +119,53 @@ pub enum TagName {
 
     // MathML tags we're interested in
     // @todo add arbitrary mathml tag
+    MathML_MATH,
+    MathML_ANNOTATION_XML,
+    MathML_MALIGNMARK,
+    MathML_MGLYPH,
     MathML_MI,
-    MathML_MO,
     MathML_MN,
+    MathML_MO,
     MathML_MS,
     MathML_MTEXT,
-    MathML_ANNOTATION_XML,
+    MathML_Arbitrary(Rc<[u8]>),
 
     // SVG tags we're interested in
     // @todo add arbitrary svg tag
+    SVG_SVG,
     SVG_FOREIGNOBJECT,
     SVG_DESC,
     SVG_TITLE,
+    SVG_Arbitrary(Rc<[u8]>),
+}
+
+impl TagName {
+    pub fn from_svg_tag(tag_name: &[u8]) -> Self {
+        let upper_cased = tag_name.to_ascii_uppercase();
+        match upper_cased.as_slice() {
+            b"SVG" => Self::SVG_SVG,
+            b"DESC" => Self::SVG_DESC,
+            b"FOREIGNOBJECT" => Self::SVG_FOREIGNOBJECT,
+            b"TITLE" => Self::SVG_TITLE,
+            _ => Self::SVG_Arbitrary(tag_name.into()),
+        }
+    }
+
+    pub fn from_mathml_tag(tag_name: &[u8]) -> Self {
+        let upper_cased = tag_name.to_ascii_uppercase();
+        match upper_cased.as_slice() {
+            b"MATH" => Self::MathML_MATH,
+            b"ANNOTATION-XML" => Self::MathML_ANNOTATION_XML,
+            b"MALIGNMARK" => Self::MathML_MALIGNMARK,
+            b"MGLYPH" => Self::MathML_MGLYPH,
+            b"MI" => Self::MathML_MI,
+            b"MN" => Self::MathML_MN,
+            b"MO" => Self::MathML_MO,
+            b"MS" => Self::MathML_MS,
+            b"MTEXT" => Self::MathML_MTEXT,
+            _ => Self::MathML_Arbitrary(tag_name.into()),
+        }
+    }
 }
 
 impl From<&[u8]> for TagName {
@@ -197,7 +230,6 @@ impl From<&[u8]> for TagName {
             b"LISTING" => Self::LISTING,
             b"MAIN" => Self::MAIN,
             b"MARQUEE" => Self::MARQUEE,
-            b"MATH" => Self::MATH,
             b"MENU" => Self::MENU,
             b"META" => Self::META,
             b"NAV" => Self::NAV,
@@ -232,7 +264,6 @@ impl From<&[u8]> for TagName {
             b"SUB" => Self::SUB,
             b"SUMMARY" => Self::SUMMARY,
             b"SUP" => Self::SUP,
-            b"SVG" => Self::SVG,
             b"TABLE" => Self::TABLE,
             b"TBODY" => Self::TBODY,
             b"TD" => Self::TD,
@@ -250,6 +281,10 @@ impl From<&[u8]> for TagName {
             b"VAR" => Self::VAR,
             b"WBR" => Self::WBR,
             b"XMP" => Self::XMP,
+
+            b"MATH" => Self::MathML_MATH,
+            b"SVG" => Self::SVG_SVG,
+
             _ => Self::Arbitrary(value.into()),
         }
     }
@@ -316,7 +351,6 @@ impl Into<Box<[u8]>> for TagName {
             TagName::LISTING => b"LISTING".as_slice(),
             TagName::MAIN => b"MAIN".as_slice(),
             TagName::MARQUEE => b"MARQUEE".as_slice(),
-            TagName::MATH => b"MATH".as_slice(),
             TagName::MENU => b"MENU".as_slice(),
             TagName::META => b"META".as_slice(),
             TagName::NAV => b"NAV".as_slice(),
@@ -351,7 +385,6 @@ impl Into<Box<[u8]>> for TagName {
             TagName::SUB => b"SUB".as_slice(),
             TagName::SUMMARY => b"SUMMARY".as_slice(),
             TagName::SUP => b"SUP".as_slice(),
-            TagName::SVG => b"SVG".as_slice(),
             TagName::TABLE => b"TABLE".as_slice(),
             TagName::TBODY => b"TBODY".as_slice(),
             TagName::TD => b"TD".as_slice(),
@@ -369,8 +402,25 @@ impl Into<Box<[u8]>> for TagName {
             TagName::VAR => b"VAR".as_slice(),
             TagName::WBR => b"WBR".as_slice(),
             TagName::XMP => b"XMP".as_slice(),
-            TagName::Arbitrary(arbitrary_name) => return Box::from(arbitrary_name.as_ref()),
-            _ => todo!("Unimplemented tag name stringify {:?}", self),
+
+            TagName::MathML_MATH => b"MATH".as_slice(),
+            TagName::MathML_ANNOTATION_XML => b"ANNOTATION-XML".as_slice(),
+            TagName::MathML_MALIGNMARK => b"MALIGNMARK".as_slice(),
+            TagName::MathML_MGLYPH => b"MGLYPH".as_slice(),
+            TagName::MathML_MI => b"MI".as_slice(),
+            TagName::MathML_MN => b"MN".as_slice(),
+            TagName::MathML_MO => b"MO".as_slice(),
+            TagName::MathML_MS => b"MS".as_slice(),
+            TagName::MathML_MTEXT => b"MTEXT".as_slice(),
+
+            TagName::SVG_SVG => b"SVG".as_slice(),
+            TagName::SVG_DESC => b"DESC".as_slice(),
+            TagName::SVG_FOREIGNOBJECT => b"FOREIGNOBJECT".as_slice(),
+            TagName::SVG_TITLE => b"TITLE".as_slice(),
+
+            TagName::Arbitrary(arbitrary_name)
+            | TagName::MathML_Arbitrary(arbitrary_name)
+            | TagName::SVG_Arbitrary(arbitrary_name) => return Box::from(arbitrary_name.as_ref()),
         }
         .into()
     }
