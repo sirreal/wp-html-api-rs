@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, rc::Rc};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum TagName {
     A,
     ADDRESS,
@@ -402,6 +402,259 @@ impl Into<Box<[u8]>> for TagName {
     }
 }
 
+impl PartialEq<Self> for TagName {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (TagName::A, TagName::A) => true,
+            (TagName::ADDRESS, TagName::ADDRESS) => true,
+            (TagName::APPLET, TagName::APPLET) => true,
+            (TagName::AREA, TagName::AREA) => true,
+            (TagName::ARTICLE, TagName::ARTICLE) => true,
+            (TagName::ASIDE, TagName::ASIDE) => true,
+            (TagName::B, TagName::B) => true,
+            (TagName::BASE, TagName::BASE) => true,
+            (TagName::BASEFONT, TagName::BASEFONT) => true,
+            (TagName::BGSOUND, TagName::BGSOUND) => true,
+            (TagName::BIG, TagName::BIG) => true,
+            (TagName::BLOCKQUOTE, TagName::BLOCKQUOTE) => true,
+            (TagName::BODY, TagName::BODY) => true,
+            (TagName::BR, TagName::BR) => true,
+            (TagName::BUTTON, TagName::BUTTON) => true,
+            (TagName::CAPTION, TagName::CAPTION) => true,
+            (TagName::CENTER, TagName::CENTER) => true,
+            (TagName::CODE, TagName::CODE) => true,
+            (TagName::COL, TagName::COL) => true,
+            (TagName::COLGROUP, TagName::COLGROUP) => true,
+            (TagName::DD, TagName::DD) => true,
+            (TagName::DETAILS, TagName::DETAILS) => true,
+            (TagName::DIALOG, TagName::DIALOG) => true,
+            (TagName::DIR, TagName::DIR) => true,
+            (TagName::DIV, TagName::DIV) => true,
+            (TagName::DL, TagName::DL) => true,
+            (TagName::DT, TagName::DT) => true,
+            (TagName::EM, TagName::EM) => true,
+            (TagName::EMBED, TagName::EMBED) => true,
+            (TagName::FIELDSET, TagName::FIELDSET) => true,
+            (TagName::FIGCAPTION, TagName::FIGCAPTION) => true,
+            (TagName::FIGURE, TagName::FIGURE) => true,
+            (TagName::FONT, TagName::FONT) => true,
+            (TagName::FOOTER, TagName::FOOTER) => true,
+            (TagName::FORM, TagName::FORM) => true,
+            (TagName::FRAME, TagName::FRAME) => true,
+            (TagName::FRAMESET, TagName::FRAMESET) => true,
+            (TagName::H1, TagName::H1) => true,
+            (TagName::H2, TagName::H2) => true,
+            (TagName::H3, TagName::H3) => true,
+            (TagName::H4, TagName::H4) => true,
+            (TagName::H5, TagName::H5) => true,
+            (TagName::H6, TagName::H6) => true,
+            (TagName::HEAD, TagName::HEAD) => true,
+            (TagName::HEADER, TagName::HEADER) => true,
+            (TagName::HGROUP, TagName::HGROUP) => true,
+            (TagName::HR, TagName::HR) => true,
+            (TagName::HTML, TagName::HTML) => true,
+            (TagName::I, TagName::I) => true,
+            (TagName::IFRAME, TagName::IFRAME) => true,
+            (TagName::IMG, TagName::IMG) => true,
+            (TagName::INPUT, TagName::INPUT) => true,
+            (TagName::KEYGEN, TagName::KEYGEN) => true,
+            (TagName::LI, TagName::LI) => true,
+            (TagName::LINK, TagName::LINK) => true,
+            (TagName::LISTING, TagName::LISTING) => true,
+            (TagName::MAIN, TagName::MAIN) => true,
+            (TagName::MARQUEE, TagName::MARQUEE) => true,
+            (TagName::MENU, TagName::MENU) => true,
+            (TagName::META, TagName::META) => true,
+            (TagName::NAV, TagName::NAV) => true,
+            (TagName::NOBR, TagName::NOBR) => true,
+            (TagName::NOEMBED, TagName::NOEMBED) => true,
+            (TagName::NOFRAMES, TagName::NOFRAMES) => true,
+            (TagName::NOSCRIPT, TagName::NOSCRIPT) => true,
+            (TagName::OBJECT, TagName::OBJECT) => true,
+            (TagName::OL, TagName::OL) => true,
+            (TagName::OPTGROUP, TagName::OPTGROUP) => true,
+            (TagName::OPTION, TagName::OPTION) => true,
+            (TagName::P, TagName::P) => true,
+            (TagName::PARAM, TagName::PARAM) => true,
+            (TagName::PLAINTEXT, TagName::PLAINTEXT) => true,
+            (TagName::PRE, TagName::PRE) => true,
+            (TagName::RB, TagName::RB) => true,
+            (TagName::RP, TagName::RP) => true,
+            (TagName::RT, TagName::RT) => true,
+            (TagName::RTC, TagName::RTC) => true,
+            (TagName::RUBY, TagName::RUBY) => true,
+            (TagName::S, TagName::S) => true,
+            (TagName::SCRIPT, TagName::SCRIPT) => true,
+            (TagName::SEARCH, TagName::SEARCH) => true,
+            (TagName::SECTION, TagName::SECTION) => true,
+            (TagName::SELECT, TagName::SELECT) => true,
+            (TagName::SMALL, TagName::SMALL) => true,
+            (TagName::SOURCE, TagName::SOURCE) => true,
+            (TagName::SPAN, TagName::SPAN) => true,
+            (TagName::STRIKE, TagName::STRIKE) => true,
+            (TagName::STRONG, TagName::STRONG) => true,
+            (TagName::STYLE, TagName::STYLE) => true,
+            (TagName::SUB, TagName::SUB) => true,
+            (TagName::SUMMARY, TagName::SUMMARY) => true,
+            (TagName::SUP, TagName::SUP) => true,
+            (TagName::TABLE, TagName::TABLE) => true,
+            (TagName::TBODY, TagName::TBODY) => true,
+            (TagName::TD, TagName::TD) => true,
+            (TagName::TEMPLATE, TagName::TEMPLATE) => true,
+            (TagName::TEXTAREA, TagName::TEXTAREA) => true,
+            (TagName::TFOOT, TagName::TFOOT) => true,
+            (TagName::TH, TagName::TH) => true,
+            (TagName::THEAD, TagName::THEAD) => true,
+            (TagName::TITLE, TagName::TITLE) => true,
+            (TagName::TR, TagName::TR) => true,
+            (TagName::TRACK, TagName::TRACK) => true,
+            (TagName::TT, TagName::TT) => true,
+            (TagName::U, TagName::U) => true,
+            (TagName::UL, TagName::UL) => true,
+            (TagName::VAR, TagName::VAR) => true,
+            (TagName::WBR, TagName::WBR) => true,
+            (TagName::XMP, TagName::XMP) => true,
+            (TagName::MATH, TagName::MATH) => true,
+            (TagName::ANNOTATION_XML, TagName::ANNOTATION_XML) => true,
+            (TagName::MALIGNMARK, TagName::MALIGNMARK) => true,
+            (TagName::MGLYPH, TagName::MGLYPH) => true,
+            (TagName::MI, TagName::MI) => true,
+            (TagName::MN, TagName::MN) => true,
+            (TagName::MO, TagName::MO) => true,
+            (TagName::MS, TagName::MS) => true,
+            (TagName::MTEXT, TagName::MTEXT) => true,
+            (TagName::SVG, TagName::SVG) => true,
+            (TagName::FOREIGNOBJECT, TagName::FOREIGNOBJECT) => true,
+            (TagName::DESC, TagName::DESC) => true,
+            (TagName::Arbitrary(a), TagName::Arbitrary(b)) => a.eq_ignore_ascii_case(b),
+
+            // List cases instead of a single catch-all to ensure new tags are handled correctly.
+            (TagName::A, _) => false,
+            (TagName::ADDRESS, _) => false,
+            (TagName::APPLET, _) => false,
+            (TagName::AREA, _) => false,
+            (TagName::ARTICLE, _) => false,
+            (TagName::ASIDE, _) => false,
+            (TagName::B, _) => false,
+            (TagName::BASE, _) => false,
+            (TagName::BASEFONT, _) => false,
+            (TagName::BGSOUND, _) => false,
+            (TagName::BIG, _) => false,
+            (TagName::BLOCKQUOTE, _) => false,
+            (TagName::BODY, _) => false,
+            (TagName::BR, _) => false,
+            (TagName::BUTTON, _) => false,
+            (TagName::CAPTION, _) => false,
+            (TagName::CENTER, _) => false,
+            (TagName::CODE, _) => false,
+            (TagName::COL, _) => false,
+            (TagName::COLGROUP, _) => false,
+            (TagName::DD, _) => false,
+            (TagName::DETAILS, _) => false,
+            (TagName::DIALOG, _) => false,
+            (TagName::DIR, _) => false,
+            (TagName::DIV, _) => false,
+            (TagName::DL, _) => false,
+            (TagName::DT, _) => false,
+            (TagName::EM, _) => false,
+            (TagName::EMBED, _) => false,
+            (TagName::FIELDSET, _) => false,
+            (TagName::FIGCAPTION, _) => false,
+            (TagName::FIGURE, _) => false,
+            (TagName::FONT, _) => false,
+            (TagName::FOOTER, _) => false,
+            (TagName::FORM, _) => false,
+            (TagName::FRAME, _) => false,
+            (TagName::FRAMESET, _) => false,
+            (TagName::H1, _) => false,
+            (TagName::H2, _) => false,
+            (TagName::H3, _) => false,
+            (TagName::H4, _) => false,
+            (TagName::H5, _) => false,
+            (TagName::H6, _) => false,
+            (TagName::HEAD, _) => false,
+            (TagName::HEADER, _) => false,
+            (TagName::HGROUP, _) => false,
+            (TagName::HR, _) => false,
+            (TagName::HTML, _) => false,
+            (TagName::I, _) => false,
+            (TagName::IFRAME, _) => false,
+            (TagName::IMG, _) => false,
+            (TagName::INPUT, _) => false,
+            (TagName::KEYGEN, _) => false,
+            (TagName::LI, _) => false,
+            (TagName::LINK, _) => false,
+            (TagName::LISTING, _) => false,
+            (TagName::MAIN, _) => false,
+            (TagName::MARQUEE, _) => false,
+            (TagName::MENU, _) => false,
+            (TagName::META, _) => false,
+            (TagName::NAV, _) => false,
+            (TagName::NOBR, _) => false,
+            (TagName::NOEMBED, _) => false,
+            (TagName::NOFRAMES, _) => false,
+            (TagName::NOSCRIPT, _) => false,
+            (TagName::OBJECT, _) => false,
+            (TagName::OL, _) => false,
+            (TagName::OPTGROUP, _) => false,
+            (TagName::OPTION, _) => false,
+            (TagName::P, _) => false,
+            (TagName::PARAM, _) => false,
+            (TagName::PLAINTEXT, _) => false,
+            (TagName::PRE, _) => false,
+            (TagName::RB, _) => false,
+            (TagName::RP, _) => false,
+            (TagName::RT, _) => false,
+            (TagName::RTC, _) => false,
+            (TagName::RUBY, _) => false,
+            (TagName::S, _) => false,
+            (TagName::SCRIPT, _) => false,
+            (TagName::SEARCH, _) => false,
+            (TagName::SECTION, _) => false,
+            (TagName::SELECT, _) => false,
+            (TagName::SMALL, _) => false,
+            (TagName::SOURCE, _) => false,
+            (TagName::SPAN, _) => false,
+            (TagName::STRIKE, _) => false,
+            (TagName::STRONG, _) => false,
+            (TagName::STYLE, _) => false,
+            (TagName::SUB, _) => false,
+            (TagName::SUMMARY, _) => false,
+            (TagName::SUP, _) => false,
+            (TagName::TABLE, _) => false,
+            (TagName::TBODY, _) => false,
+            (TagName::TD, _) => false,
+            (TagName::TEMPLATE, _) => false,
+            (TagName::TEXTAREA, _) => false,
+            (TagName::TFOOT, _) => false,
+            (TagName::TH, _) => false,
+            (TagName::THEAD, _) => false,
+            (TagName::TITLE, _) => false,
+            (TagName::TR, _) => false,
+            (TagName::TRACK, _) => false,
+            (TagName::TT, _) => false,
+            (TagName::U, _) => false,
+            (TagName::UL, _) => false,
+            (TagName::VAR, _) => false,
+            (TagName::WBR, _) => false,
+            (TagName::XMP, _) => false,
+            (TagName::MATH, _) => false,
+            (TagName::ANNOTATION_XML, _) => false,
+            (TagName::MALIGNMARK, _) => false,
+            (TagName::MGLYPH, _) => false,
+            (TagName::MI, _) => false,
+            (TagName::MN, _) => false,
+            (TagName::MO, _) => false,
+            (TagName::MS, _) => false,
+            (TagName::MTEXT, _) => false,
+            (TagName::SVG, _) => false,
+            (TagName::FOREIGNOBJECT, _) => false,
+            (TagName::DESC, _) => false,
+            (TagName::Arbitrary(_), _) => false,
+        }
+    }
+}
+
 impl Display for TagName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -410,5 +663,45 @@ impl Display for TagName {
             }
             _ => write!(f, "{:?}", self),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_tag_name_eq() {
+        assert_eq!(TagName::A, TagName::A);
+        assert_eq!(TagName::CAPTION, TagName::CAPTION);
+        assert_eq!(TagName::UL, TagName::UL);
+        assert_eq!(TagName::VAR, TagName::VAR);
+
+        assert_ne!(TagName::A, TagName::ADDRESS);
+        assert_ne!(TagName::B, TagName::I);
+        assert_ne!(TagName::SVG, TagName::MATH);
+    }
+
+    #[test]
+    fn test_tag_name_eq_arbitrary() {
+        fn make_names(a: &str, b: &str) -> (TagName, TagName) {
+            (a.as_bytes().into(), b.as_bytes().into())
+        }
+
+        let (a, b) = make_names("FOO", "foo");
+        assert_eq!(a, b);
+        let (a, b) = make_names("foo", "foo");
+        assert_eq!(a, b);
+        let (a, b) = make_names("foo-custom", "foo-custom");
+        assert_eq!(a, b);
+
+        let (a, b) = make_names("foo", "bar");
+        assert_ne!(a, b);
+        let (a, b) = make_names("foo", "foot");
+        assert_ne!(a, b);
+        let (a, b) = make_names("foot", "foo");
+        assert_ne!(a, b);
+        let (a, b) = make_names("foo-custom", "foo-custom-not");
+        assert_ne!(a, b);
     }
 }
