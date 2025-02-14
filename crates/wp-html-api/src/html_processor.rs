@@ -257,7 +257,7 @@ enum InsertionMode {
 }
 
 pub struct HtmlProcessor {
-    tag_processor: TagProcessor,
+    pub tag_processor: TagProcessor,
     state: ProcessorState,
     last_error: Option<HtmlProcessorError>,
     unsupported_exception: Option<String>,
