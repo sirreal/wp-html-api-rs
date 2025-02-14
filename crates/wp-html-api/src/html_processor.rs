@@ -3502,7 +3502,107 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_cell(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > An end tag whose tag name is one of: "td", "th"
+             */
+            Op::TagPop(tag_name @ (TagName::TD | TagName::TH)) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&tag_name)
+                {
+                    // Parse error: ignore the token.
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                self.generate_implied_end_tags(None);
+
+                /*
+                 * @todo This needs to check if the current node is an HTML element, meaning that
+                 *       when SVG and MathML support is added, this needs to differentiate between an
+                 *       HTML element of the given name, such as `<center>`, and a foreign element of
+                 *       the same given name.
+                 */
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(tag_name.clone()))
+                {
+                    // @todo Indicate a parse error once it's possible.
+                }
+
+                self.pop_until(&tag_name);
+                self.state
+                    .active_formatting_elements
+                    .clear_up_to_last_marker();
+                self.state.insertion_mode = InsertionMode::IN_ROW;
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "td",
+             * > "tfoot", "th", "thead", "tr"
+             */
+            Op::TagPush(
+                TagName::CAPTION
+                | TagName::COL
+                | TagName::COLGROUP
+                | TagName::TBODY
+                | TagName::TD
+                | TagName::TFOOT
+                | TagName::TH
+                | TagName::THEAD
+                | TagName::TR,
+            ) => {
+                /*
+                 * > Assert: The stack of open elements has a td or th element in table scope.
+                 *
+                 * Nothing to do here, except to verify in tests that this never appears.
+                 */
+
+                self.close_cell();
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "body", "caption", "col", "colgroup", "html"
+             */
+            Op::TagPop(
+                TagName::BODY | TagName::CAPTION | TagName::COL | TagName::COLGROUP | TagName::HTML,
+            ) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "table", "tbody", "tfoot", "thead", "tr"
+             */
+            Op::TagPop(
+                tag_name @ (TagName::TABLE
+                | TagName::TBODY
+                | TagName::TFOOT
+                | TagName::THEAD
+                | TagName::TR),
+            ) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&tag_name)
+                {
+                    // Parse error: ignore the token.
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+                self.close_cell();
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > Anything else
+             * >   Process the token using the rules for the "in body" insertion mode.
+             */
+            _ => self.step_in_body(),
+        }
     }
 
     /// Parses next element in the 'in select' insertion mode.
