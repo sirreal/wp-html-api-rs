@@ -830,10 +830,10 @@ impl HtmlProcessor {
                         && (is_start_tag || token_name == TokenType::Text.into()))
             };
 
-        if !parse_in_current_insertion_mode {
-            self.step_in_foreign_content()
-        } else {
+        if parse_in_current_insertion_mode {
             self.step_in_current_insertion_mode()
+        } else {
+            self.step_in_foreign_content()
         }
 
         // @todo use Results
@@ -3353,12 +3353,64 @@ impl HtmlProcessor {
                 true
             }
 
-            (Op::TagPop(tag), _) => {
-                todo!("Tag op: {}", tag);
+            /*
+             * > Any other end tag
+             */
+            (Op::TagPop(tag_name), _) => {
+                let mut node = self
+                    .state
+                    .stack_of_open_elements
+                    .current_node()
+                    .unwrap()
+                    .clone();
+                if let NodeName::Tag(current_node_tag_name) = &node.node_name {
+                    if &tag_name != current_node_tag_name {
+                        // @todo Indicate a parse error once it's possible.
+                    }
+                } else {
+                    // @todo Indicate a parse error once it's possible.
+                }
+
+                // in_foreign_content_end_tag_loop:
+                loop {
+                    if self
+                        .state
+                        .stack_of_open_elements
+                        .at(1)
+                        .map_or(false, |top_node| &node == top_node)
+                    {
+                        return true;
+                    }
+
+                    /*
+                     * > If node's tag name, converted to ASCII lowercase, is the same as the tag name
+                     * > of the token, pop elements from the stack of open elements until node has
+                     * > been popped from the stack, and then return.
+                     */
+                    if matches!(&node.node_name, NodeName::Tag(tag_name)) {
+                        while let Some(popped_node) = self.pop() {
+                            if popped_node == node {
+                                break;
+                            }
+                        }
+                    }
+
+                    node = self
+                        .state
+                        .stack_of_open_elements
+                        .current_node()
+                        .unwrap()
+                        .clone();
+
+                    if node.namespace != ParsingNamespace::Html {
+                        continue;
+                    }
+
+                    break self.step_in_current_insertion_mode();
+                }
             }
-            op => {
-                todo!("op: {:?}", op);
-            }
+
+            (Op::Token(TokenType::Tag), _) => unreachable!("Tag token ops are never constructed"),
         }
     }
 
