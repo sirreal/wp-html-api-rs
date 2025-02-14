@@ -1596,7 +1596,9 @@ impl TagProcessor {
             at += skipped;
 
             if at < end && b'&' == self.html_bytes[at] {
-                todo!("implement character reference handling");
+                // @TODO: implement character reference handling
+                // This needs to check for whitespace character references.
+                // todo!("implement character reference handling");
             }
 
             break;
