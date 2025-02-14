@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, rc::Rc};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum TagName {
     A,
     ADDRESS,
@@ -399,6 +399,15 @@ impl Into<Box<[u8]>> for TagName {
             TagName::Arbitrary(arbitrary_name) => return Box::from(arbitrary_name.as_ref()),
         }
         .into()
+    }
+}
+
+impl PartialEq<Self> for TagName {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Arbitrary(a), Self::Arbitrary(b)) => a.eq_ignore_ascii_case(b),
+            (a, b) => a == b,
+        }
     }
 }
 
