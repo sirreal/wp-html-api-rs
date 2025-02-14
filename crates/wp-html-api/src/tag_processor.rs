@@ -928,12 +928,7 @@ impl TagProcessor {
 
     pub fn get_tag(&self) -> Option<TagName> {
         if let (Some(at), Some(length)) = (self.tag_name_starts_at, self.tag_name_length) {
-            let tag_name = substr(&self.html_bytes, at, length);
-            Some(match self.parsing_namespace {
-                ParsingNamespace::Html => tag_name.into(),
-                ParsingNamespace::Svg => TagName::from_svg_tag(tag_name),
-                ParsingNamespace::MathML => TagName::from_mathml_tag(tag_name),
-            })
+            Some(substr(&self.html_bytes, at, length).into())
         } else {
             None
         }

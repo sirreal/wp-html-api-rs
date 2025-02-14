@@ -816,7 +816,7 @@ impl HtmlProcessor {
                         && ((is_start_tag
                             && (!matches!(
                                 &token_name,
-                                NodeName::Tag(TagName::MathML_MALIGNMARK | TagName::MathML_MGLYPH)
+                                NodeName::Tag(TagName::MALIGNMARK | TagName::MGLYPH)
                             )))
                             || token_name == TokenType::Text.into()))
                     || (adjusted_current_node.namespace == ParsingNamespace::MathML
@@ -830,41 +830,40 @@ impl HtmlProcessor {
                         && (is_start_tag || token_name == TokenType::Text.into()))
             };
 
-        let step_result = if !parse_in_current_insertion_mode {
+        if !parse_in_current_insertion_mode {
             self.step_in_foreign_content()
         } else {
-            match self.state.insertion_mode {
-                InsertionMode::INITIAL => self.step_initial(),
-                InsertionMode::BEFORE_HTML => self.step_before_html(),
-                InsertionMode::BEFORE_HEAD => self.step_before_head(),
-                InsertionMode::IN_HEAD => self.step_in_head(),
-                InsertionMode::IN_HEAD_NOSCRIPT => self.step_in_head_noscript(),
-                InsertionMode::AFTER_HEAD => self.step_after_head(),
-                InsertionMode::IN_BODY => self.step_in_body(),
-                InsertionMode::IN_TABLE => self.step_in_table(),
-                InsertionMode::IN_TABLE_TEXT => self.step_in_table_text(),
-                InsertionMode::IN_CAPTION => self.step_in_caption(),
-                InsertionMode::IN_COLUMN_GROUP => self.step_in_column_group(),
-                InsertionMode::IN_TABLE_BODY => self.step_in_table_body(),
-                InsertionMode::IN_ROW => self.step_in_row(),
-                InsertionMode::IN_CELL => self.step_in_cell(),
-                InsertionMode::IN_SELECT => self.step_in_select(),
-                InsertionMode::IN_SELECT_IN_TABLE => self.step_in_select_in_table(),
-                InsertionMode::IN_TEMPLATE => self.step_in_template(),
-                InsertionMode::AFTER_BODY => self.step_after_body(),
-                InsertionMode::IN_FRAMESET => self.step_in_frameset(),
-                InsertionMode::AFTER_FRAMESET => self.step_after_frameset(),
-                InsertionMode::AFTER_AFTER_BODY => self.step_after_after_body(),
-                InsertionMode::AFTER_AFTER_FRAMESET => self.step_after_after_frameset(),
-            }
-        };
+            self.step_in_current_insertion_mode()
+        }
 
         // @todo use Results
-        step_result
-        //match step_result {
-        //    Ok(result) => result,
-        //    Err(_) => false,
-        //}
+    }
+
+    fn step_in_current_insertion_mode(&mut self) -> bool {
+        match self.state.insertion_mode {
+            InsertionMode::INITIAL => self.step_initial(),
+            InsertionMode::BEFORE_HTML => self.step_before_html(),
+            InsertionMode::BEFORE_HEAD => self.step_before_head(),
+            InsertionMode::IN_HEAD => self.step_in_head(),
+            InsertionMode::IN_HEAD_NOSCRIPT => self.step_in_head_noscript(),
+            InsertionMode::AFTER_HEAD => self.step_after_head(),
+            InsertionMode::IN_BODY => self.step_in_body(),
+            InsertionMode::IN_TABLE => self.step_in_table(),
+            InsertionMode::IN_TABLE_TEXT => self.step_in_table_text(),
+            InsertionMode::IN_CAPTION => self.step_in_caption(),
+            InsertionMode::IN_COLUMN_GROUP => self.step_in_column_group(),
+            InsertionMode::IN_TABLE_BODY => self.step_in_table_body(),
+            InsertionMode::IN_ROW => self.step_in_row(),
+            InsertionMode::IN_CELL => self.step_in_cell(),
+            InsertionMode::IN_SELECT => self.step_in_select(),
+            InsertionMode::IN_SELECT_IN_TABLE => self.step_in_select_in_table(),
+            InsertionMode::IN_TEMPLATE => self.step_in_template(),
+            InsertionMode::AFTER_BODY => self.step_after_body(),
+            InsertionMode::IN_FRAMESET => self.step_in_frameset(),
+            InsertionMode::AFTER_FRAMESET => self.step_after_frameset(),
+            InsertionMode::AFTER_AFTER_BODY => self.step_after_after_body(),
+            InsertionMode::AFTER_AFTER_FRAMESET => self.step_after_after_frameset(),
+        }
     }
 
     /// Computes the HTML breadcrumbs for the currently-matched node, if matched.
@@ -2699,7 +2698,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "math"
              */
-            Op::TagPush(TagName::MathML_MATH) => {
+            Op::TagPush(TagName::MATH) => {
                 self.reconstruct_active_formatting_elements();
 
                 /*
@@ -2722,7 +2721,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "svg"
              */
-            Op::TagPush(TagName::SVG_SVG) => {
+            Op::TagPush(TagName::SVG) => {
                 self.reconstruct_active_formatting_elements();
 
                 /*
@@ -3153,8 +3152,16 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_foreign_content(&mut self) -> bool {
-        match self.make_op() {
-            Op::Token(TokenType::Text) => {
+        let op = self.make_op();
+        let is_font_with_attributes = matches!(op, Op::TagPush(TagName::FONT))
+            && self
+                .get_attribute(b"color")
+                .or_else(|| self.get_attribute(b"face"))
+                .or_else(|| self.get_attribute(b"size"))
+                .is_some();
+
+        match (op, is_font_with_attributes) {
+            (Op::Token(TokenType::Text), _) => {
                 /*
                  * > A character token that is U+0000 NULL
                  *
@@ -3178,7 +3185,7 @@ impl HtmlProcessor {
              * CDATA sections are alternate wrappers for text content and therefore
              * ought to follow the same rules as text nodes.
              */
-            Op::Token(TokenType::CdataSection) => {
+            (Op::Token(TokenType::CdataSection), _) => {
                 /*
                  * NULL bytes and whitespace do not change the frameset-ok flag.
                  */
@@ -3198,8 +3205,11 @@ impl HtmlProcessor {
             /*
              * > A comment token
              */
-            Op::Token(
-                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            (
+                Op::Token(
+                    TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+                ),
+                _,
             ) => {
                 self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
                 true
@@ -3208,12 +3218,142 @@ impl HtmlProcessor {
             /*
              * > A DOCTYPE token
              */
-            Op::Token(TokenType::Doctype) => {
+            (Op::Token(TokenType::Doctype), _) => {
                 // Parse error: ignore the token.
                 self.step(NodeToProcess::ProcessNextNode)
             }
 
-            Op::TagPop(tag) | Op::TagPush(tag) => {
+            /*
+             * > A start tag whose tag name is "b", "big", "blockquote", "body", "br", "center",
+             * > "code", "dd", "div", "dl", "dt", "em", "embed", "h1", "h2", "h3", "h4", "h5",
+             * > "h6", "head", "hr", "i", "img", "li", "listing", "menu", "meta", "nobr", "ol",
+             * > "p", "pre", "ruby", "s", "small", "span", "strong", "strike", "sub", "sup",
+             * > "table", "tt", "u", "ul", "var"
+             *
+             * > A start tag whose name is "font", if the token has any attributes named "color", "face", or "size"
+             *
+             * > An end tag whose tag name is "br", "p"
+             *
+             * Closing BR tags are always reported by the Tag Processor as opening tags.
+             */
+            (
+                Op::TagPush(
+                    TagName::B
+                    | TagName::BIG
+                    | TagName::BLOCKQUOTE
+                    | TagName::BODY
+                    | TagName::BR
+                    | TagName::CENTER
+                    | TagName::CODE
+                    | TagName::DD
+                    | TagName::DIV
+                    | TagName::DL
+                    | TagName::DT
+                    | TagName::EM
+                    | TagName::EMBED
+                    | TagName::H1
+                    | TagName::H2
+                    | TagName::H3
+                    | TagName::H4
+                    | TagName::H5
+                    | TagName::H6
+                    | TagName::HEAD
+                    | TagName::HR
+                    | TagName::I
+                    | TagName::IMG
+                    | TagName::LI
+                    | TagName::LISTING
+                    | TagName::MENU
+                    | TagName::META
+                    | TagName::NOBR
+                    | TagName::OL
+                    | TagName::P
+                    | TagName::PRE
+                    | TagName::RUBY
+                    | TagName::S
+                    | TagName::SMALL
+                    | TagName::SPAN
+                    | TagName::STRONG
+                    | TagName::STRIKE
+                    | TagName::SUB
+                    | TagName::SUP
+                    | TagName::TABLE
+                    | TagName::TT
+                    | TagName::U
+                    | TagName::UL
+                    | TagName::VAR,
+                )
+                | Op::TagPop(TagName::BR | TagName::P),
+                _,
+            )
+            | (Op::TagPush(TagName::FONT), true) => {
+                // @todo Indicate a parse error once it's possible.
+                let pop_times = self.state.stack_of_open_elements.walk_up(None).position(
+                    |HTMLToken {
+                         namespace,
+                         integration_node_type,
+                         ..
+                     }| {
+                        &ParsingNamespace::Html == namespace
+                            || matches!(
+                                integration_node_type,
+                                Some(IntegrationNodeType::HTML | IntegrationNodeType::MathML)
+                            )
+                    },
+                );
+                if let Some(pop_times) = pop_times {
+                    for _ in 0..pop_times {
+                        self.pop();
+                    }
+                }
+
+                self.step_in_current_insertion_mode()
+            }
+
+            /*
+             * > Any other start tag
+             */
+            (Op::TagPush(_), _) => {
+                let has_self_closing_flag = self
+                    .state
+                    .current_token
+                    .as_ref()
+                    .unwrap()
+                    .has_self_closing_flag;
+                self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
+
+                /*
+                 * > If the token has its self-closing flag set, then run
+                 * > the appropriate steps from the following list:
+                 * >
+                 * >   ↪ the token's tag name is "script", and the new current node is in the SVG namespace
+                 * >         Acknowledge the token's self-closing flag, and then act as
+                 * >         described in the steps for a "script" end tag below.
+                 * >
+                 * >   ↪ Otherwise
+                 * >         Pop the current node off the stack of open elements and
+                 * >         acknowledge the token's self-closing flag.
+                 *
+                 * Since the rules for SCRIPT below indicate to pop the element off of the stack of
+                 * open elements, which is the same for the Otherwise condition, there's no need to
+                 * separate these checks. The difference comes when a parser operates with the scripting
+                 * flag enabled, and executes the script, which this parser does not support.
+                 */
+                if has_self_closing_flag {
+                    self.pop();
+                }
+                true
+            }
+
+            (Op::TagPop(TagName::SCRIPT), _)
+                if self.state.current_token.as_ref().unwrap().namespace
+                    == ParsingNamespace::Svg =>
+            {
+                self.pop();
+                true
+            }
+
+            (Op::TagPop(tag), _) => {
                 todo!("Tag op: {}", tag);
             }
             op => {
@@ -4107,11 +4247,7 @@ impl HtmlProcessor {
 
         matches!(
             tag_name,
-            TagName::MathML_MI
-                | TagName::MathML_MO
-                | TagName::MathML_MN
-                | TagName::MathML_MS
-                | TagName::MathML_MTEXT
+            TagName::MI | TagName::MO | TagName::MN | TagName::MS | TagName::MTEXT
         )
     }
 
@@ -4140,7 +4276,7 @@ impl HtmlProcessor {
         match current_token.namespace {
             ParsingNamespace::Html => false,
             ParsingNamespace::MathML => {
-                tag_name == &TagName::MathML_ANNOTATION_XML
+                tag_name == &TagName::ANNOTATION_XML
                     && self
                         .get_attribute(b"encoding")
                         .map_or(false, |encoding| match encoding {
@@ -4154,7 +4290,7 @@ impl HtmlProcessor {
             ParsingNamespace::Svg => {
                 matches!(
                     tag_name,
-                    TagName::SVG_DESC | TagName::SVG_FOREIGNOBJECT | TagName::SVG_TITLE
+                    TagName::DESC | TagName::FOREIGNOBJECT | TagName::TITLE
                 )
             }
         }
@@ -4252,15 +4388,14 @@ impl HtmlProcessor {
                 | TagName::UL
                 | TagName::WBR
                 | TagName::XMP
-                | TagName::MathML_MI
-                | TagName::MathML_MO
-                | TagName::MathML_MN
-                | TagName::MathML_MS
-                | TagName::MathML_MTEXT
-                | TagName::MathML_ANNOTATION_XML
-                | TagName::SVG_DESC
-                | TagName::SVG_FOREIGNOBJECT
-                | TagName::SVG_TITLE
+                | TagName::MI
+                | TagName::MO
+                | TagName::MN
+                | TagName::MS
+                | TagName::MTEXT
+                | TagName::ANNOTATION_XML
+                | TagName::DESC
+                | TagName::FOREIGNOBJECT
         )
     }
 

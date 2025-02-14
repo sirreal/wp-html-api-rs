@@ -1,24 +1,28 @@
-use crate::{html_processor::HTMLToken, tag_name::TagName, tag_processor::NodeName};
+use crate::{
+    html_processor::HTMLToken,
+    tag_name::TagName,
+    tag_processor::{NodeName, ParsingNamespace},
+};
 
-const ELEMENT_IN_SCOPE_TERMINATION_LIST: [TagName; 18] = [
-    TagName::APPLET,
-    TagName::CAPTION,
-    TagName::HTML,
-    TagName::TABLE,
-    TagName::TD,
-    TagName::TH,
-    TagName::MARQUEE,
-    TagName::OBJECT,
-    TagName::TEMPLATE,
-    TagName::MathML_MI,
-    TagName::MathML_MO,
-    TagName::MathML_MN,
-    TagName::MathML_MS,
-    TagName::MathML_MTEXT,
-    TagName::MathML_ANNOTATION_XML,
-    TagName::SVG_FOREIGNOBJECT,
-    TagName::SVG_DESC,
-    TagName::SVG_TITLE,
+const ELEMENT_IN_SCOPE_TERMINATION_LIST: [(&TagName, &ParsingNamespace); 18] = [
+    (&TagName::APPLET, &ParsingNamespace::Html),
+    (&TagName::CAPTION, &ParsingNamespace::Html),
+    (&TagName::HTML, &ParsingNamespace::Html),
+    (&TagName::TABLE, &ParsingNamespace::Html),
+    (&TagName::TD, &ParsingNamespace::Html),
+    (&TagName::TH, &ParsingNamespace::Html),
+    (&TagName::MARQUEE, &ParsingNamespace::Html),
+    (&TagName::OBJECT, &ParsingNamespace::Html),
+    (&TagName::TEMPLATE, &ParsingNamespace::Html),
+    (&TagName::MI, &ParsingNamespace::MathML),
+    (&TagName::MO, &ParsingNamespace::MathML),
+    (&TagName::MN, &ParsingNamespace::MathML),
+    (&TagName::MS, &ParsingNamespace::MathML),
+    (&TagName::MTEXT, &ParsingNamespace::MathML),
+    (&TagName::ANNOTATION_XML, &ParsingNamespace::MathML),
+    (&TagName::FOREIGNOBJECT, &ParsingNamespace::Svg),
+    (&TagName::DESC, &ParsingNamespace::Svg),
+    (&TagName::TITLE, &ParsingNamespace::Svg),
 ];
 
 /// Core class used by the HTML processor during HTML parsing
@@ -92,7 +96,11 @@ impl StackOfOpenElements {
     pub fn has_element_in_table_scope(&self, tag_name: &TagName) -> bool {
         self.has_element_in_specific_scope(
             tag_name,
-            &[TagName::HTML, TagName::TABLE, TagName::TEMPLATE],
+            &[
+                (&TagName::HTML, &ParsingNamespace::Html),
+                (&TagName::TABLE, &ParsingNamespace::Html),
+                (&TagName::TEMPLATE, &ParsingNamespace::Html),
+            ],
         )
     }
 
@@ -170,6 +178,7 @@ impl StackOfOpenElements {
         for node in self.walk_up(None) {
             if let HTMLToken {
                 node_name: NodeName::Tag(node_tag),
+                namespace,
                 ..
             } = node
             {
@@ -185,7 +194,7 @@ impl StackOfOpenElements {
                     return true;
                 }
 
-                if ELEMENT_IN_SCOPE_TERMINATION_LIST.contains(node_tag) {
+                if ELEMENT_IN_SCOPE_TERMINATION_LIST.contains(&(node_tag, namespace)) {
                     return false;
                 }
             }
@@ -256,25 +265,25 @@ impl StackOfOpenElements {
         self.has_element_in_specific_scope(
             tag_name,
             &[
-                TagName::APPLET,
-                TagName::BUTTON,
-                TagName::CAPTION,
-                TagName::HTML,
-                TagName::TABLE,
-                TagName::TD,
-                TagName::TH,
-                TagName::MARQUEE,
-                TagName::OBJECT,
-                TagName::TEMPLATE,
-                TagName::MathML_MI,
-                TagName::MathML_MO,
-                TagName::MathML_MN,
-                TagName::MathML_MS,
-                TagName::MathML_MTEXT,
-                TagName::MathML_ANNOTATION_XML,
-                TagName::SVG_FOREIGNOBJECT,
-                TagName::SVG_DESC,
-                TagName::SVG_TITLE,
+                (&TagName::APPLET, &ParsingNamespace::Html),
+                (&TagName::BUTTON, &ParsingNamespace::Html),
+                (&TagName::CAPTION, &ParsingNamespace::Html),
+                (&TagName::HTML, &ParsingNamespace::Html),
+                (&TagName::TABLE, &ParsingNamespace::Html),
+                (&TagName::TD, &ParsingNamespace::Html),
+                (&TagName::TH, &ParsingNamespace::Html),
+                (&TagName::MARQUEE, &ParsingNamespace::Html),
+                (&TagName::OBJECT, &ParsingNamespace::Html),
+                (&TagName::TEMPLATE, &ParsingNamespace::Html),
+                (&TagName::MI, &ParsingNamespace::MathML),
+                (&TagName::MO, &ParsingNamespace::MathML),
+                (&TagName::MN, &ParsingNamespace::MathML),
+                (&TagName::MS, &ParsingNamespace::MathML),
+                (&TagName::MTEXT, &ParsingNamespace::MathML),
+                (&TagName::ANNOTATION_XML, &ParsingNamespace::MathML),
+                (&TagName::FOREIGNOBJECT, &ParsingNamespace::Svg),
+                (&TagName::DESC, &ParsingNamespace::Svg),
+                (&TagName::TITLE, &ParsingNamespace::Svg),
             ],
         )
     }
@@ -289,18 +298,19 @@ impl StackOfOpenElements {
     fn has_element_in_specific_scope(
         &self,
         tag_name: &TagName,
-        termination_list: &[TagName],
+        termination_list: &[(&TagName, &ParsingNamespace)],
     ) -> bool {
         for node in self.walk_up(None) {
             if let HTMLToken {
                 node_name: NodeName::Tag(node_tag),
+                namespace,
                 ..
             } = node
             {
                 if node_tag == tag_name {
                     return true;
                 }
-                if termination_list.contains(node_tag) {
+                if termination_list.contains(&(node_tag, namespace)) {
                     return false;
                 }
             }
