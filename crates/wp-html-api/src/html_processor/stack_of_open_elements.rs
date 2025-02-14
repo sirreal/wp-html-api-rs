@@ -185,8 +185,8 @@ impl StackOfOpenElements {
         }
     }
 
-    pub(super) fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
-        for node in self.walk_up(None) {
+    pub fn has_any_h1_to_h6_element_in_scope(&self) -> bool {
+        for node in self.walk_up() {
             if let HTMLToken {
                 node_name: NodeName::Tag(node_tag),
                 namespace,
@@ -251,11 +251,7 @@ impl StackOfOpenElements {
     ///
     /// @param WP_HTML_Token|null $above_this_node Optional. Start traversing above this node,
     ///                                            if provided and if the node exists.
-    pub fn walk_up(&self, above_this_node: Option<&HTMLToken>) -> impl Iterator<Item = &HTMLToken> {
-        if above_this_node.is_some() {
-            todo!("Above this node not implemented");
-        }
-
+    pub fn walk_up(&self) -> impl Iterator<Item = &HTMLToken> {
         self.stack.iter().rev()
     }
 
@@ -311,7 +307,7 @@ impl StackOfOpenElements {
         tag_name: &TagName,
         termination_list: &[(&TagName, &ParsingNamespace)],
     ) -> bool {
-        for node in self.walk_up(None) {
+        for node in self.walk_up() {
             if let HTMLToken {
                 node_name: NodeName::Tag(node_tag),
                 namespace,
@@ -335,6 +331,6 @@ impl StackOfOpenElements {
     /// @param WP_HTML_Token $token Look for this node in the stack.
     /// @return bool Whether the referenced node is in the stack of open elements.
     pub fn contains_node(&self, last_entry: &HTMLToken) -> bool {
-        self.walk_up(None).any(|node| node == last_entry)
+        self.walk_up().any(|node| node == last_entry)
     }
 }

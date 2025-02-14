@@ -2066,10 +2066,12 @@ impl HtmlProcessor {
                  */
                 loop {
                     match node {
-                        Some(HTMLToken {
-                            node_name: NodeName::Tag(current_tag_name),
-                            ..
-                        }) => {
+                        Some(
+                            some_node @ HTMLToken {
+                                node_name: NodeName::Tag(current_tag_name),
+                                ..
+                            },
+                        ) => {
                             let current_tag_name = current_tag_name.clone();
                             let match_tag_name_test = if is_li {
                                 current_tag_name == TagName::LI
@@ -2106,12 +2108,18 @@ impl HtmlProcessor {
                              * > Otherwise, set node to the previous entry in the stack of open elements
                              * > and return to the step labeled loop.
                              */
-                            node = self.state.stack_of_open_elements.walk_up(node).next();
+                            node = self
+                                .state
+                                .stack_of_open_elements
+                                .walk_up()
+                                .skip_while(|&stack_node| stack_node != some_node)
+                                .skip(1)
+                                .next();
                             continue;
                         }
                         None => break,
                         _ => {
-                            node = self.state.stack_of_open_elements.walk_up(node).next();
+                            unreachable!("Should not have token nodes here")
                         }
                     }
                 }
@@ -2793,7 +2801,7 @@ impl HtmlProcessor {
                     node_name,
                     namespace,
                     ..
-                } in self.state.stack_of_open_elements.walk_up(None)
+                } in self.state.stack_of_open_elements.walk_up()
                 {
                     if namespace == &ParsingNamespace::Html {
                         if let NodeName::Tag(node_tag_name) = node_name {
@@ -3288,7 +3296,7 @@ impl HtmlProcessor {
             )
             | (Op::TagPush(TagName::FONT), true) => {
                 // @todo Indicate a parse error once it's possible.
-                let pop_times = self.state.stack_of_open_elements.walk_up(None).position(
+                let pop_times = self.state.stack_of_open_elements.walk_up().position(
                     |HTMLToken {
                          namespace,
                          integration_node_type,
