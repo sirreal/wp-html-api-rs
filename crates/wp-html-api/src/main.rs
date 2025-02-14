@@ -13,25 +13,25 @@ pub fn main() {
     let mut p = HtmlProcessor::create_full_parser(html.as_bytes(), "UTF-8").unwrap();
 
     while p.next_token() {
-        match p.get_token_name() {
-            Some(node) => match node {
-                wp_html_api::tag_processor::NodeName::Tag(tag_name) => {
-                    let closer = if p.is_tag_closer() { "/" } else { "" };
-                    println!("{closer}{} // token number {}", tag_name, c);
-                }
-                wp_html_api::tag_processor::NodeName::Token(token_type) => {
-                    let s: String = token_type.into();
-                    println!("{}  // token number {}", s, c);
-                }
-            },
-            None => {}
-        };
+        //match p.get_token_name() {
+        //    Some(node) => match node {
+        //        wp_html_api::tag_processor::NodeName::Tag(tag_name) => {
+        //            let closer = if p.is_tag_closer() { "/" } else { "" };
+        //            println!("{closer}{} // token number {}", tag_name, c);
+        //        }
+        //        wp_html_api::tag_processor::NodeName::Token(token_type) => {
+        //            let s: String = token_type.into();
+        //            println!("{}  // token number {}", s, c);
+        //        }
+        //    },
+        //    None => {}
+        //};
 
         c += 1;
     }
-    if p.get_last_error().is_some() {
-        println!("{:?}", p.get_last_error());
-    }
+    //if p.get_last_error().is_some() {
+    //    println!("{:?}", p.get_last_error());
+    //}
 
     println!("Found {c} tokens!");
 }
