@@ -9,3 +9,4 @@ resolver = "2"
 [workspace.package]
 authors    = ["Jon Surrell <sirreal@users.noreply.github.com>"]
 edition    = "2021"
+license    = "GPL-2.0-or-later"
