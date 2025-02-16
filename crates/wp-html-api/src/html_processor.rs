@@ -5552,6 +5552,17 @@ pub enum HtmlProcessorError {
     ExceededMaxBookmarks,
     UnsupportedException(UnsupportedException),
 }
+impl Into<String> for HtmlProcessorError {
+    fn into(self) -> String {
+        todo!("error into string")
+    }
+}
+impl Into<String> for &HtmlProcessorError {
+    fn into(self) -> String {
+        todo!("&error into string")
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum UnsupportedException {}
 

@@ -1,0 +1,10 @@
+[package]
+name = "wp-html-api-html5lib-tests"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+wp-html-api = { path = "../wp-html-api" }

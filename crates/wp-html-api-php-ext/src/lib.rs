@@ -141,6 +141,22 @@ impl WP_HTML_Processor {
                     .collect::<Vec<Binary<u8>>>()
             })
     }
+
+    pub fn get_last_error(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
+        this.processor.get_last_error().map(Into::into)
+    }
+
+    pub fn is_tag_closer(#[this] this: &mut ZendClassObject<Self>) -> bool {
+        this.processor.is_tag_closer()
+    }
+
+    pub fn get_namespace(#[this] this: &mut ZendClassObject<Self>) -> String {
+        this.processor.get_namespace().into()
+    }
+
+    pub fn expects_closer(#[this] this: &mut ZendClassObject<Self>) -> Option<bool> {
+        this.processor.expects_closer(None)
+    }
 }
 
 #[php_module]
