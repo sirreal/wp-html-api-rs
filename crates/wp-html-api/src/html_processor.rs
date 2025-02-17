@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_variables, unreachable_code, non_camel_case_types)]
 
 mod active_formatting_elements;
+mod errors;
 mod html_stack_event;
 mod html_token;
 mod stack_of_open_elements;
@@ -16,6 +17,7 @@ use crate::{
     },
 };
 use active_formatting_elements::*;
+use errors::{HtmlProcessorError, UnsupportedException};
 use html_stack_event::*;
 use html_token::*;
 use stack_of_open_elements::*;
@@ -396,8 +398,9 @@ impl HtmlProcessor {
     /// @throws WP_HTML_Unsupported_Exception Halts execution of the parser.
     ///
     /// @param string $message Explains support is missing in order to parse the current node.
-    fn bail(&mut self, message: String) -> () {
-        todo!()
+    fn bail(&mut self, error: UnsupportedException) -> bool {
+        self.last_error = Some(HtmlProcessorError::UnsupportedException(error));
+        false
     }
 
     /// Returns the last error, if any.
@@ -1332,10 +1335,7 @@ impl HtmlProcessor {
                  */
                 if let Some(AttributeValue::String(_)) = self.get_attribute(b"charset") {
                     if EncodingConfidence::Tentative == self.state.encoding_confidence {
-                        self.bail(
-                            "Cannot yet process META tags with charset to determine encoding."
-                                .to_string(),
-                        );
+                        return self.bail(UnsupportedException::MetaTagCharsetDetermineEncoding);
                     }
                 }
 
@@ -1354,7 +1354,7 @@ impl HtmlProcessor {
                     if http_equiv.eq_ignore_ascii_case(b"Content-Type")
                         && self.state.encoding_confidence == EncodingConfidence::Tentative
                     {
-                        self.bail( "Cannot yet process META tags with http-equiv Content-Type to determine encoding.".to_string() );
+                        return self.bail(UnsupportedException::MetaTagHttpEquivDetermineEncoding);
                     }
                 }
 
@@ -1669,10 +1669,7 @@ impl HtmlProcessor {
                  * > Process the token using the rules for the "in head" insertion mode.
                  * > Remove the node pointed to by the head element pointer from the stack of open elements. (It might not be the current node at this point.)
                  */
-                self.bail(
-                    "Cannot process elements after HEAD which reopen the HEAD element.".to_string(),
-                );
-                todo!()
+                return self.bail(UnsupportedException::AfterHeadElementsReopenHead);
             }
 
             /*
@@ -1880,8 +1877,7 @@ impl HtmlProcessor {
                     /*
                      * > Otherwise, run the following steps:
                      */
-                    self.bail("Cannot process non-ignored FRAMESET tags.".to_string());
-                    todo!()
+                    return self.bail(UnsupportedException::CannotProcessNonIgnoredFrameset);
                 }
             }
 
@@ -2160,8 +2156,7 @@ impl HtmlProcessor {
                  *       a single self-contained tag like TEXTAREA, whose modifiable text
                  *       is the rest of the input document as plaintext.
                  */
-                self.bail("Cannot process PLAINTEXT elements.".to_string());
-                todo!()
+                self.bail(UnsupportedException::CannotProcessPlaintextElements)
             }
 
             /*
@@ -2938,8 +2933,7 @@ impl HtmlProcessor {
 
                     // Non-whitespace would trigger fostering, unsupported at this time.
                     TextNodeClassification::Generic => {
-                        self.bail("Foster parenting is not supported.".to_string());
-                        todo!()
+                        self.bail(UnsupportedException::FosterParenting)
                     }
                 }
             }
@@ -3138,10 +3132,7 @@ impl HtmlProcessor {
              *
              * @todo Indicate a parse error once it's possible.
              */
-            _ => {
-                self.bail("Foster parenting is not supported.".to_string());
-                todo!("bail")
-            }
+            _ => self.bail(UnsupportedException::FosterParenting),
         }
     }
 
@@ -3697,10 +3688,7 @@ impl HtmlProcessor {
              */
             Op::Token(
                 TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
-            ) => {
-                self.bail("Content outside of BODY is unsupported.".to_string());
-                todo!()
-            }
+            ) => self.bail(UnsupportedException::ContentOutsideOfBody),
 
             /*
              * > A DOCTYPE token
@@ -4694,8 +4682,9 @@ impl HtmlProcessor {
             return false;
         }
 
-        self.bail( "Cannot reconstruct active formatting elements when advancing and rewinding is required.".to_string() );
-        todo!()
+        return self.bail(
+            UnsupportedException::ActiveFormattingElementsWhenAdvancingAndRewindingIsRequired,
+        );
     }
 
     /// Runs the reset the insertion mode appropriately algorithm.
@@ -4988,11 +4977,8 @@ impl HtmlProcessor {
             let formatting_element = match formatting_element {
                 Some(element) => element,
                 None => {
-                    self.bail(
-                        "Cannot run adoption agency when \"any other end tag\" is required."
-                            .to_string(),
-                    );
-                    return;
+                    self.bail(UnsupportedException::AdoptionAgencyWhenAnyOtherEndTagIsRequired);
+                    return ();
                 }
             };
 
@@ -5061,12 +5047,11 @@ impl HtmlProcessor {
                 return;
             }
 
-            self.bail("Cannot extract common ancestor in adoption agency algorithm.".to_string());
-            todo!("BAIL");
+            self.bail(UnsupportedException::AdoptionAgencyCannotExtractCommonAncestor);
+            return ();
         }
 
-        self.bail("Cannot run adoption agency when looping required.".to_string());
-        todo!("BAIL");
+        self.bail(UnsupportedException::AdoptionAgencyWhenLoopingRequired);
     }
 
     /// Runs the "close the cell" algorithm.
@@ -5655,25 +5640,6 @@ impl HtmlProcessor {
         }
     }
 }
-
-#[derive(Clone, Debug)]
-pub enum HtmlProcessorError {
-    ExceededMaxBookmarks,
-    UnsupportedException(UnsupportedException),
-}
-impl Into<String> for HtmlProcessorError {
-    fn into(self) -> String {
-        todo!("error into string")
-    }
-}
-impl Into<String> for &HtmlProcessorError {
-    fn into(self) -> String {
-        todo!("&error into string")
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum UnsupportedException {}
 
 #[derive(Debug, PartialEq)]
 enum Op {
