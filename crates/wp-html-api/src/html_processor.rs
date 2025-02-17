@@ -1057,8 +1057,7 @@ impl HtmlProcessor {
             Op::Token(
                 TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
             ) => {
-                let token: HTMLToken = self.state.current_token.clone().unwrap();
-                self.insert_html_element(token);
+                self.insert_html_element(self.state.current_token.clone().unwrap());
                 return true;
             }
 
@@ -3624,7 +3623,171 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_select(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is U+0000 NULL
+             *
+             * If a text node only comprises null bytes then it should be
+             * entirely ignored and should not return to calling code.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::NullSequence =>
+            {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > Any other character token
+             */
+            Op::Token(TokenType::Text) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > A start tag whose tag name is "option"
+             */
+            Op::TagPush(TagName::OPTION) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::OPTION))
+                {
+                    self.pop();
+                }
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "optgroup"
+             * > A start tag whose tag name is "hr"
+             *
+             * These rules are identical except for the treatment of the self-closing flag and
+             * the subsequent pop of the HR void element, all of which is handled elsewhere in the processor.
+             */
+            Op::TagPush(TagName::OPTGROUP | TagName::HR) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::OPTION))
+                {
+                    self.pop();
+                }
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::OPTGROUP))
+                {
+                    self.pop();
+                }
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is "optgroup"
+             */
+            Op::TagPop(TagName::OPTGROUP) => {
+                todo!("step_in_select -OPTGROUP handling");
+            }
+
+            /*
+             * > An end tag whose tag name is "option"
+             */
+            Op::TagPop(TagName::OPTION) => {
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::OPTION))
+                {
+                    self.pop();
+                    true
+                } else {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                }
+            }
+
+            /*
+             * > An end tag whose tag name is "select"
+             * > A start tag whose tag name is "select"
+             *
+             * It just gets treated like an end tag.
+             */
+            Op::TagPop(TagName::SELECT) | Op::TagPush(TagName::SELECT) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_select_scope(&TagName::SELECT)
+                {
+                    // Parse error: ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.pop_until(&TagName::SELECT);
+                    self.reset_insertion_mode_appropriately();
+                    true
+                }
+            }
+            /*
+             * > A start tag whose tag name is one of: "input", "keygen", "textarea"
+             *
+             * All three of these tags are considered a parse error when found in this insertion mode.
+             */
+            Op::TagPush(TagName::INPUT | TagName::KEYGEN | TagName::TEXTAREA) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_select_scope(&TagName::SELECT)
+                {
+                    // Ignore the token.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.pop_until(&TagName::SELECT);
+                    self.reset_insertion_mode_appropriately();
+                    self.step(NodeToProcess::ReprocessCurrentNode)
+                }
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "script", "template"
+             * > An end tag whose tag name is "template"
+             */
+            Op::TagPush(TagName::SCRIPT | TagName::TEMPLATE) | Op::TagPop(TagName::TEMPLATE) => {
+                self.step_in_head()
+            }
+
+            /*
+             * > Anything else
+             * >   Parse error: ignore the token.
+             */
+            _ => self.step(NodeToProcess::ProcessNextNode),
+        }
     }
 
     /// Parses next element in the 'in select in table' insertion mode.

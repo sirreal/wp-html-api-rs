@@ -333,4 +333,35 @@ impl StackOfOpenElements {
     pub fn contains_node(&self, last_entry: &HTMLToken) -> bool {
         self.walk_up().any(|node| node == last_entry)
     }
+
+    /// Returns whether a particular element is in select scope.
+    ///
+    /// This test differs from the others like it, in that its rules are inverted.
+    /// Instead of arriving at a match when one of any tag in a termination group
+    /// is reached, this one terminates if any other tag is reached.
+    ///
+    /// > The stack of open elements is said to have a particular element in select scope when it has
+    /// > that element in the specific scope consisting of all element types except the following:
+    /// >   - optgroup in the HTML namespace
+    /// >   - option in the HTML namespace
+    ///
+    /// @see https://html.spec.whatwg.org/#has-an-element-in-select-scope
+    ///
+    /// @param string $tag_name Name of tag to check.
+    /// @return bool Whether the given element is in SELECT scope.
+    pub fn has_element_in_select_scope(&self, tag_name: &TagName) -> bool {
+        for node in self.walk_up() {
+            if let NodeName::Tag(node_tag_name) = &node.node_name {
+                if node_tag_name == tag_name {
+                    return true;
+                }
+
+                if !matches!(node_tag_name, TagName::OPTION | TagName::OPTGROUP) {
+                    return false;
+                }
+            }
+        }
+
+        false
+    }
 }
