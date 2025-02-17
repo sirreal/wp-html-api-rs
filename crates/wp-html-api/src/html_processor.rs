@@ -2077,7 +2077,49 @@ impl HtmlProcessor {
              * > An end tag whose tag name is "li"
              * > An end tag whose tag name is one of: "dd", "dt"
              */
-            Op::TagPop(tag_name @ (TagName::LI | TagName::DD | TagName::DT)) => todo!(),
+            Op::TagPop(tag_name @ (TagName::LI | TagName::DD | TagName::DT)) => {
+                if
+                /*
+                 * An end tag whose tag name is "li":
+                 * If the stack of open elements does not have an li element in list item scope,
+                 * then this is a parse error; ignore the token.
+                 */
+                (
+                        TagName::LI == tag_name &&
+                        !self.state.stack_of_open_elements.has_element_in_list_item_scope(&TagName::LI)
+                    ) ||
+                    /*
+                     * An end tag whose tag name is one of: "dd", "dt":
+                     * If the stack of open elements does not have an element in scope that is an
+                     * HTML element with the same tag name as that of the token, then this is a
+                     * parse error; ignore the token.
+                     */
+                    (
+                        TagName::LI != tag_name &&
+                        !self.state.stack_of_open_elements.has_element_in_scope(&tag_name)
+                    )
+                {
+                    /*
+                     * This is a parse error, ignore the token.
+                     *
+                     * @todo Indicate a parse error once it's possible.
+                     */
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                self.generate_implied_end_tags(Some(&tag_name));
+
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(tag_name.clone()))
+                {
+                    // @todo Indicate a parse error once it's possible. This error does not impact the logic here.
+                }
+
+                self.pop_until(&tag_name);
+                true
+            }
 
             /*
              * > An end tag whose tag name is one of: "h1", "h2", "h3", "h4", "h5", "h6"

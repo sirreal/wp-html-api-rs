@@ -364,4 +364,50 @@ impl StackOfOpenElements {
 
         false
     }
+
+    /// Returns whether a particular element is in list item scope.
+    ///
+    /// > The stack of open elements is said to have a particular element
+    /// > in list item scope when it has that element in the specific scope
+    /// > consisting of the following element types:
+    /// >
+    /// >   - All the element types listed above for the has an element in scope algorithm.
+    /// >   - ol in the HTML namespace
+    /// >   - ul in the HTML namespace
+    ///
+    /// @see https://html.spec.whatwg.org/#has-an-element-in-list-item-scope
+    ///
+    /// @param string $tag_name Name of tag to check.
+    /// @return bool Whether given element is in scope.
+    pub fn has_element_in_list_item_scope(&self, tag_name: &TagName) -> bool {
+        self.has_element_in_specific_scope(
+            tag_name,
+            &[
+                // HTML
+                (&TagName::APPLET, &ParsingNamespace::Html),
+                (&TagName::BUTTON, &ParsingNamespace::Html),
+                (&TagName::CAPTION, &ParsingNamespace::Html),
+                (&TagName::HTML, &ParsingNamespace::Html),
+                (&TagName::TABLE, &ParsingNamespace::Html),
+                (&TagName::TD, &ParsingNamespace::Html),
+                (&TagName::TH, &ParsingNamespace::Html),
+                (&TagName::MARQUEE, &ParsingNamespace::Html),
+                (&TagName::OBJECT, &ParsingNamespace::Html),
+                (&TagName::OL, &ParsingNamespace::Html),
+                (&TagName::TEMPLATE, &ParsingNamespace::Html),
+                (&TagName::UL, &ParsingNamespace::Html),
+                // Math
+                (&TagName::MI, &ParsingNamespace::MathML),
+                (&TagName::MO, &ParsingNamespace::MathML),
+                (&TagName::MN, &ParsingNamespace::MathML),
+                (&TagName::MS, &ParsingNamespace::MathML),
+                (&TagName::MTEXT, &ParsingNamespace::MathML),
+                (&TagName::ANNOTATION_XML, &ParsingNamespace::MathML),
+                // SVG
+                (&TagName::FOREIGNOBJECT, &ParsingNamespace::Svg),
+                (&TagName::DESC, &ParsingNamespace::Svg),
+                (&TagName::TITLE, &ParsingNamespace::Svg),
+            ],
+        )
+    }
 }
