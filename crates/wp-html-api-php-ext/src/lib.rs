@@ -155,15 +155,11 @@ impl WP_HTML_Processor {
         })
     }
 
-    pub fn get_unsupported_exception(
-        #[this] this: &mut ZendClassObject<Self>,
-    ) -> Option<ZBox<ZendObject>> {
-        this.processor.get_unsupported_exception().map(|value| {
-            let s: &str = value.into();
-            let mut obj = ZendObject::new_stdclass();
-            let _ = obj.set_property("message", s.to_owned());
-            obj
-        })
+    pub fn get_unsupported_exception(#[this] this: &mut ZendClassObject<Self>) -> Result<(), &str> {
+        match this.processor.get_unsupported_exception() {
+            Some(e) => Err(e.into()),
+            None => Ok(()),
+        }
     }
 
     pub fn is_tag_closer(#[this] this: &mut ZendClassObject<Self>) -> bool {
