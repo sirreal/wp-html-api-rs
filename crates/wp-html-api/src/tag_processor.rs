@@ -1459,7 +1459,179 @@ impl TagProcessor {
     ///    tag instead of to the first text node inside the element.
     ///
     /// @return string
-    pub fn get_modifiable_text(&self) -> Box<[u8]> {}
+    pub fn get_modifiable_text(&self) -> Box<[u8]> {
+        // TODO: This isn't the same, PHP uses mixed numeric/associative array keys for lexical
+        // updates and a named key "modifiable text".
+        let has_enqueued_update = !self.lexical_updates.is_empty();
+
+        if !has_enqueued_update
+            && (self.text_starts_at.is_none() || self.text_length.map_or(true, |x| x == 0))
+        {
+            return Box::new([]);
+        }
+
+        if has_enqueued_update {
+            unimplemented!("Lexical update handling is not yet implemented get_modifiable_text.");
+        }
+
+        let text_starts_at = if let Some(text_starts_at) = self.text_starts_at {
+            text_starts_at
+        } else {
+            return Box::new([]);
+        };
+        let text_length = if let Some(text_length) = self.text_length {
+            text_length
+        } else {
+            return Box::new([]);
+        };
+
+        let text = {
+            let text = substr(&self.html_bytes, text_starts_at, text_length);
+
+            /*
+             * Pre-processing the input stream would normally happen before
+             * any parsing is done, but deferring it means it's possible to
+             * skip in most cases. When getting the modifiable text, however
+             * it's important to apply the pre-processing steps, which is
+             * normalizing newlines.
+             *
+             * @see https://html.spec.whatwg.org/#preprocessing-the-input-stream
+             * @see https://infra.spec.whatwg.org/#normalize-newlines
+             */
+
+            let mut text_normalized: Vec<u8> = Vec::new();
+            let mut chars = text.iter().peekable();
+            while let Some(&c) = chars.next() {
+                match c {
+                    b'\r' => {
+                        if chars.peek() == Some(&&b'\n') {
+                            chars.next(); // consume the following '\n'
+                            text_normalized.push(b'\n');
+                        } else {
+                            text_normalized.push(b'\n');
+                        }
+                    }
+                    b'\0' => {
+                        "\u{FFFD}"
+                            .as_bytes()
+                            .iter()
+                            .for_each(|c| text_normalized.push(*c));
+                    }
+                    _ => text_normalized.push(c),
+                }
+            }
+            text_normalized
+        };
+
+        // Comment data is not decoded.
+        if matches!(
+            self.parser_state,
+            ParserState::CDATANode
+                | ParserState::Comment
+                | ParserState::Doctype
+                | ParserState::FunkyComment
+        ) {
+            return text
+                .iter()
+                .flat_map(|&c| -> Vec<u8> {
+                    if c == b'\0' {
+                        "\u{FFFD}".as_bytes().into()
+                    } else {
+                        vec![c]
+                    }
+                })
+                .collect::<Vec<u8>>()
+                .into();
+        }
+
+        if let Some(tag_name) = self.get_tag() {
+            if matches!(
+                tag_name,
+                // Script data is not decoded.
+                TagName::SCRIPT
+                    |
+
+                // RAWTEXT data is not decoded.
+                TagName::IFRAME
+                    | TagName::NOEMBED
+                    | TagName::NOFRAMES
+                    | TagName::STYLE
+                    | TagName::XMP
+            ) {
+                return text
+                    .iter()
+                    .flat_map(|&c| -> Vec<u8> {
+                        if c == b'\0' {
+                            "\u{FFFD}".as_bytes().into()
+                        } else {
+                            vec![c]
+                        }
+                    })
+                    .collect::<Vec<u8>>()
+                    .into();
+            }
+        }
+
+        // @todo decode the text.
+        let mut text = text;
+
+        /*
+         * Skip the first line feed after LISTING, PRE, and TEXTAREA opening tags.
+         *
+         * Note that this first newline may come in the form of a character
+         * reference, such as `&#x0a;`, and so it's important to perform
+         * this transformation only after decoding the raw text content.
+         */
+        if b'\n' == text[0] {
+            if let Some(token_name) = self.get_token_name() {
+                if (self.skip_newline_at.is_some()
+                    && self.skip_newline_at == self.token_starts_at
+                    && token_name == NodeName::Token(TokenType::Text))
+                    || token_name == NodeName::Tag(TagName::TEXTAREA)
+                {
+                    text.remove(0);
+                }
+            }
+        }
+
+        /*
+         * Only in normative text nodes does the NULL byte (U+0000) get removed.
+         * In all other contexts it's replaced by the replacement character (U+FFFD)
+         * for security reasons (to avoid joining together strings that were safe
+         * when separated, but not when joined).
+         *
+         * @todo Inside HTML integration points and MathML integration points, the
+         *       text is processed according to the insertion mode, not according
+         *       to the foreign content rules. This should strip the NULL bytes.
+         */
+        if self.parsing_namespace == ParsingNamespace::Html
+            && self.get_token_type() == Some(TokenType::Text)
+        {
+            return text
+                .iter()
+                .flat_map(|&c| -> Option<u8> {
+                    if c == b'\0' {
+                        None
+                    } else {
+                        Some(c)
+                    }
+                })
+                .collect::<Vec<u8>>()
+                .into();
+        } else {
+            return text
+                .iter()
+                .flat_map(|&c| -> Vec<u8> {
+                    if c == b'\0' {
+                        "\u{FFFD}".as_bytes().into()
+                    } else {
+                        vec![c]
+                    }
+                })
+                .collect::<Vec<u8>>()
+                .into();
+        }
+    }
 
     /// Sets the modifiable text for the matched token, if matched.
     ///
@@ -1503,7 +1675,7 @@ impl TagProcessor {
     /// @param string $plaintext_content New text content to represent in the matched token.
     ///
     /// @return bool Whether the text was able to update.
-    pub fn set_modifiable_text(&self, updated_text: &str) -> bool {
+    pub fn set_modifiable_text(&mut self, updated_text: &str) -> bool {
         unimplemented!("set_modifiable_text is not yet implemented.")
     }
 
