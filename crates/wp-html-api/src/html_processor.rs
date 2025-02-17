@@ -3117,7 +3117,102 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_column_group(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
+             * > U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // @todo Indicate a parse error once it's possible.
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > A start tag whose tag name is "col"
+             */
+            Op::TagPush(TagName::COL) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.pop();
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is "colgroup"
+             */
+            Op::TagPop(TagName::COLGROUP) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::COLGROUP))
+                {
+                    // @todo Indicate a parse error once it's possible.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.pop();
+                    self.state.insertion_mode = InsertionMode::IN_TABLE;
+                    true
+                }
+            }
+
+            /*
+             * > An end tag whose tag name is "col"
+             */
+            Op::TagPop(TagName::COL) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "template"
+             * > An end tag whose tag name is "template"
+             */
+            Op::TagPush(TagName::TEMPLATE) | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+
+            /*
+             * > Anything else
+             */
+            _ => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::COLGROUP))
+                {
+                    // @todo Indicate a parse error once it's possible.
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.pop();
+                    self.state.insertion_mode = InsertionMode::IN_TABLE;
+                    self.step(NodeToProcess::ReprocessCurrentNode)
+                }
+            }
+        }
     }
 
     /// Parses next element in the 'in table body' insertion mode.
