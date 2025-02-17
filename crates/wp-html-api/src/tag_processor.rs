@@ -926,12 +926,93 @@ impl TagProcessor {
         true
     }
 
+    /// Returns the uppercase name of the matched tag.
+    ///
+    /// Example:
+    ///
+    ///     $p = new WP_HTML_Tag_Processor( '<div class="test">Test</div>' );
+    ///     $p->next_tag() === true;
+    ///     $p->get_tag() === 'DIV';
+    ///
+    ///     $p->next_tag() === false;
+    ///     $p->get_tag() === null;
+    ///
+    /// @return string|null Name of currently matched tag in input HTML, or `null` if none found.
     pub fn get_tag(&self) -> Option<TagName> {
         if let (Some(at), Some(length)) = (self.tag_name_starts_at, self.tag_name_length) {
             Some(substr(&self.html_bytes, at, length).into())
         } else {
             None
         }
+    }
+
+    /// Returns the adjusted tag name for a given token, taking into
+    /// account the current parsing context, whether HTML, SVG, or MathML.
+    ///
+    /// @todo move this to the tag_name module.
+    ///
+    /// @return string|null Name of current tag name.
+    pub fn get_qualified_tag_name(&self) -> Option<Box<[u8]>> {
+        let tag_name = self.get_tag()?;
+
+        Some(match self.get_namespace() {
+            ParsingNamespace::Html => tag_name.into(),
+            ParsingNamespace::MathML => {
+                let s: Box<[u8]> = tag_name.into();
+                let lower = s.to_ascii_lowercase();
+                lower.into()
+            }
+            ParsingNamespace::Svg => match tag_name {
+                TagName::Arbitrary(arbitrary_name) => {
+                    match arbitrary_name.to_ascii_lowercase().as_slice() {
+                        b"altglyph" => b"altGlyph".as_slice(),
+                        b"altglyphdef" => b"altGlyphDef",
+                        b"altglyphitem" => b"altGlyphItem",
+                        b"animatecolor" => b"animateColor",
+                        b"animatemotion" => b"animateMotion",
+                        b"animatetransform" => b"animateTransform",
+                        b"clippath" => b"clipPath",
+                        b"feblend" => b"feBlend",
+                        b"fecolormatrix" => b"feColorMatrix",
+                        b"fecomponenttransfer" => b"feComponentTransfer",
+                        b"fecomposite" => b"feComposite",
+                        b"feconvolvematrix" => b"feConvolveMatrix",
+                        b"fediffuselighting" => b"feDiffuseLighting",
+                        b"fedisplacementmap" => b"feDisplacementMap",
+                        b"fedistantlight" => b"feDistantLight",
+                        b"fedropshadow" => b"feDropShadow",
+                        b"feflood" => b"feFlood",
+                        b"fefunca" => b"feFuncA",
+                        b"fefuncb" => b"feFuncB",
+                        b"fefuncg" => b"feFuncG",
+                        b"fefuncr" => b"feFuncR",
+                        b"fegaussianblur" => b"feGaussianBlur",
+                        b"feimage" => b"feImage",
+                        b"femerge" => b"feMerge",
+                        b"femergenode" => b"feMergeNode",
+                        b"femorphology" => b"feMorphology",
+                        b"feoffset" => b"feOffset",
+                        b"fepointlight" => b"fePointLight",
+                        b"fespecularlighting" => b"feSpecularLighting",
+                        b"fespotlight" => b"feSpotLight",
+                        b"fetile" => b"feTile",
+                        b"feturbulence" => b"feTurbulence",
+                        b"foreignobject" => b"foreignObject",
+                        b"glyphref" => b"glyphRef",
+                        b"lineargradient" => b"linearGradient",
+                        b"radialgradient" => b"radialGradient",
+                        b"textpath" => b"textPath",
+                        otherwise => otherwise,
+                    }
+                    .into()
+                }
+                _ => {
+                    let s: Box<[u8]> = tag_name.into();
+                    let lower = s.to_ascii_lowercase();
+                    lower.into()
+                }
+            },
+        })
     }
 
     /// Indicates the kind of matched token, if any.
@@ -1442,12 +1523,6 @@ impl TagProcessor {
     /// Returns the namespace of the matched token.
     pub fn get_namespace(&self) -> ParsingNamespace {
         self.parsing_namespace.clone()
-    }
-
-    /// Returns the adjusted tag name for a given token, taking into
-    /// account the current parsing context, whether HTML, SVG, or MathML.
-    pub fn get_qualified_tag_name(&self) -> Option<Rc<str>> {
-        todo!()
     }
 
     /// Returns the modifiable text for a matched token, or an empty string.

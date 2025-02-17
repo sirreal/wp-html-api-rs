@@ -4439,6 +4439,14 @@ impl HtmlProcessor {
         option_tag_name
     }
 
+    /// Returns the adjusted tag name for a given token, taking into
+    /// account the current parsing context, whether HTML, SVG, or MathML.
+    ///
+    /// @return string|null Name of current tag name.
+    pub fn get_qualified_tag_name(&self) -> Option<Box<[u8]>> {
+        self.tag_processor.get_qualified_tag_name()
+    }
+
     /// Indicates if the currently matched tag contains the self-closing flag.
     ///
     /// No HTML elements ought to have the self-closing flag and for those, the self-closing

@@ -43,6 +43,13 @@ impl WP_HTML_Tag_Processor {
         })
     }
 
+    pub fn get_qualified_tag_name(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
+        this.processor.get_qualified_tag_name().map(|tag_name| {
+            let tag_name: Box<[u8]> = tag_name.into();
+            tag_name.to_vec().into()
+        })
+    }
+
     pub fn get_token_type(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
         this.processor.get_token_type().map(|t| t.into())
     }
@@ -117,6 +124,13 @@ impl WP_HTML_Processor {
         })
     }
 
+    pub fn get_qualified_tag_name(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
+        this.processor.get_qualified_tag_name().map(|tag_name| {
+            let tag_name: Box<[u8]> = tag_name.into();
+            tag_name.to_vec().into()
+        })
+    }
+
     pub fn get_token_type(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
         this.processor.get_token_type().map(|t| t.into())
     }
@@ -155,6 +169,7 @@ impl WP_HTML_Processor {
         })
     }
 
+    // Fix this to _return_ a nullable value.
     pub fn get_unsupported_exception(#[this] this: &mut ZendClassObject<Self>) -> Result<(), &str> {
         match this.processor.get_unsupported_exception() {
             Some(e) => Err(e.into()),
