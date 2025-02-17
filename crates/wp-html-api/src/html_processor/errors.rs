@@ -41,6 +41,7 @@ pub enum UnsupportedException {
     AdoptionAgencyWhenAnyOtherEndTagIsRequired,
     AdoptionAgencyCannotExtractCommonAncestor,
     AdoptionAgencyWhenLoopingRequired,
+    ContentOutsideOfHtml,
 }
 impl std::fmt::Display for UnsupportedException {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -72,6 +73,7 @@ impl Into<&str> for UnsupportedException {
 E::AdoptionAgencyWhenAnyOtherEndTagIsRequired =>                                    "Cannot run adoption agency when \"any other end tag\" is required.",
             E::AdoptionAgencyCannotExtractCommonAncestor => "Cannot extract common ancestor in adoption agency algorithm.",
             E::AdoptionAgencyWhenLoopingRequired => "Cannot run adoption agency when looping required.",
+            E::ContentOutsideOfHtml => "Content outside of HTML is unsupported.",
         }
     }
 }
