@@ -8,6 +8,7 @@ mod stack_of_open_elements;
 use std::{collections::VecDeque, rc::Rc};
 
 use crate::{
+    doctype::HtmlDoctypeInfo,
     tag_name::TagName,
     tag_processor::{
         AttributeValue, CommentType, CompatMode, HtmlSpan, NodeName, ParserState, ParsingNamespace,
@@ -434,6 +435,21 @@ impl HtmlProcessor {
             Some(HtmlProcessorError::UnsupportedException(e)) => Some(e),
             _ => None,
         }
+    }
+
+    /// Gets DOCTYPE declaration info from a DOCTYPE token.
+    ///
+    /// DOCTYPE tokens may appear in many places in an HTML document. In most places, they are
+    /// simply ignored. The main parsing functions find the basic shape of DOCTYPE tokens but
+    /// do not perform detailed parsing.
+    ///
+    /// This method can be called to perform a full parse of the DOCTYPE token and retrieve
+    /// its information.
+    ///
+    /// @return WP_HTML_Doctype_Info|null The DOCTYPE declaration information or `null` if not
+    ///                                   currently at a DOCTYPE node.
+    pub fn get_doctype_info(&self) -> Option<HtmlDoctypeInfo> {
+        self.tag_processor.get_doctype_info()
     }
 
     /// Finds the next tag matching the query.
