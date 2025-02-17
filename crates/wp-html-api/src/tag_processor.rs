@@ -496,7 +496,7 @@ impl TagProcessor {
                  * `<!--` transitions to a comment state – apply further comment rules.
                  * https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
                  */
-                if &self.html_bytes[at + 2..at + 4] == b"--" {
+                if self.html_bytes.len() > at + 3 && &self.html_bytes[at + 2..at + 4] == b"--" {
                     let mut closer_at = at + 4;
                     // If it's not possible to close the comment then there is nothing more to scan.
                     if self.html_bytes.len() <= closer_at {
