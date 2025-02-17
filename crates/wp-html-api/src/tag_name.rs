@@ -190,6 +190,7 @@ impl From<&[u8]> for TagName {
             b"HTML" => Self::HTML,
             b"I" => Self::I,
             b"IFRAME" => Self::IFRAME,
+            b"IMAGE" => Self::IMG,
             b"IMG" => Self::IMG,
             b"INPUT" => Self::INPUT,
             b"KEYGEN" => Self::KEYGEN,

@@ -74,6 +74,10 @@ impl WP_HTML_Tag_Processor {
                     .collect::<Vec<Binary<u8>>>()
             })
     }
+
+    pub fn paused_at_incomplete_token(#[this] this: &ZendClassObject<Self>) -> bool {
+        this.processor.paused_at_incomplete_token()
+    }
 }
 
 #[php_class]
@@ -145,7 +149,21 @@ impl WP_HTML_Processor {
     }
 
     pub fn get_last_error(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
-        this.processor.get_last_error().map(Into::into)
+        this.processor.get_last_error().map(|value| {
+            let s: &str = value.into();
+            s.to_owned()
+        })
+    }
+
+    pub fn get_unsupported_exception(
+        #[this] this: &mut ZendClassObject<Self>,
+    ) -> Option<ZBox<ZendObject>> {
+        this.processor.get_unsupported_exception().map(|value| {
+            let s: &str = value.into();
+            let mut obj = ZendObject::new_stdclass();
+            let _ = obj.set_property("message", s.to_owned());
+            obj
+        })
     }
 
     pub fn is_tag_closer(#[this] this: &mut ZendClassObject<Self>) -> bool {
@@ -170,6 +188,10 @@ impl WP_HTML_Processor {
         this.processor
             .get_doctype_info()
             .map(|internal| WP_HTML_Doctype_Info { internal })
+    }
+
+    pub fn paused_at_incomplete_token(#[this] this: &ZendClassObject<Self>) -> bool {
+        this.processor.paused_at_incomplete_token()
     }
 }
 

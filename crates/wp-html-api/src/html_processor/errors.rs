@@ -10,21 +10,20 @@ impl std::error::Error for HtmlProcessorError {
 }
 impl std::fmt::Display for HtmlProcessorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s: String = self.into();
-        f.write_str(s.as_str())
+        f.write_str(self.into())
     }
 }
-impl Into<String> for HtmlProcessorError {
-    fn into(self) -> String {
+impl Into<&str> for HtmlProcessorError {
+    fn into(self) -> &'static str {
         match self {
-            HtmlProcessorError::ExceededMaxBookmarks => "Exceeded max bookmarks.".into(),
-            HtmlProcessorError::UnsupportedException(e) => format!("Unsupported exception({})", e),
+            HtmlProcessorError::ExceededMaxBookmarks => "exceeded-max-bookmarks",
+            HtmlProcessorError::UnsupportedException(_) => "unsupported",
         }
     }
 }
-impl Into<String> for &HtmlProcessorError {
-    fn into(self) -> String {
-        Into::<String>::into(*self)
+impl Into<&str> for &HtmlProcessorError {
+    fn into(self) -> &'static str {
+        Into::<&str>::into(*self)
     }
 }
 

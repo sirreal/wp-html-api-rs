@@ -4348,6 +4348,20 @@ impl HtmlProcessor {
      * Internal helpers
      */
 
+    /// Whether the processor paused because the input HTML document ended
+    /// in the middle of a syntax element, such as in the middle of a tag.
+    ///
+    /// Example:
+    ///
+    ///     $processor = new WP_HTML_Tag_Processor( '<input type="text" value="Th' );
+    ///     false      === $processor->get_next_tag();
+    ///     true       === $processor->paused_at_incomplete_token();
+    ///
+    /// @return bool Whether the parse paused at the start of an incomplete token.
+    pub fn paused_at_incomplete_token(&self) -> bool {
+        self.tag_processor.paused_at_incomplete_token()
+    }
+
     /// Creates a new bookmark for the currently-matched token and returns the generated name.
     ///
     /// @throws Exception When unable to allocate requested bookmark.
