@@ -3,8 +3,9 @@ use ext_php_rs::{
     binary::Binary, binary_slice::BinarySlice, builders::ModuleBuilder, prelude::*,
     types::ZendClassObject,
 };
+use wp_html_api::doctype::HtmlDoctypeInfo;
 use wp_html_api::html_processor::HtmlProcessor;
-use wp_html_api::tag_processor::{NodeName, TagProcessor};
+use wp_html_api::tag_processor::{CompatMode, NodeName, TagProcessor};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -49,8 +50,8 @@ impl WP_HTML_Tag_Processor {
         todo!();
     }
 
-    pub fn get_modifiable_text(#[this] this: &mut ZendClassObject<Self>) -> String {
-        this.processor.get_modifiable_text().as_ref().into()
+    pub fn get_modifiable_text(#[this] this: &mut ZendClassObject<Self>) -> Binary<u8> {
+        this.processor.get_modifiable_text().to_vec().into()
     }
 
     pub fn set_modifiable_text(
@@ -156,6 +157,62 @@ impl WP_HTML_Processor {
 
     pub fn expects_closer(#[this] this: &mut ZendClassObject<Self>) -> Option<bool> {
         this.processor.expects_closer(None)
+    }
+
+    pub fn get_modifiable_text(#[this] this: &mut ZendClassObject<Self>) -> Binary<u8> {
+        this.processor.get_modifiable_text().to_vec().into()
+    }
+
+    pub fn get_doctype_info(
+        #[this] this: &mut ZendClassObject<Self>,
+    ) -> Option<WP_HTML_Doctype_Info> {
+        this.processor
+            .get_doctype_info()
+            .map(|internal| WP_HTML_Doctype_Info { internal })
+    }
+}
+
+#[php_class]
+pub struct WP_HTML_Doctype_Info {
+    internal: HtmlDoctypeInfo,
+}
+
+#[php_impl(rename_methods = "none")]
+impl WP_HTML_Doctype_Info {
+    pub fn from_doctype_token(html: BinarySlice<u8>) -> Option<Self> {
+        let html = html.to_vec();
+        HtmlDoctypeInfo::from_doctype_token(&html).map(|internal| Self { internal })
+    }
+
+    #[getter]
+    pub fn name(&self) -> Option<Binary<u8>> {
+        self.internal.name.as_ref().map(|val| val.to_vec().into())
+    }
+
+    #[getter]
+    pub fn public_identifier(&self) -> Option<Binary<u8>> {
+        self.internal
+            .public_identifier
+            .as_ref()
+            .map(|val| val.to_vec().into())
+    }
+
+    #[getter]
+    pub fn system_identifier(&self) -> Option<Binary<u8>> {
+        self.internal
+            .system_identifier
+            .as_ref()
+            .map(|val| val.to_vec().into())
+    }
+
+    #[getter]
+    pub fn indicated_compatability_mode(&self) -> String {
+        match self.internal.indicated_compatability_mode {
+            CompatMode::NoQuirks => "no-quirks-mode",
+            CompatMode::Quirks => "quirks-mode",
+            CompatMode::LimitedQuirks => "limited-quirks",
+        }
+        .into()
     }
 }
 
