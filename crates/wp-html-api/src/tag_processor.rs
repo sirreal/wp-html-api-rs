@@ -1436,20 +1436,75 @@ impl TagProcessor {
         todo!()
     }
 
-    pub fn get_modifiable_text(&self) -> Rc<str> {
-        match (self.text_starts_at, self.text_length) {
-            (Some(at), Some(length)) => {
-                String::from_utf8(self.html_bytes[at..(at + length)].to_vec())
-                    .unwrap()
-                    .as_str()
-                    .into()
-            }
-            _ => "".into(),
-        }
-    }
+    /// Returns the modifiable text for a matched token, or an empty string.
+    ///
+    /// Modifiable text is text content that may be read and changed without
+    /// changing the HTML structure of the document around it. This includes
+    /// the contents of `#text` nodes in the HTML as well as the inner
+    /// contents of HTML comments, Processing Instructions, and others, even
+    /// though these nodes aren't part of a parsed DOM tree. They also contain
+    /// the contents of SCRIPT and STYLE tags, of TEXTAREA tags, and of any
+    /// other section in an HTML document which cannot contain HTML markup (DATA).
+    ///
+    /// If a token has no modifiable text then an empty string is returned to
+    /// avoid needless crashing or type errors. An empty string does not mean
+    /// that a token has modifiable text, and a token with modifiable text may
+    /// have an empty string (e.g. a comment with no contents).
+    ///
+    /// Limitations:
+    ///
+    ///  - This function will not strip the leading newline appropriately
+    ///    after seeking into a LISTING or PRE element. To ensure that the
+    ///    newline is treated properly, seek to the LISTING or PRE opening
+    ///    tag instead of to the first text node inside the element.
+    ///
+    /// @return string
+    pub fn get_modifiable_text(&self) -> Box<[u8]> {}
 
+    /// Sets the modifiable text for the matched token, if matched.
+    ///
+    /// Modifiable text is text content that may be read and changed without
+    /// changing the HTML structure of the document around it. This includes
+    /// the contents of `#text` nodes in the HTML as well as the inner
+    /// contents of HTML comments, Processing Instructions, and others, even
+    /// though these nodes aren't part of a parsed DOM tree. They also contain
+    /// the contents of SCRIPT and STYLE tags, of TEXTAREA tags, and of any
+    /// other section in an HTML document which cannot contain HTML markup (DATA).
+    ///
+    /// Not all modifiable text may be set by this method, and not all content
+    /// may be set as modifiable text. In the case that this fails it will return
+    /// `false` indicating as much. For instance, it will not allow inserting the
+    /// string `</script` into a SCRIPT element, because the rules for escaping
+    /// that safely are complicated. Similarly, it will not allow setting content
+    /// into a comment which would prematurely terminate the comment.
+    ///
+    /// Example:
+    ///
+    ///     // Add a preface to all STYLE contents.
+    ///     while ( $processor->next_tag( 'STYLE' ) ) {
+    ///         $style = $processor->get_modifiable_text();
+    ///         $processor->set_modifiable_text( "// Made with love on the World Wide Web\n{$style}" );
+    ///     }
+    ///
+    ///     // Replace smiley text with Emoji smilies.
+    ///     while ( $processor->next_token() ) {
+    ///         if ( '#text' !== $processor->get_token_name() ) {
+    ///             continue;
+    ///         }
+    ///
+    ///         $chunk = $processor->get_modifiable_text();
+    ///         if ( ! str_contains( $chunk, ':)' ) ) {
+    ///             continue;
+    ///         }
+    ///
+    ///         $processor->set_modifiable_text( str_replace( ':)', '🙂', $chunk ) );
+    ///     }
+    ///
+    /// @param string $plaintext_content New text content to represent in the matched token.
+    ///
+    /// @return bool Whether the text was able to update.
     pub fn set_modifiable_text(&self, updated_text: &str) -> bool {
-        false
+        unimplemented!("set_modifiable_text is not yet implemented.")
     }
 
     /// Checks whether a bookmark with the given name exists.

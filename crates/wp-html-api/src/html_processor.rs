@@ -4328,8 +4328,12 @@ impl HtmlProcessor {
     /// have an empty string (e.g. a comment with no contents).
     ///
     /// @return string
-    pub fn get_modifiable_text(&self) -> Rc<str> {
-        todo!("get_modifiable_text");
+    pub fn get_modifiable_text(&self) -> Box<[u8]> {
+        if self.is_virtual() {
+            Box::new([])
+        } else {
+            self.tag_processor.get_modifiable_text()
+        }
     }
 
     /// Indicates what kind of comment produced the comment node.
