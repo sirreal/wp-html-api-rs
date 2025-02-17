@@ -5729,7 +5729,6 @@ impl HtmlProcessor {
             self.after_pop(token);
             true
         } else {
-            unreachable!("Failed to remove node.");
             false
         }
     }

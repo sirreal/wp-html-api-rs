@@ -1,5 +1,3 @@
-use std::fs::write;
-
 #[derive(Clone, Copy, Debug)]
 pub enum HtmlProcessorError {
     ExceededMaxBookmarks,

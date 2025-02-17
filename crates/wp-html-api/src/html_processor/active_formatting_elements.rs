@@ -120,7 +120,6 @@ impl ActiveFormattingElements {
             self.stack.remove(idx);
             true
         } else {
-            unreachable!("Failed to remove node.");
             false
         }
     }

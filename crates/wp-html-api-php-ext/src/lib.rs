@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types)]
+
 use ext_php_rs::{
     binary::Binary, binary_slice::BinarySlice, builders::ModuleBuilder, prelude::*,
     types::ZendClassObject,
