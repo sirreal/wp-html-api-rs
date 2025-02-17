@@ -42,6 +42,7 @@ pub enum UnsupportedException {
     AdoptionAgencyCannotExtractCommonAncestor,
     AdoptionAgencyWhenLoopingRequired,
     ContentOutsideOfHtml,
+    NonWhitespaceTextInFrameset,
 }
 impl std::fmt::Display for UnsupportedException {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -74,6 +75,7 @@ E::AdoptionAgencyWhenAnyOtherEndTagIsRequired =>                                
             E::AdoptionAgencyCannotExtractCommonAncestor => "Cannot extract common ancestor in adoption agency algorithm.",
             E::AdoptionAgencyWhenLoopingRequired => "Cannot run adoption agency when looping required.",
             E::ContentOutsideOfHtml => "Content outside of HTML is unsupported.",
+            E::NonWhitespaceTextInFrameset =>"Non-whitespace characters cannot be handled in frameset." ,
         }
     }
 }

@@ -718,7 +718,6 @@ impl HtmlProcessor {
     ///     $processor->get_breadcrumbs() === array( 'HTML', 'BODY', 'P', 'STRONG', 'EM', 'IMG' );
     ///
     /// @return string[] Array of tag names representing path to matched node.
-
     pub fn get_breadcrumbs() -> () {
         todo!()
     }
@@ -3776,7 +3775,122 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_frameset(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
+             * >   U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             * >
+             * > Insert the character.
+             *
+             * This algorithm effectively strips non-whitespace characters from text and inserts
+             * them under HTML. This is not supported at this time.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                self.step_in_body()
+            }
+            Op::Token(TokenType::Text) => {
+                self.bail(UnsupportedException::NonWhitespaceTextInFrameset)
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > A start tag whose tag name is "frameset"
+             */
+            Op::TagPush(TagName::FRAMESET) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > An end tag whose tag name is "frameset"
+             */
+            Op::TagPop(TagName::FRAMESET) => {
+                /*
+                 * > If the current node is the root html element, then this is a parse error;
+                 * > ignore the token. (fragment case)
+                 */
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::HTML))
+                {
+                    return self.step(NodeToProcess::ProcessNextNode);
+                }
+
+                /*
+                 * > Otherwise, pop the current node from the stack of open elements.
+                 */
+                self.pop();
+
+                /*
+                 * > If the parser was not created as part of the HTML fragment parsing algorithm
+                 * > (fragment case), and the current node is no longer a frameset element, then
+                 * > switch the insertion mode to "after frameset".
+                 */
+                if self.context_node.is_none()
+                    && !self
+                        .state
+                        .stack_of_open_elements
+                        .current_node_is(&NodeName::Tag(TagName::FRAMESET))
+                {
+                    self.state.insertion_mode = InsertionMode::AFTER_FRAMESET;
+                }
+
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "frame"
+             *
+             * > Insert an HTML element for the token. Immediately pop the
+             * > current node off the stack of open elements.
+             * >
+             * > Acknowledge the token's self-closing flag, if it is set.
+             */
+            Op::TagPush(TagName::FRAME) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                self.pop();
+                true
+            }
+
+            /*
+             * > A start tag whose tag name is "noframes"
+             */
+            Op::TagPush(TagName::NOFRAMES) => self.step_in_head(),
+
+            /*
+             * > Anything else
+             */
+            _ => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+        }
     }
 
     /// Parses next element in the 'after frameset' insertion mode.
