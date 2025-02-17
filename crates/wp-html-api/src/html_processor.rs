@@ -3678,7 +3678,76 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_after_body(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
+             * >   U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             *
+             * > Process the token using the rules for the "in body" insertion mode.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                self.step_in_body()
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.bail("Content outside of BODY is unsupported.".to_string());
+                todo!()
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > An end tag whose tag name is "html"
+             *
+             * > If the parser was created as part of the HTML fragment parsing algorithm,
+             * > this is a parse error; ignore the token. (fragment case)
+             * >
+             * > Otherwise, switch the insertion mode to "after after body".
+             */
+            Op::TagPop(TagName::HTML) => {
+                if self.context_node.is_some() {
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.state.insertion_mode = InsertionMode::AFTER_AFTER_BODY;
+                    /*
+                     * The HTML element is not removed from the stack of open elements.
+                     * Only internal state has changed, this does not qualify as a "step"
+                     * in terms of advancing through the document to another token.
+                     * Nothing has been pushed or popped.
+                     * Proceed to parse the next item.
+                     */
+                    self.step(NodeToProcess::ProcessNextNode)
+                }
+            }
+
+            _ => {
+                /*
+                 * > Anything else
+                 *   > Parse error. Switch the insertion mode to "in body" and reprocess the token.
+                 */
+                self.state.insertion_mode = InsertionMode::IN_BODY;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+        }
     }
 
     /// Parses next element in the 'in frameset' insertion mode.
