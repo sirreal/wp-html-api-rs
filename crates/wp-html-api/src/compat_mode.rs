@@ -30,8 +30,8 @@ impl Into<String> for &CompatMode {
 impl Into<&str> for &CompatMode {
     fn into(self) -> &'static str {
         match self {
-            CompatMode::NoQuirks => "no-quirks-mode",
-            CompatMode::Quirks => "quirks-mode",
+            CompatMode::NoQuirks => "no-quirks",
+            CompatMode::Quirks => "quirks",
             CompatMode::LimitedQuirks => "limited-quirks",
         }
     }
