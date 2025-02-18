@@ -300,7 +300,7 @@ impl HtmlProcessor {
         // Handle null/None query case
         if query.is_none() {
             while self.next_token() {
-                if self.get_token_type() != Some(TokenType::Tag) {
+                if self.get_token_type() != Some(&TokenType::Tag) {
                     continue;
                 }
 
@@ -316,7 +316,7 @@ impl HtmlProcessor {
 
         if query.breadcrumbs.is_none() {
             while self.next_token() {
-                if self.get_token_type() != Some(TokenType::Tag) {
+                if self.get_token_type() != Some(&TokenType::Tag) {
                     continue;
                 }
 
@@ -344,7 +344,7 @@ impl HtmlProcessor {
         let mut match_offset = query.match_offset.unwrap_or(0);
 
         while match_offset > 0 && self.next_token() {
-            if self.get_token_type() != Some(TokenType::Tag) || self.is_tag_closer() {
+            if self.get_token_type() != Some(&TokenType::Tag) || self.is_tag_closer() {
                 continue;
             }
 
@@ -482,7 +482,7 @@ impl HtmlProcessor {
                 == StackOperation::Pop
                 && self
                     .get_token_type()
-                    .map(|t| t == TokenType::Tag)
+                    .map(|t| t == &TokenType::Tag)
                     .unwrap_or(false)
         } else {
             self.tag_processor.is_tag_closer()
@@ -4518,7 +4518,7 @@ impl HtmlProcessor {
     ///  - `#funky-comment` when matched on a funky comment.
     ///
     /// @return string|null What kind of token is matched, or null.
-    pub fn get_token_type(&self) -> Option<TokenType> {
+    pub fn get_token_type(&self) -> Option<&TokenType> {
         if self.is_virtual() {
             /*
              * This logic comes from the Tag Processor.
@@ -4526,10 +4526,12 @@ impl HtmlProcessor {
              * @todo It would be ideal not to repeat this here, but it's not clearly
              *       better to allow passing a token name to `get_token_type()`.
              */
-            match &self.current_element.as_ref().unwrap().token.node_name {
-                NodeName::Tag(_) => Some(TokenType::Tag),
-                NodeName::Token(token_type) => Some(token_type.clone()),
-            }
+            Some(
+                match &self.current_element.as_ref().unwrap().token.node_name {
+                    NodeName::Tag(_) => &TokenType::Tag,
+                    NodeName::Token(token_type) => token_type,
+                },
+            )
         } else {
             self.tag_processor.get_token_type()
         }
@@ -5710,7 +5712,7 @@ impl HtmlProcessor {
                 | TokenType::FunkyComment
                 | TokenType::PresumptuousTag
                 | TokenType::Text),
-            ) => Op::Token(token),
+            ) => Op::Token(token.clone()),
             None => unreachable!("Op should never be made when no token is available."),
         }
     }

@@ -1009,15 +1009,15 @@ impl TagProcessor {
     ///  - `#presumptuous-tag` when matched on an empty tag closer.
     ///  - `#funky-comment` when matched on a funky comment.
     ///
-    pub fn get_token_type(&self) -> Option<TokenType> {
+    pub fn get_token_type(&self) -> Option<&TokenType> {
         match self.parser_state {
-            ParserState::MatchedTag => Some(TokenType::Tag),
-            ParserState::Doctype => Some(TokenType::Doctype),
-            ParserState::TextNode => Some(TokenType::Text),
-            ParserState::CDATANode => Some(TokenType::CdataSection),
-            ParserState::Comment => Some(TokenType::Comment),
-            ParserState::PresumptuousTag => Some(TokenType::PresumptuousTag),
-            ParserState::FunkyComment => Some(TokenType::FunkyComment),
+            ParserState::MatchedTag => Some(&TokenType::Tag),
+            ParserState::Doctype => Some(&TokenType::Doctype),
+            ParserState::TextNode => Some(&TokenType::Text),
+            ParserState::CDATANode => Some(&TokenType::CdataSection),
+            ParserState::Comment => Some(&TokenType::Comment),
+            ParserState::PresumptuousTag => Some(&TokenType::PresumptuousTag),
+            ParserState::FunkyComment => Some(&TokenType::FunkyComment),
 
             ParserState::Ready | ParserState::Complete | ParserState::IncompleteInput => None,
         }
@@ -1027,7 +1027,7 @@ impl TagProcessor {
         match self.parser_state {
             ParserState::MatchedTag => Some(NodeName::Tag(self.get_tag().unwrap())),
             ParserState::Doctype => Some(NodeName::Token(TokenType::Doctype)),
-            _ => self.get_token_type().map(|t| NodeName::Token(t)),
+            _ => self.get_token_type().map(|t| NodeName::Token(t.clone())),
         }
     }
 
@@ -1671,7 +1671,7 @@ impl TagProcessor {
          *       to the foreign content rules. This should strip the NULL bytes.
          */
         if self.parsing_namespace == ParsingNamespace::Html
-            && self.get_token_type() == Some(TokenType::Text)
+            && self.get_token_type() == Some(&TokenType::Text)
         {
             return text
                 .iter()
@@ -2131,30 +2131,29 @@ pub enum TokenType {
     FunkyComment,
 }
 
+impl Into<String> for &TokenType {
+    fn into(self) -> String {
+        let s: &str = self.into();
+        s.into()
+    }
+}
 impl Into<String> for TokenType {
     fn into(self) -> String {
-        match self {
-            TokenType::Tag => "#tag".into(),
-            TokenType::Text => "#text".into(),
-            TokenType::CdataSection => "#cdata-section".into(),
-            TokenType::Comment => "#comment".into(),
-            TokenType::Doctype => "#doctype".into(),
-            TokenType::PresumptuousTag => "#presumptuous-tag".into(),
-            TokenType::FunkyComment => "#funky-comment".into(),
-        }
+        let s: &str = (&self).into();
+        s.into()
     }
 }
 
-impl Into<Rc<str>> for TokenType {
-    fn into(self) -> Rc<str> {
+impl Into<&str> for &TokenType {
+    fn into(self) -> &'static str {
         match self {
-            TokenType::Tag => "#tag".into(),
-            TokenType::Text => "#text".into(),
-            TokenType::CdataSection => "#cdata-section".into(),
-            TokenType::Comment => "#comment".into(),
-            TokenType::Doctype => "#doctype".into(),
-            TokenType::PresumptuousTag => "#presumptuous-tag".into(),
-            TokenType::FunkyComment => "#funky-comment".into(),
+            TokenType::Tag => "#tag",
+            TokenType::Text => "#text",
+            TokenType::CdataSection => "#cdata-section",
+            TokenType::Comment => "#comment",
+            TokenType::Doctype => "#doctype",
+            TokenType::PresumptuousTag => "#presumptuous-tag",
+            TokenType::FunkyComment => "#funky-comment",
         }
     }
 }
@@ -2221,14 +2220,14 @@ mod test {
     fn test_base_next_token() {
         let mut processor = TagProcessor::new(b"<p>Hello world!</p>");
         assert!(processor.base_class_next_token());
-        assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
+        assert_eq!(processor.get_token_type().unwrap(), &TokenType::Tag);
         assert_eq!(processor.get_token_name().unwrap(), TagName::P.into());
         assert_eq!(processor.get_tag().unwrap(), TagName::P);
         assert!(processor.base_class_next_token());
-        assert_eq!(processor.get_token_type().unwrap(), TokenType::Text);
+        assert_eq!(processor.get_token_type().unwrap(), &TokenType::Text);
         assert_eq!(processor.get_token_name().unwrap(), TokenType::Text.into());
         assert!(processor.base_class_next_token());
-        assert_eq!(processor.get_token_type().unwrap(), TokenType::Tag);
+        assert_eq!(processor.get_token_type().unwrap(), &TokenType::Tag);
         assert_eq!(processor.get_token_name().unwrap(), TagName::P.into());
         assert_eq!(processor.is_tag_closer(), true);
     }
