@@ -14,12 +14,14 @@ const ELEMENT_IN_SCOPE_TERMINATION_LIST: [(&TagName, &ParsingNamespace); 18] = [
     (&TagName::MARQUEE, &ParsingNamespace::Html),
     (&TagName::OBJECT, &ParsingNamespace::Html),
     (&TagName::TEMPLATE, &ParsingNamespace::Html),
+    // MathML
     (&TagName::MI, &ParsingNamespace::MathML),
     (&TagName::MO, &ParsingNamespace::MathML),
     (&TagName::MN, &ParsingNamespace::MathML),
     (&TagName::MS, &ParsingNamespace::MathML),
     (&TagName::MTEXT, &ParsingNamespace::MathML),
     (&TagName::ANNOTATION_XML, &ParsingNamespace::MathML),
+    // SVG
     (&TagName::FOREIGNOBJECT, &ParsingNamespace::Svg),
     (&TagName::DESC, &ParsingNamespace::Svg),
     (&TagName::TITLE, &ParsingNamespace::Svg),
@@ -282,12 +284,14 @@ impl StackOfOpenElements {
                 (&TagName::MARQUEE, &ParsingNamespace::Html),
                 (&TagName::OBJECT, &ParsingNamespace::Html),
                 (&TagName::TEMPLATE, &ParsingNamespace::Html),
+                // MathML
                 (&TagName::MI, &ParsingNamespace::MathML),
                 (&TagName::MO, &ParsingNamespace::MathML),
                 (&TagName::MN, &ParsingNamespace::MathML),
                 (&TagName::MS, &ParsingNamespace::MathML),
                 (&TagName::MTEXT, &ParsingNamespace::MathML),
                 (&TagName::ANNOTATION_XML, &ParsingNamespace::MathML),
+                // SVG
                 (&TagName::FOREIGNOBJECT, &ParsingNamespace::Svg),
                 (&TagName::DESC, &ParsingNamespace::Svg),
                 (&TagName::TITLE, &ParsingNamespace::Svg),
@@ -396,7 +400,7 @@ impl StackOfOpenElements {
                 (&TagName::OL, &ParsingNamespace::Html),
                 (&TagName::TEMPLATE, &ParsingNamespace::Html),
                 (&TagName::UL, &ParsingNamespace::Html),
-                // Math
+                // MathML
                 (&TagName::MI, &ParsingNamespace::MathML),
                 (&TagName::MO, &ParsingNamespace::MathML),
                 (&TagName::MN, &ParsingNamespace::MathML),
