@@ -204,8 +204,8 @@ impl HtmlDoctypeInfo {
          * public or system identifiers; short-circuit to avoid extra parsing.
          */
         if name.as_ref().map_or(false, |n| n.as_ref() == b"html")
-            && public_identifier.is_none()
-            && system_identifier.is_none()
+            && public_identifier.as_ref().map_or(true, |n| n.is_empty())
+            && system_identifier.as_ref().map_or(true, |n| n.is_empty())
         {
             return Self {
                 name,
@@ -855,7 +855,7 @@ mod test {
     }
 
     test_doctype_info! {
-        missing_doctype_name:                                  ( "<!DOCTYPE>",                                                                                              CompatMode::NoQuirks,      None,                                                                    None,                                     None ),
+        missing_doctype_name:                                  ( "<!DOCTYPE>",                                                                                              CompatMode::Quirks,        None,                                                                    None,                                     None ),
         html5_doctype:                                         ( "<!DOCTYPE html>",                                                                                         CompatMode::NoQuirks,      Some("html"),                                                            None,                                     None ),
         html5_doctype_no_whitespace_before_name:               ( "<!DOCTYPEhtml>",                                                                                          CompatMode::NoQuirks,      Some("html"),                                                            None,                                     None ),
         xhtml_doctype:                                         ( r#"<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">"#,           CompatMode::NoQuirks,      Some("html"),                                                            Some("-//W3C//DTD HTML 4.01//EN"),        Some("http://www.w3.org/TR/html4/strict.dtd") ),
