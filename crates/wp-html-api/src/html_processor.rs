@@ -1,7 +1,7 @@
 #![allow(dead_code, unused_variables, unreachable_code, non_camel_case_types)]
 
 mod active_formatting_elements;
-mod errors;
+pub mod errors;
 mod html_stack_event;
 mod html_token;
 mod insertion_mode;

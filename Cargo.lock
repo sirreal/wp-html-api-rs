@@ -1786,6 +1786,16 @@ name = "wp-html-api"
 version = "0.1.0"
 
 [[package]]
+name = "wp-html-api-html5lib-tests"
+version = "0.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+ "wp-html-api",
+]
+
+[[package]]
 name = "wp-html-api-php-ext"
 version = "0.1.0"
 dependencies = [
