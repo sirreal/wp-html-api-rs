@@ -483,7 +483,10 @@ impl HtmlDoctypeInfo {
         let doctype_public_id = None;
         let doctype_system_id = None;
 
-        let end = doctype_html.len() - 1;
+        let end = match doctype_html.len() {
+            0 => return None,
+            otherwise => otherwise - 1,
+        };
 
         /*
          * This parser combines the rules for parsing DOCTYPE tokens found in the HTML
