@@ -7,7 +7,7 @@ use ext_php_rs::{
 };
 use wp_html_api::doctype::HtmlDoctypeInfo;
 use wp_html_api::html_processor::HtmlProcessor;
-use wp_html_api::tag_processor::{NodeName, TagProcessor};
+use wp_html_api::tag_processor::{AttributeValue, NodeName, TagProcessor};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -82,6 +82,15 @@ impl WP_HTML_Tag_Processor {
         this.processor.set_modifiable_text(updated_text.as_str())
     }
 
+    pub fn get_attribute(
+        #[this] this: &mut ZendClassObject<Self>,
+        prefix: BinarySlice<u8>,
+    ) -> Option<AttributeValueWrapper> {
+        this.processor
+            .get_attribute(&prefix)
+            .map(|val| AttributeValueWrapper(val))
+    }
+
     pub fn get_attribute_names_with_prefix(
         #[this] this: &mut ZendClassObject<Self>,
         prefix: BinarySlice<u8>,
@@ -103,6 +112,23 @@ impl WP_HTML_Tag_Processor {
         this.processor
             .get_full_comment_text()
             .map(|value| value.to_vec().into())
+    }
+}
+
+struct AttributeValueWrapper(AttributeValue);
+impl IntoZval for AttributeValueWrapper {
+    const TYPE: ext_php_rs::flags::DataType = ext_php_rs::flags::DataType::Mixed;
+
+    fn set_zval(
+        self,
+        zv: &mut ext_php_rs::types::Zval,
+        _persistent: bool,
+    ) -> ext_php_rs::error::Result<()> {
+        Ok(match self.0 {
+            AttributeValue::BooleanFalse => zv.set_null(),
+            AttributeValue::BooleanTrue => zv.set_bool(true),
+            AttributeValue::String(value) => zv.set_binary(value.to_vec().into()),
+        })
     }
 }
 
@@ -191,6 +217,15 @@ impl WP_HTML_Processor {
                     .map(|&name| name.to_vec().into())
                     .collect::<Vec<Binary<u8>>>()
             })
+    }
+
+    pub fn get_attribute(
+        #[this] this: &mut ZendClassObject<Self>,
+        prefix: BinarySlice<u8>,
+    ) -> Option<AttributeValueWrapper> {
+        this.processor
+            .get_attribute(&prefix)
+            .map(|val| AttributeValueWrapper(val))
     }
 
     pub fn get_last_error(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
