@@ -588,7 +588,7 @@ impl TagProcessor {
                     return true;
                 }
 
-                if self.parsing_namespace == ParsingNamespace::Html
+                if self.parsing_namespace != ParsingNamespace::Html
                     && doc_length > at + 8
                     && &self.html_bytes[at + 2..=at + 8] == b"[CDATA["
                 {
