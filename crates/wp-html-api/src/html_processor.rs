@@ -417,9 +417,7 @@ impl HtmlProcessor {
             current_element
         } else {
             // There are no tokens left, so close all remaining open elements
-            while self.pop().is_some() {
-                continue;
-            }
+            while self.pop().is_some() {}
 
             return if self.element_queue.is_empty() {
                 false
@@ -497,8 +495,9 @@ impl HtmlProcessor {
     fn is_virtual(&self) -> bool {
         self.current_element
             .as_ref()
-            .map(|current_element| current_element.provenance == StackProvenance::Virtual)
-            .unwrap_or(false)
+            .map_or(false, |current_element| {
+                current_element.provenance == StackProvenance::Virtual
+            })
     }
 
     /// Indicates if the currently-matched tag matches the given breadcrumbs.
