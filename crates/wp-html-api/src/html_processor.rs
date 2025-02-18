@@ -10,10 +10,11 @@ mod stack_of_open_elements;
 use std::{collections::VecDeque, rc::Rc};
 
 use crate::{
+    compat_mode::CompatMode,
     doctype::HtmlDoctypeInfo,
     tag_name::TagName,
     tag_processor::{
-        AttributeValue, CommentType, CompatMode, HtmlSpan, NodeName, ParserState, ParsingNamespace,
+        AttributeValue, CommentType, HtmlSpan, NodeName, ParserState, ParsingNamespace,
         TagProcessor, TextNodeClassification, TokenType,
     },
 };

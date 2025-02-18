@@ -1,4 +1,4 @@
-use crate::tag_processor::CompatMode;
+use crate::compat_mode::CompatMode;
 
 /**
  * HTML API: WP_HTML_Doctype_Info class

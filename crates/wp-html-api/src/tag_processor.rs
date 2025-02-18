@@ -1,6 +1,6 @@
 #![allow(dead_code, unused_variables)]
 
-use crate::doctype::HtmlDoctypeInfo;
+use crate::{compat_mode::CompatMode, doctype::HtmlDoctypeInfo};
 
 use super::tag_name::TagName;
 
@@ -45,29 +45,6 @@ pub struct TagProcessor {
     pub(crate) compat_mode: CompatMode,
 
     pub(crate) bookmarks: HashMap<Rc<str>, HtmlSpan>,
-}
-
-#[derive(Debug, PartialEq, Default)]
-pub enum CompatMode {
-    /// No-quirks mode document compatability mode.
-    ///
-    /// > In no-quirks mode, the behavior is (hopefully) the desired behavior
-    /// > described by the modern HTML and CSS specifications.
-    ///
-    /// @see https://developer.mozilla.org/en-US/docs/Web/HTML/Quirks_Mode_and_Standards_Mode
-    #[default]
-    NoQuirks,
-
-    /// Quirks mode document compatability mode.
-    ///
-    /// > In quirks mode, layout emulates behavior in Navigator 4 and Internet
-    /// > Explorer 5. This is essential in order to support websites that were
-    /// > built before the widespread adoption of web standards.
-    ///
-    /// @see https://developer.mozilla.org/en-US/docs/Web/HTML/Quirks_Mode_and_Standards_Mode
-    Quirks,
-
-    LimitedQuirks,
 }
 
 #[derive(Default, PartialEq, Debug, Clone)]

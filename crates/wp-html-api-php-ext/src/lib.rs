@@ -1,12 +1,13 @@
 #![allow(non_camel_case_types)]
 
+use ext_php_rs::convert::IntoZval;
 use ext_php_rs::{
     binary::Binary, binary_slice::BinarySlice, builders::ModuleBuilder, prelude::*,
     types::ZendClassObject,
 };
 use wp_html_api::doctype::HtmlDoctypeInfo;
 use wp_html_api::html_processor::HtmlProcessor;
-use wp_html_api::tag_processor::{CompatMode, NodeName, TagProcessor};
+use wp_html_api::tag_processor::{NodeName, TagProcessor};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -241,12 +242,7 @@ impl WP_HTML_Doctype_Info {
 
     #[getter]
     pub fn indicated_compatability_mode(&self) -> String {
-        match self.internal.indicated_compatability_mode {
-            CompatMode::NoQuirks => "no-quirks-mode",
-            CompatMode::Quirks => "quirks-mode",
-            CompatMode::LimitedQuirks => "limited-quirks",
-        }
-        .into()
+        (&self.internal.indicated_compatability_mode).into()
     }
 }
 
