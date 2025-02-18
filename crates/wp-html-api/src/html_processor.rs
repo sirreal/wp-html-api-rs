@@ -4173,13 +4173,31 @@ impl HtmlProcessor {
                  * NULL bytes and whitespace do not change the frameset-ok flag.
                  */
 
-                todo!("Null-byte CDATA handling");
-                //$current_token        = $this->bookmarks[ $this->state->current_token->bookmark_name ];
-                //$cdata_content_start  = $current_token->start + 9;
-                //$cdata_content_length = $current_token->length - 12;
-                //if ( strspn( $this->html, "\0 \t\n\f\r", $cdata_content_start, $cdata_content_length ) !== $cdata_content_length ) {
-                //	$this->state->frameset_ok = false;
-                //}
+                let current_token = self
+                    .tag_processor
+                    .bookmarks
+                    .get(
+                        &self
+                            .state
+                            .current_token
+                            .clone()
+                            .unwrap()
+                            .bookmark_name
+                            .unwrap()
+                            .clone(),
+                    )
+                    .unwrap();
+                let cdata_content_start = current_token.start + 9;
+                let cdata_content_length = current_token.length - 12;
+                if (strspn!(
+                    &self.tag_processor.html_bytes,
+                    b'\0' | b' ' | b'\t' | b'\n' | 0xc0 | b'\r',
+                    cdata_content_start,
+                    cdata_content_length
+                ) != cdata_content_length)
+                {
+                    self.state.frameset_ok = false;
+                }
 
                 self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
                 true
