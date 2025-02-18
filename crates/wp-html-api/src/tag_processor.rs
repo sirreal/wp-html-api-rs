@@ -1768,8 +1768,75 @@ impl TagProcessor {
         todo!()
     }
 
-    pub fn get_comment_type(&self) -> Option<CommentType> {
-        todo!()
+    pub fn get_comment_type(&self) -> Option<&CommentType> {
+        if self.parser_state != ParserState::Comment {
+            None
+        } else {
+            self.comment_type.as_ref()
+        }
+    }
+
+    /// Returns the text of a matched comment or null if not on a comment type node.
+    ///
+    /// This method returns the entire text content of a comment node as it
+    /// would appear in the browser.
+    ///
+    /// This differs from {@see ::get_modifiable_text()} in that certain comment
+    /// types in the HTML API cannot allow their entire comment text content to
+    /// be modified. Namely, "bogus comments" of the form `<?not allowed in html>`
+    /// will create a comment whose text content starts with `?`. Note that if
+    /// that character were modified, it would be possible to change the node
+    /// type.
+    ///
+    /// @return string|null The comment text as it would appear in the browser or null
+    ///                     if not on a comment type node.
+    pub fn get_full_comment_text(&self) -> Option<Box<[u8]>> {
+        if self.parser_state == ParserState::FunkyComment {
+            return Some(self.get_modifiable_text());
+        }
+
+        let comment_type = match self.get_comment_type() {
+            Some(ct) => ct,
+            None => return None,
+        };
+
+        Some(match comment_type {
+            CommentType::HtmlComment | CommentType::AbruptlyClosedComment => {
+                self.get_modifiable_text()
+            }
+
+            CommentType::CdataLookalike => {
+                let mut text = b"[CDATA[".to_vec();
+                text.extend(&self.get_modifiable_text());
+                text.extend(b"]]");
+                text.into()
+            }
+
+            CommentType::PiNodeLookalike => {
+                let pi_target = self.get_tag().unwrap();
+                let pi_target: Box<[u8]> = pi_target.into();
+                let mut text = b"?".to_vec();
+                text.extend(pi_target);
+                text.extend(&self.get_modifiable_text());
+                text.push(b'?');
+                text.into()
+            }
+
+            /*
+             * This represents "bogus comments state" from HTML tokenization.
+             * This can be entered by `<?` or `<!`, where `?` is included in
+             * the comment text but `!` is not.
+             */
+            CommentType::InvalidHtml => {
+                let mut text = Vec::new();
+                let preceding_byte = self.html_bytes[self.text_starts_at.unwrap() - 1];
+                if preceding_byte == b'?' {
+                    text.push(b'?');
+                }
+                text.extend(&self.get_modifiable_text());
+                text.into()
+            }
+        })
     }
 
     pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {

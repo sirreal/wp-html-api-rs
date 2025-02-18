@@ -86,6 +86,12 @@ impl WP_HTML_Tag_Processor {
     pub fn paused_at_incomplete_token(#[this] this: &ZendClassObject<Self>) -> bool {
         this.processor.paused_at_incomplete_token()
     }
+
+    pub fn get_full_comment_text(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
+        this.processor
+            .get_full_comment_text()
+            .map(|value| value.to_vec().into())
+    }
 }
 
 #[php_class]
@@ -204,6 +210,12 @@ impl WP_HTML_Processor {
 
     pub fn paused_at_incomplete_token(#[this] this: &ZendClassObject<Self>) -> bool {
         this.processor.paused_at_incomplete_token()
+    }
+
+    pub fn get_full_comment_text(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
+        this.processor
+            .get_full_comment_text()
+            .map(|value| value.to_vec().into())
     }
 }
 

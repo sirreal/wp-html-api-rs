@@ -4773,12 +4773,30 @@ impl HtmlProcessor {
     /// @see self::COMMENT_AS_PI_NODE_LOOKALIKE
     ///
     /// @return string|null
-    pub fn get_comment_type(&self) -> Option<CommentType> {
+    pub fn get_comment_type(&self) -> Option<&CommentType> {
         if self.is_virtual() {
             None
         } else {
             self.tag_processor.get_comment_type()
         }
+    }
+
+    /// Returns the text of a matched comment or null if not on a comment type node.
+    ///
+    /// This method returns the entire text content of a comment node as it
+    /// would appear in the browser.
+    ///
+    /// This differs from {@see ::get_modifiable_text()} in that certain comment
+    /// types in the HTML API cannot allow their entire comment text content to
+    /// be modified. Namely, "bogus comments" of the form `<?not allowed in html>`
+    /// will create a comment whose text content starts with `?`. Note that if
+    /// that character were modified, it would be possible to change the node
+    /// type.
+    ///
+    /// @return string|null The comment text as it would appear in the browser or null
+    ///                     if not on a comment type node.
+    pub fn get_full_comment_text(&self) -> Option<Box<[u8]>> {
+        self.tag_processor.get_full_comment_text()
     }
 
     /// Removes a bookmark that is no longer needed.
