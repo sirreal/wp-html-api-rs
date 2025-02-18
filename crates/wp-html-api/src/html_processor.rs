@@ -413,7 +413,9 @@ impl HtmlProcessor {
 
         // Process the next event on the queue
         self.current_element = self.element_queue.pop_front();
-        if self.current_element.is_none() {
+        let current_element = if let Some(current_element) = &self.current_element {
+            current_element
+        } else {
             // There are no tokens left, so close all remaining open elements
             while self.pop().is_some() {
                 continue;
@@ -424,9 +426,8 @@ impl HtmlProcessor {
             } else {
                 self.next_visitable_token()
             };
-        }
+        };
 
-        let current_element = self.current_element.as_ref().unwrap();
         let is_pop = current_element.operation == StackOperation::Pop;
 
         // The root node only exists in the fragment parser, and closing it
