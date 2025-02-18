@@ -4500,6 +4500,17 @@ impl HtmlProcessor {
         self.tag_processor.get_qualified_tag_name()
     }
 
+    /// Returns the adjusted attribute name for a given attribute, taking into
+    /// account the current parsing context, whether HTML, SVG, or MathML.
+    ///
+    /// @param string $attribute_name Which attribute to adjust.
+    ///
+    /// @return string|null
+    pub fn get_qualified_attribute_name(&self, attribute_name: &[u8]) -> Option<Box<[u8]>> {
+        self.tag_processor
+            .get_qualified_attribute_name(attribute_name)
+    }
+
     /// Indicates if the currently matched tag contains the self-closing flag.
     ///
     /// No HTML elements ought to have the self-closing flag and for those, the self-closing

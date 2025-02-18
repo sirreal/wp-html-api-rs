@@ -51,6 +51,18 @@ impl WP_HTML_Tag_Processor {
         })
     }
 
+    pub fn get_qualified_attribute_name(
+        #[this] this: &mut ZendClassObject<Self>,
+        attribute_name: BinarySlice<u8>,
+    ) -> Option<Binary<u8>> {
+        this.processor
+            .get_qualified_attribute_name(&attribute_name)
+            .map(|tag_name| {
+                let tag_name: Box<[u8]> = tag_name.into();
+                tag_name.to_vec().into()
+            })
+    }
+
     pub fn get_token_type(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
         this.processor.get_token_type().map(|t| t.into())
     }
@@ -136,6 +148,18 @@ impl WP_HTML_Processor {
             let tag_name: Box<[u8]> = tag_name.into();
             tag_name.to_vec().into()
         })
+    }
+
+    pub fn get_qualified_attribute_name(
+        #[this] this: &mut ZendClassObject<Self>,
+        attribute_name: BinarySlice<u8>,
+    ) -> Option<Binary<u8>> {
+        this.processor
+            .get_qualified_attribute_name(&attribute_name)
+            .map(|tag_name| {
+                let tag_name: Box<[u8]> = tag_name.into();
+                tag_name.to_vec().into()
+            })
     }
 
     pub fn get_token_type(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
