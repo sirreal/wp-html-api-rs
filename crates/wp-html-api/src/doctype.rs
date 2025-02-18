@@ -538,9 +538,6 @@ impl HtmlDoctypeInfo {
             }
         }
         let doctype_html = doctype_html_normalized.as_slice();
-        // Trim the trailing ">" so it's not included in any results and doesn't confuse our strspn
-        // and strcspn calls that don't support lengths.
-        let doctype_html = &doctype_html[..doctype_html.len() - 1];
 
         let end = doctype_html.len() - 1;
 
@@ -580,7 +577,12 @@ impl HtmlDoctypeInfo {
             ));
         }
 
-        let name_length = strcspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
+        let name_length = strcspn!(
+            doctype_html,
+            b' ' | b'\t' | b'\n' | 0x0c | b'\r',
+            at,
+            end - at
+        );
         doctype_name = Some(
             doctype_html[at..at + name_length]
                 .to_ascii_lowercase()
@@ -588,7 +590,12 @@ impl HtmlDoctypeInfo {
         );
 
         at += name_length;
-        at += strspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
+        at += strspn!(
+            doctype_html,
+            b' ' | b'\t' | b'\n' | 0x0c | b'\r',
+            at,
+            end - at
+        );
         if at >= end {
             return Some(Self::new(
                 doctype_name,
@@ -622,7 +629,12 @@ impl HtmlDoctypeInfo {
          */
         let mut next_parse = if doctype_html[at..at + 6].eq_ignore_ascii_case(b"PUBLIC") {
             at += 6;
-            at += strcspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
+            at += strspn!(
+                doctype_html,
+                b' ' | b'\t' | b'\n' | 0x0c | b'\r',
+                at,
+                end - at
+            );
             if at >= end {
                 return Some(Self::new(
                     doctype_name,
@@ -640,7 +652,12 @@ impl HtmlDoctypeInfo {
          */
         else if doctype_html[at..at + 6].eq_ignore_ascii_case(b"SYSTEM") {
             at += 6;
-            at += strcspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
+            at += strspn!(
+                doctype_html,
+                b' ' | b'\t' | b'\n' | 0x0c | b'\r',
+                at,
+                end - at
+            );
             if at >= end {
                 return Some(Self::new(
                     doctype_name,
@@ -693,7 +710,8 @@ impl HtmlDoctypeInfo {
 
                     at += 1;
 
-                    let identifier_length = strcspn!(doctype_html, x if x == closer_quote, at);
+                    let identifier_length =
+                        strcspn!(doctype_html, x if x == closer_quote, at, end - at);
 
                     doctype_public_id = Some(doctype_html[at..at + identifier_length].into());
 
@@ -716,7 +734,12 @@ impl HtmlDoctypeInfo {
                      *
                      * @see https://html.spec.whatwg.org/#between-doctype-public-and-system-identifiers-state
                      */
-                    at += strspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
+                    at += strspn!(
+                        doctype_html,
+                        b' ' | b'\t' | b'\n' | 0x0c | b'\r',
+                        at,
+                        end - at
+                    );
                     if at >= end {
                         return Some(Self::new(
                             doctype_name,
@@ -754,7 +777,8 @@ impl HtmlDoctypeInfo {
 
                     at += 1;
 
-                    let identifier_length = strcspn!(doctype_html, x if x == closer_quote, at);
+                    let identifier_length =
+                        strcspn!(doctype_html, x if x == closer_quote, at, end - at);
                     doctype_system_id = Some(doctype_html[at..at + identifier_length].into());
 
                     at += identifier_length;
