@@ -1,6 +1,10 @@
 #![allow(dead_code, unused_variables)]
 
-use crate::{compat_mode::CompatMode, doctype::HtmlDoctypeInfo};
+use crate::{
+    compat_mode::CompatMode,
+    doctype::HtmlDoctypeInfo,
+    str_fns::{stripos, strpos, substr},
+};
 
 use super::tag_name::TagName;
 
@@ -2058,66 +2062,6 @@ pub enum CommentType {
      *     <!{nothing special}>
      */
     InvalidHtml,
-}
-
-fn substr(s: &[u8], offset: usize, length: usize) -> &[u8] {
-    &s[offset..offset + length]
-}
-
-fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
-    let p_len = pattern.len();
-
-    if p_len == 0 {
-        return Some(offset);
-    }
-
-    if (offset + p_len) > s.len() {
-        return None;
-    }
-
-    let p_end = pattern.get(p_len - 1).unwrap();
-
-    for at in offset..s.len() {
-        let c = s.get(at + p_len - 1).unwrap();
-
-        if c != p_end {
-            continue;
-        }
-
-        if &s[at..(at + p_len)] == pattern {
-            return Some(at);
-        }
-    }
-
-    None
-}
-
-fn stripos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
-    let p_len = pattern.len();
-
-    if p_len == 0 {
-        return Some(offset);
-    }
-
-    if (offset + p_len) > s.len() {
-        return None;
-    }
-
-    let p_end = pattern.get(p_len - 1).unwrap();
-
-    for at in offset..s.len() {
-        let c = s.get(at + p_len - 1).unwrap();
-
-        if !p_end.eq_ignore_ascii_case(&c) {
-            continue;
-        }
-
-        if pattern.eq_ignore_ascii_case(&s[at..(at + p_len)]) {
-            return Some(at);
-        }
-    }
-
-    None
 }
 
 #[derive(Debug, PartialEq, Clone)]
