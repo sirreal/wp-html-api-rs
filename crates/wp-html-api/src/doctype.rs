@@ -151,6 +151,7 @@ pub struct HtmlDoctypeInfo {
      */
     pub indicated_compatability_mode: CompatMode,
 }
+
 impl HtmlDoctypeInfo {
     /**
      * Constructor.
@@ -479,14 +480,9 @@ impl HtmlDoctypeInfo {
      *                                   provided DOCTYPE HTML is a valid DOCTYPE. Otherwise, null.
      */
     pub fn from_doctype_token(doctype_html: &[u8]) -> Option<Self> {
-        let doctype_name = None;
-        let doctype_public_id = None;
-        let doctype_system_id = None;
-
-        let end = match doctype_html.len() {
-            0 => return None,
-            otherwise => otherwise - 1,
-        };
+        let mut doctype_name = None;
+        let mut doctype_public_id = None;
+        let mut doctype_system_id = None;
 
         /*
          * This parser combines the rules for parsing DOCTYPE tokens found in the HTML
@@ -501,13 +497,15 @@ impl HtmlDoctypeInfo {
          * - It must start with an ASCII case-insensitive match for `<!DOCTYPE`.
          * - The only occurrence of `>` must be the final byte in the HTML string.
          */
-        if end < 9 || !doctype_html[0..9].eq_ignore_ascii_case(b"<!DOCTYPE") {
+        if doctype_html.len() < 10 || !doctype_html[0..9].eq_ignore_ascii_case(b"<!DOCTYPE") {
             return None;
         }
 
         let mut at: usize = 9;
         // Is there one and only one `>`?
-        if b'>' != doctype_html[end] || (strcspn!(doctype_html, b'>', at) + at) < end {
+        if b'>' != doctype_html[doctype_html.len() - 1]
+            || (strcspn!(doctype_html, b'>', at) + at) < doctype_html.len() - 1
+        {
             return None;
         }
 
@@ -540,6 +538,9 @@ impl HtmlDoctypeInfo {
             }
         }
         let doctype_html = doctype_html_normalized.as_slice();
+        // Trim the trailing ">" so it's not included in any results and doesn't confuse our strspn
+        // and strcspn calls that don't support lengths.
+        let doctype_html = &doctype_html[..doctype_html.len() - 1];
 
         let end = doctype_html.len() - 1;
 
@@ -580,8 +581,11 @@ impl HtmlDoctypeInfo {
         }
 
         let name_length = strcspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
-        let doctype_name = doctype_html[at..at + name_length].to_ascii_lowercase();
-        let doctype_name: Option<Box<[u8]>> = Some(doctype_name.into());
+        doctype_name = Some(
+            doctype_html[at..at + name_length]
+                .to_ascii_lowercase()
+                .into(),
+        );
 
         at += name_length;
         at += strspn!(doctype_html, b' ' | b'\t' | b'\n' | 0x0c | b'\r', at);
@@ -645,7 +649,7 @@ impl HtmlDoctypeInfo {
                     true,
                 ));
             }
-            Proceed::ParseDoctypePublicIdentifier
+            Proceed::ParseDoctypeSystemIdentifier
         } else {
             /*
              * > Otherwise, this is an invalid-character-sequence-after-doctype-name parse error.
@@ -691,8 +695,7 @@ impl HtmlDoctypeInfo {
 
                     let identifier_length = strcspn!(doctype_html, x if x == closer_quote, at);
 
-                    let doctype_public_id = &doctype_html[at..at + identifier_length];
-                    let doctype_public_id = Some(doctype_public_id.into());
+                    doctype_public_id = Some(doctype_html[at..at + identifier_length].into());
 
                     at += identifier_length;
                     if at >= end || closer_quote != doctype_html[at] {
@@ -752,8 +755,7 @@ impl HtmlDoctypeInfo {
                     at += 1;
 
                     let identifier_length = strcspn!(doctype_html, x if x == closer_quote, at);
-                    let doctype_system_id = &doctype_html[at..at + identifier_length];
-                    let doctype_system_id = Some(doctype_system_id.into());
+                    doctype_system_id = Some(doctype_html[at..at + identifier_length].into());
 
                     at += identifier_length;
                     if at >= end || closer_quote != doctype_html[at] {
@@ -783,4 +785,102 @@ enum Proceed {
     ParseDoctypePublicIdentifier,
     ParseDoctypeSystemIdentifier,
     Exit,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    macro_rules! test_doctype_info {
+        ($($name:ident: $value:expr,)*) => {
+        $(
+            #[test]
+            fn $name() {
+                let (a,b,c,d,e): (&str, CompatMode,Option<&str>,Option<&str>,Option<&str>) = $value;
+                let doctype = HtmlDoctypeInfo::from_doctype_token(a.as_bytes());
+                assert!(
+                    doctype.is_some(),
+                    "Should have parsed the following doctype declaration: {:?}",
+                    String::from_utf8_lossy(a.as_bytes())
+                );
+                let doctype = doctype.unwrap();
+
+                assert_eq!(
+                    b,
+                    doctype.indicated_compatability_mode,
+                    "Failed to infer the expected document compatability mode for {:?}",
+                    String::from_utf8_lossy(a.as_bytes())
+                );
+
+                assert_eq!(
+                    c.map(|val| val.as_bytes().into()),
+                    doctype.name,
+                    "Failed to parse the expected DOCTYPE name for {:?}",
+                    String::from_utf8_lossy(a.as_bytes())
+                );
+
+                assert_eq!(
+                    d.map(|val| val.as_bytes().into()),
+                    doctype.public_identifier,
+                    "Failed to parse the expected DOCTYPE public identifier for {:?}",
+                    String::from_utf8_lossy(a.as_bytes())
+                );
+
+                assert_eq!(
+                    e.map(|val| val.as_bytes().into()),
+                    doctype.system_identifier,
+                    "Failed to parse the expected DOCTYPE system identifier for {:?}",
+                    String::from_utf8_lossy(a.as_bytes())
+                );
+            }
+        )*
+        }
+    }
+
+    test_doctype_info! {
+        missing_doctype_name:                                  ( "<!DOCTYPE>",                                                                                              CompatMode::NoQuirks,      None,                                                                    None,                                     None ),
+        html5_doctype:                                         ( "<!DOCTYPE html>",                                                                                         CompatMode::NoQuirks,      Some("html"),                                                            None,                                     None ),
+        html5_doctype_no_whitespace_before_name:               ( "<!DOCTYPEhtml>",                                                                                          CompatMode::NoQuirks,      Some("html"),                                                            None,                                     None ),
+        xhtml_doctype:                                         ( r#"<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">"#,           CompatMode::NoQuirks,      Some("html"),                                                            Some("-//W3C//DTD HTML 4.01//EN"),        Some("http://www.w3.org/TR/html4/strict.dtd") ),
+        svg_doctype:                                           ( r#"<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">"#,   CompatMode::Quirks,        Some("svg"),                                                             Some("-//W3C//DTD SVG 1.1//EN"),          Some("http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd") ),
+        mathml_doctype:                                        ( r#"<!DOCTYPE math PUBLIC "-//W3C//DTD MathML 2.0//EN" "http://www.w3.org/Math/DTD/mathml2/mathml2.dtd">"#, CompatMode::Quirks,        Some("math"),                                                            Some("-//W3C//DTD MathML 2.0//EN"),       Some("http://www.w3.org/Math/DTD/mathml2/mathml2.dtd") ),
+        doctype_with_null_byte_replacement:                    ( "<!DOCTYPE null-\0 PUBLIC '\0' '\0\0'>",                                                                   CompatMode::Quirks,        Some("null-\u{FFFD}"),                                                   Some("\u{FFFD}"),                         Some("\u{FFFD}\u{FFFD}") ),
+        uppercase_doctype:                                     ( "<!DOCTYPE UPPERCASE>",                                                                                    CompatMode::Quirks,        Some("uppercase"),                                                       None,                                     None ),
+        lowercase_doctype:                                     ( "<!doctype lowercase>",                                                                                    CompatMode::Quirks,        Some("lowercase"),                                                       None,                                     None ),
+        doctype_with_whitespace:                               ( "<!DOCTYPE\n\thtml\x0c\rPUBLIC\r\n''\t''>",                                                                CompatMode::NoQuirks,      Some("html"),                                                            Some(""),                                 Some("") ),
+        doctype_trailing_characters:                           ( "<!DOCTYPE html PUBLIC '' '' Anything (except closing angle bracket) is just fine here !!!>",              CompatMode::NoQuirks,      Some("html"),                                                            Some(""),                                 Some("") ),
+        an_ugly_no_quirks_doctype:                             ( "<!dOcTyPehtml\tPublIC\"pub-id\"'sysid'>",                                                                 CompatMode::NoQuirks,      Some("html"),                                                            Some("pub-id"),                           Some("sysid") ),
+        missing_public_id:                                     ( "<!DOCTYPE html PUBLIC>",                                                                                  CompatMode::Quirks,        Some("html"),                                                            None,                                     None ),
+        missing_system_id:                                     ( "<!DOCTYPE html SYSTEM>",                                                                                  CompatMode::Quirks,        Some("html"),                                                            None,                                     None ),
+        missing_close_quote_public_id:                         ( "<!DOCTYPE html PUBLIC 'xyz>",                                                                             CompatMode::Quirks,        Some("html"),                                                            Some("xyz"),                              None ),
+        missing_close_quote_system_id:                         ( r#"<!DOCTYPE html SYSTEM "xyz>"#,                                                                          CompatMode::Quirks,        Some("html"),                                                            None,                                     Some("xyz") ),
+        missing_close_quote_system_id_with_public:             ( "<!DOCTYPE html PUBLIC 'abc' 'xyz>",                                                                       CompatMode::Quirks,        Some("html"),                                                            Some("abc"),                              Some("xyz") ),
+        bogus_characters_instead_of_system_or_public:          ( "<!DOCTYPE html FOOBAR>",                                                                                  CompatMode::Quirks,        Some("html"),                                                            None,                                     None ),
+        bogus_characters_instead_of_public_quote:              ( "<!DOCTYPE html PUBLIC x ''''>",                                                                           CompatMode::Quirks,        Some("html"),                                                            None,                                     None ),
+        bogus_characters_instead_of_system_quote_:             ( "<!DOCTYPE html SYSTEM x ''>",                                                                             CompatMode::Quirks,        Some("html"),                                                            None,                                     None ),
+        emoji:                                                 ( r#"<!DOCTYPE 🏴󠁧󠁢󠁥󠁮󠁧󠁿 PUBLIC "🔥" "😈">"#,                                                                 CompatMode::Quirks,        Some("\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}"), Some("🔥"),                               Some("😈") ),
+        bogus_characters_instead_of_system_quote_after_public: ( "<!DOCTYPE html PUBLIC ''x''>",                                                                            CompatMode::Quirks,        Some("html"),                                                            Some(""),                                 None ),
+        special_quirks_mode_if_system_unset:                   ( r#"<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Frameset//">"#,                                            CompatMode::Quirks,        Some("html"),                                                            Some("-//W3C//DTD HTML 4.01 Frameset//"), None ),
+        special_limited_quirks_mode_if_system_set:             ( r#"<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Frameset//" "">"#,                                         CompatMode::LimitedQuirks, Some("html"),                                                            Some("-//W3C//DTD HTML 4.01 Frameset//"), Some("") ),
+    }
+
+    #[test]
+    fn test_invalid_inputs() {
+        let test_cases = vec![
+            b"".as_slice(),
+            b"<div>".as_slice(),
+            b"x<!DOCTYPE>".as_slice(),
+            b"<!DOCTYPE>x".as_slice(),
+            b"<!DOCTYPE".as_slice(),
+            b"<!DOCTYPE html PUBLIC \">\">".as_slice(),
+        ];
+
+        for html in test_cases {
+            assert!(
+                HtmlDoctypeInfo::from_doctype_token(html).is_none(),
+                "Should return None for invalid input: {:?}",
+                String::from_utf8_lossy(html)
+            );
+        }
+    }
 }
