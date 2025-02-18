@@ -3760,7 +3760,58 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_select_in_table(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A start tag whose tag name is one of: "caption", "table", "tbody", "tfoot", "thead", "tr", "td", "th"
+             */
+            Op::TagPush(
+                TagName::CAPTION
+                | TagName::TABLE
+                | TagName::TBODY
+                | TagName::TFOOT
+                | TagName::THEAD
+                | TagName::TR
+                | TagName::TD
+                | TagName::TH,
+            ) => {
+                // @todo Indicate a parse error once it's possible.
+                self.pop_until(&TagName::SELECT);
+                self.reset_insertion_mode_appropriately();
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > An end tag whose tag name is one of: "caption", "table", "tbody", "tfoot", "thead", "tr", "td", "th"
+             */
+            Op::TagPop(
+                tag_name @ (TagName::CAPTION
+                | TagName::TABLE
+                | TagName::TBODY
+                | TagName::TFOOT
+                | TagName::THEAD
+                | TagName::TR
+                | TagName::TD
+                | TagName::TH),
+            ) => {
+                // @todo Indicate a parse error once it's possible.
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .has_element_in_table_scope(&tag_name)
+                {
+                    self.step(NodeToProcess::ProcessNextNode)
+                } else {
+                    self.pop_until(&TagName::SELECT);
+                    self.reset_insertion_mode_appropriately();
+                    self.step(NodeToProcess::ReprocessCurrentNode)
+                }
+            }
+
+            /*
+             * > Anything else
+             */
+            _ => self.step_in_select(),
+        }
     }
 
     /// Parses next element in the 'in template' insertion mode.
