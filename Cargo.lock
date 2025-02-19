@@ -1805,6 +1805,7 @@ version = "0.1.0"
 name = "wp-html-api-html5lib-tests"
 version = "0.0.0"
 dependencies = [
+ "glob",
  "pretty_assertions",
  "proc-macro2",
  "quote",
