@@ -82,14 +82,12 @@ pub fn build_tree_representation(
 
         let token_type = processor.get_token_type();
 
-        if let Some(TokenType::Text) = token_type {
-            if was_text {
-                if !text_node.is_empty() {
-                    output.extend(text_node.drain(..));
-                    output.extend(b"\"\n");
-                }
-                was_text = false;
+        if was_text && Some(&TokenType::Text) != token_type {
+            if !text_node.is_empty() {
+                output.extend(text_node.drain(..));
+                output.extend(b"\"\n");
             }
+            was_text = false;
         }
 
         match token_type {
