@@ -540,32 +540,41 @@ impl HtmlProcessor {
     /// @return bool|null Whether to expect a closer for the currently-matched node,
     ///                   or `null` if not matched on any token.
     pub fn expects_closer(&self, node: Option<&HTMLToken>) -> Option<bool> {
-        let token_name = node
-            .map(|n| n.node_name.clone())
-            .or_else(|| self.get_token_name())?;
-        let token_name_namespace = node
-            .map(|n| n.namespace.clone())
-            .unwrap_or_else(|| self.get_namespace());
-        let token_has_self_closing = node
-            .map(|n| n.has_self_closing_flag)
-            .unwrap_or_else(|| self.has_self_closing_flag());
+        let (node_name, namespace, has_self_closing_flag) = if let Some(token) = node {
+            (
+                &token.node_name,
+                &token.namespace,
+                token.has_self_closing_flag,
+            )
+        } else {
+            (
+                &self.get_token_name()?,
+                &self.get_namespace(),
+                self.has_self_closing_flag(),
+            )
+        };
 
-        let result = match token_name {
+        let result = match node_name {
             // Comments, text nodes, and other atomic tokens.
             // Doctype declarations.
-            NodeName::Token(TokenType::Text)
-            | NodeName::Token(TokenType::CdataSection)
-            | NodeName::Token(TokenType::Comment)
-            | NodeName::Token(TokenType::Doctype)
-            | NodeName::Token(TokenType::PresumptuousTag)
-            | NodeName::Token(TokenType::FunkyComment) => false,
+            NodeName::Token(
+                TokenType::Text
+                | TokenType::CdataSection
+                | TokenType::Comment
+                | TokenType::Doctype
+                | TokenType::PresumptuousTag
+                | TokenType::FunkyComment,
+            ) => false,
 
             NodeName::Token(TokenType::Tag) => unreachable!("#tag NodeName should never exist"),
 
+            // Self-closing elements in foreign content.
+            NodeName::Tag(_) if *namespace != ParsingNamespace::Html => !has_self_closing_flag,
+
             // Void elements.
             // Special atomic elements.
-            NodeName::Tag(tag_name) if token_name_namespace == ParsingNamespace::Html => {
-                !(matches!(
+            NodeName::Tag(tag_name) => {
+                if matches!(
                     tag_name,
                     TagName::IFRAME
                         | TagName::NOEMBED
@@ -575,10 +584,14 @@ impl HtmlProcessor {
                         | TagName::TEXTAREA
                         | TagName::TITLE
                         | TagName::XMP
-                ) || Self::is_void(&tag_name))
+                ) {
+                    false
+                } else if Self::is_void(&tag_name) {
+                    false
+                } else {
+                    true
+                }
             }
-            // Self-closing elements in foreign content.
-            NodeName::Tag(_) => !token_has_self_closing,
         };
         Some(result)
     }
