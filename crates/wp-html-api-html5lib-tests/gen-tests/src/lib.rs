@@ -1,4 +1,5 @@
 use wp_html_api::{
+    html_processor::errors::HtmlProcessorError,
     tag_name::TagName,
     tag_processor::{AttributeValue, ParsingNamespace, TokenType},
 };
@@ -69,7 +70,7 @@ pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
 
 pub fn build_tree_representation(
     processor: &mut wp_html_api::html_processor::HtmlProcessor,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, TreeBuilderError> {
     let mut output: Vec<u8> = Vec::new();
     let mut indent_level = 0;
     let mut was_text = false;
@@ -260,16 +261,12 @@ pub fn build_tree_representation(
         }
     }
 
-    if processor.get_unsupported_exception().is_some() {
-        return Err("Unsupported operation".to_string());
-    }
-
     if let Some(error) = processor.get_last_error() {
-        return Err(format!("Parser error: {}", error));
+        Err(error)?;
     }
 
     if processor.paused_at_incomplete_token() {
-        return Err("Paused at incomplete token".to_string());
+        Err("Paused at incomplete token")?;
     }
 
     if !text_node.is_empty() {
@@ -280,4 +277,36 @@ pub fn build_tree_representation(
     // Tests always end with a trailing newline
     output.push(b'\n');
     Ok(output)
+}
+
+pub enum TreeBuilderError {
+    Arbitrary(String),
+    HtmlProcessor(HtmlProcessorError),
+}
+impl From<&str> for TreeBuilderError {
+    fn from(s: &str) -> Self {
+        TreeBuilderError::Arbitrary(s.to_string())
+    }
+}
+impl From<&HtmlProcessorError> for TreeBuilderError {
+    fn from(err: &HtmlProcessorError) -> Self {
+        TreeBuilderError::HtmlProcessor(err.clone())
+    }
+}
+impl From<TreeBuilderError> for String {
+    fn from(err: TreeBuilderError) -> String {
+        match err {
+            TreeBuilderError::Arbitrary(s) => s,
+            TreeBuilderError::HtmlProcessor(err) => match err {
+                HtmlProcessorError::ExceededMaxBookmarks => {
+                    let s: &str = err.into();
+                    s.into()
+                }
+                HtmlProcessorError::UnsupportedException(unsupported_exception) => {
+                    let s: &str = unsupported_exception.into();
+                    s.into()
+                }
+            },
+        }
+    }
 }

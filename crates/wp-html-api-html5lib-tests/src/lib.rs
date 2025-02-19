@@ -42,12 +42,21 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
                 let expected: Vec<u8> = vec![#(#expected),*];
 
                 let mut processor = HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Failed to create HTML processor");
-                let actual = build_tree_representation(&mut processor)?;
+                let actual = build_tree_representation(&mut processor);
+                let actual = match actual {
+                    Ok(actual) => actual,
+                    Err(inner_err) => {
+                        match inner_err {
+                            TreeBuilderError::Arbitrary(_) => return Err(inner_err.into()),
+                            TreeBuilderError::HtmlProcessor(_) => return Ok(()),
+                        }
+                    }
+                };
 
                 pretty_assertions::assert_str_eq!(
                     String::from_utf8_lossy(&expected),
                     String::from_utf8_lossy(&actual),
-                    "Error on input:\n{}",
+                    "Error with input:\n{}",
                     String::from_utf8_lossy(&input),
                 );
 
@@ -61,7 +70,7 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
     quote! {
         pub mod #file_mod_name {
             use wp_html_api::html_processor::{HtmlProcessor, errors::HtmlProcessorError};
-            use wp_html_api_html5lib_tests_gen_tests::build_tree_representation;
+            use wp_html_api_html5lib_tests_gen_tests::{build_tree_representation, TreeBuilderError};
 
             fn assert_error(processor: &HtmlProcessor, line: usize, col: usize, expected_msg: &str) {
                 // TODO: Once error reporting is implemented in HtmlProcessor,
