@@ -9,12 +9,25 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as LitStr);
     let test_file_path = input.value();
 
-    let content = fs::read_to_string(test_file_path).expect("Failed to read test file");
+    // Extract the file name from the path
+    let file_name = test_file_path
+        .split('/')
+        .last()
+        .and_then(|s| s.split('.').next())
+        .unwrap_or("unknown")
+        .to_string();
+
+    let content = fs::read_to_string(&test_file_path).expect("Failed to read test file");
 
     let test_cases = parse_test_file(&content);
 
-    let test_fns = test_cases.iter().enumerate().map(|(i, test)| {
-        let test_name = syn::Ident::new(&format!("html5lib_test_{}", i), proc_macro2::Span::call_site());
+    let file_mod_name = syn::Ident::new(&file_name, proc_macro2::Span::call_site());
+
+    let test_fns = test_cases.iter().map(|test| {
+        let test_name = syn::Ident::new(
+            &format!("line{:04}", test.line_number),
+            proc_macro2::Span::call_site()
+        );
         let input = &test.input;
         let expected = &test.expected_document;
 
@@ -43,18 +56,20 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
     });
 
     let expanded = quote! {
-        pub mod html5lib_tests_generated {
-            use super::*;
-            use wp_html_api::html_processor::{HtmlProcessor, errors::HtmlProcessorError};
+        pub mod html5lib_tests {
+            pub mod #file_mod_name {
+                use super::super::*;
+                use wp_html_api::html_processor::{HtmlProcessor, errors::HtmlProcessorError};
 
-            fn assert_error(processor: &HtmlProcessor, line: usize, col: usize, expected_msg: &str) {
-                // TODO: Once error reporting is implemented in HtmlProcessor,
-                // this will check if the processor has recorded the expected error
-                // For now we just print the expected error
-                println!("Expected error at {}:{}: {}", line, col, expected_msg);
+                fn assert_error(processor: &HtmlProcessor, line: usize, col: usize, expected_msg: &str) {
+                    // TODO: Once error reporting is implemented in HtmlProcessor,
+                    // this will check if the processor has recorded the expected error
+                    // For now we just print the expected error
+                    println!("Expected error at {}:{}: {}", line, col, expected_msg);
+                }
+
+                #(#test_fns)*
             }
-
-            #(#test_fns)*
         }
     };
 

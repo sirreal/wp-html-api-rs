@@ -70,6 +70,7 @@ pub struct TestCase {
     pub input: String,
     pub errors: Vec<(usize, usize, String)>, // (line, col, message)
     pub expected_document: String,
+    pub line_number: usize,  // Line number where this test case starts
 }
 
 pub fn parse_test_file(content: &str) -> Vec<TestCase> {
@@ -79,9 +80,12 @@ pub fn parse_test_file(content: &str) -> Vec<TestCase> {
         input: String::new(),
         errors: Vec::new(),
         expected_document: String::new(),
+        line_number: 0,
     };
+    let mut line_number = 0;
 
     for line in content.lines() {
+        line_number += 1;
         if line.starts_with("#data") {
             if !current_test.input.is_empty() {
                 tests.push(current_test);
@@ -89,8 +93,10 @@ pub fn parse_test_file(content: &str) -> Vec<TestCase> {
                     input: String::new(),
                     errors: Vec::new(),
                     expected_document: String::new(),
+                    line_number: 0,
                 };
             }
+            current_test.line_number = line_number + 1; // Test data starts on next line
             current_section = Some("data");
         } else if line.starts_with("#errors") {
             current_section = Some("errors");
