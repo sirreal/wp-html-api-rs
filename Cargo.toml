@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "crates/*",
+  "crates/wp-html-api-html5lib-tests/gen-tests",
   "crates/ext-php-rs/crates/*",
   "crates/ext-php-rs/tests"
 ]
