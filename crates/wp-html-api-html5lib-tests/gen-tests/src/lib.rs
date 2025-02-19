@@ -8,6 +8,7 @@ const TREE_INDENT: &[u8] = b"  ";
 
 pub struct TestCase {
     pub input: Vec<u8>,
+    pub context: Vec<u8>,
     pub errors: Vec<(usize, usize, String)>, // (line, col, message)
     pub expected_document: Vec<u8>,
     pub line_number: usize, // Line number where this test case starts
@@ -18,6 +19,7 @@ pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
     let mut current_section = None;
     let mut current_test = TestCase {
         input: Vec::new(),
+        context: Vec::new(),
         errors: Vec::new(),
         expected_document: Vec::new(),
         line_number: 0,
@@ -31,6 +33,7 @@ pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
                 tests.push(current_test);
                 current_test = TestCase {
                     input: Vec::new(),
+                    context: Vec::new(),
                     errors: Vec::new(),
                     expected_document: Vec::new(),
                     line_number: 0,
@@ -40,6 +43,8 @@ pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
             current_section = Some("data");
         } else if line.starts_with(b"#errors") {
             current_section = Some("errors");
+        } else if line.starts_with(b"#document-fragment") {
+            current_section = Some("context");
         } else if line.starts_with(b"#document") {
             current_section = Some("document");
         } else {
@@ -48,6 +53,9 @@ pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
                     current_test.input.extend(line);
                 }
                 Some("errors") => {}
+                Some("context") => {
+                    current_test.context.extend(line);
+                }
                 Some("document") => {
                     if line.starts_with(b"| ") {
                         current_test.expected_document.extend(&line[2..]);
@@ -56,7 +64,7 @@ pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
                     }
                     current_test.expected_document.push(b'\n');
                 }
-                _ => {}
+                _ => unreachable!("unhandled section"),
             }
         }
     }
