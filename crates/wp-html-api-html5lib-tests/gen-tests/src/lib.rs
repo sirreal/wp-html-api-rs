@@ -1,76 +1,10 @@
-use quote::quote;
-
-use std::fmt;
-use std::fs;
-use syn::{parse_macro_input, LitStr};
-
-#[derive(PartialEq, Clone)]
-pub enum Node {
-    Element {
-        name: String,
-        attributes: Vec<(String, String)>,
-        children: Vec<Node>,
-    },
-    Text(String),
-    Comment(String),
-    Doctype {
-        name: Option<String>,
-        public_id: Option<String>,
-        system_id: Option<String>,
-    },
-}
-
-impl fmt::Debug for Node {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Node::Element {
-                name,
-                attributes,
-                children,
-            } => {
-                write!(f, "<{}", name)?;
-                for (key, value) in attributes {
-                    write!(f, " {}=\"{}\"", key, value)?;
-                }
-                write!(f, ">")?;
-                if !children.is_empty() {
-                    write!(f, "\n")?;
-                    for child in children {
-                        for line in format!("{:?}", child).lines() {
-                            write!(f, "  {}\n", line)?;
-                        }
-                    }
-                }
-                write!(f, "</{}>", name)
-            }
-            Node::Text(text) => write!(f, "{:?}", text),
-            Node::Comment(text) => write!(f, "<!-- {} -->", text),
-            Node::Doctype {
-                name,
-                public_id,
-                system_id,
-            } => {
-                write!(f, "<!DOCTYPE")?;
-                if let Some(name) = name {
-                    write!(f, " {}", name)?;
-                }
-                if let Some(public_id) = public_id {
-                    write!(f, " PUBLIC \"{}\"", public_id)?;
-                }
-                if let Some(system_id) = system_id {
-                    write!(f, " \"{}\"", system_id)?;
-                }
-                write!(f, ">")
-            }
-        }
-    }
-}
+const TREE_INDENT: &str = "    ";
 
 pub struct TestCase {
     pub input: String,
     pub errors: Vec<(usize, usize, String)>, // (line, col, message)
     pub expected_document: String,
-    pub line_number: usize,  // Line number where this test case starts
+    pub line_number: usize, // Line number where this test case starts
 }
 
 pub fn parse_test_file(content: &str) -> Vec<TestCase> {
@@ -139,162 +73,113 @@ pub fn parse_test_file(content: &str) -> Vec<TestCase> {
     tests
 }
 
-pub struct TreeBuilder {
-    pub nodes: Vec<Node>,
-    pub stack: Vec<usize>,
-}
-
-impl TreeBuilder {
-    pub fn new() -> Self {
-        let root = Node::Element {
-            name: String::new(),
-            attributes: Vec::new(),
-            children: Vec::new(),
-        };
-        let mut nodes = Vec::new();
-        nodes.push(root);
-        Self {
-            nodes,
-            stack: vec![0],
-        }
-    }
-
-    pub fn add_node(&mut self, node: Node) {
-        let current_idx = *self.stack.last().unwrap();
-        if let Node::Element { children, .. } = &mut self.nodes[current_idx] {
-            children.push(node);
-        }
-    }
-
-    pub fn push_element(&mut self, name: String, attributes: Vec<(String, String)>) {
-        let node = Node::Element {
-            name,
-            attributes,
-            children: Vec::new(),
-        };
-        let current_idx = *self.stack.last().unwrap();
-        if let Node::Element { children, .. } = &mut self.nodes[current_idx] {
-            children.push(node);
-            if let Some(Node::Element { .. }) = children.last() {
-                self.stack.push(children.len() - 1);
-            }
-        }
-    }
-
-    pub fn pop(&mut self) {
-        if self.stack.len() > 1 {
-            self.stack.pop();
-        }
-    }
-
-    pub fn finish(mut self) -> Node {
-        if let Node::Element { mut children, .. } = self.nodes.remove(0) {
-            children.remove(0)
-        } else {
-            panic!("Invalid root node");
-        }
-    }
-}
-
-pub fn parse_expected_document(content: &str) -> Node {
-    let mut builder = TreeBuilder::new();
-    let mut current_indent = 0;
-
-    for line in content.lines() {
-        let line = line.trim_start();
-        if line.is_empty() {
-            continue;
-        }
-
-        let indent = line.chars().take_while(|&c| c == '|' || c == ' ').count();
-        let content = line[indent..].trim_start();
-
-        // Pop back up the stack if we're at a lower indent level
-        while indent < current_indent && builder.stack.len() > 1 {
-            builder.pop();
-            current_indent -= 2;
-        }
-
-        if content.starts_with("<!DOCTYPE") {
-            let parts: Vec<&str> = content.split_whitespace().collect();
-            builder.add_node(Node::Doctype {
-                name: parts.get(1).map(|s| s.to_string()),
-                public_id: None,
-                system_id: None,
-            });
-        } else if content.starts_with('"') && content.ends_with('"') {
-            // Text node
-            let text = content[1..content.len() - 1].to_string();
-            builder.add_node(Node::Text(text));
-        } else if content.starts_with("<!--") && content.ends_with("-->") {
-            // Comment node
-            let comment = content[4..content.len() - 3].trim().to_string();
-            builder.add_node(Node::Comment(comment));
-        } else if content.starts_with('<') {
-            // Element node
-            let element_content = content[1..].trim_end_matches('>');
-            let (name, attrs_str) = match element_content.find(' ') {
-                Some(idx) => (&element_content[..idx], &element_content[idx + 1..]),
-                None => (element_content, ""),
-            };
-
-            let mut attributes = Vec::new();
-            // Parse each attribute
-            for attr in attrs_str.split_whitespace() {
-                if let Some((name, value)) = attr.split_once('=') {
-                    attributes.push((name.to_string(), value.trim_matches('"').to_string()));
-                }
-            }
-
-            builder.push_element(name.to_string(), attributes);
-            current_indent = indent;
-        }
-    }
-
-    builder.finish()
-}
-
-pub fn build_tree(processor: &mut wp_html_api::html_processor::HtmlProcessor) -> Node {
-    let mut builder = TreeBuilder::new();
+pub fn build_tree_representation(
+    processor: &mut wp_html_api::html_processor::HtmlProcessor,
+) -> String {
+    let mut output = String::new();
+    let mut indent_level = 0;
+    let mut was_text = false;
+    let mut text_node = String::new();
 
     while processor.next_token() {
-        match processor.get_token_type() {
-            Some(wp_html_api::tag_processor::TokenType::Tag) => {
-                if processor.is_tag_closer() {
-                    builder.pop();
-                } else {
-                    let tag_name = processor.get_tag().unwrap().to_string();
-                    let attributes = Vec::new();
-                    // TODO: Implement attribute handling once the API is available
-                    builder.push_element(tag_name, attributes);
-                }
+        let token_type = processor.get_token_type();
+        let is_closer = processor.is_tag_closer();
+
+        // Handle text node buffering
+        if was_text && token_type != Some(&wp_html_api::tag_processor::TokenType::Text) {
+            if !text_node.is_empty() {
+                output.push_str(&text_node);
+                output.push_str("\"\n");
             }
-            Some(wp_html_api::tag_processor::TokenType::Text) => {
-                let text = processor.get_modifiable_text();
-                builder.add_node(Node::Text(String::from_utf8_lossy(&text).into()));
-            }
-            Some(wp_html_api::tag_processor::TokenType::Comment) => {
-                let comment = processor.get_full_comment_text().unwrap();
-                builder.add_node(Node::Comment(String::from_utf8_lossy(&comment).into()));
-            }
-            Some(wp_html_api::tag_processor::TokenType::Doctype) => {
+            was_text = false;
+            text_node.clear();
+        }
+
+        match token_type {
+            Some(&wp_html_api::tag_processor::TokenType::Doctype) => {
                 if let Some(doctype) = processor.get_doctype_info() {
-                    builder.add_node(Node::Doctype {
-                        name: doctype
-                            .name
-                            .map(|s| String::from_utf8_lossy(&s).into_owned()),
-                        public_id: doctype
-                            .public_identifier
-                            .map(|s| String::from_utf8_lossy(&s).into_owned()),
-                        system_id: doctype
-                            .system_identifier
-                            .map(|s| String::from_utf8_lossy(&s).into_owned()),
-                    });
+                    output.push_str("<!DOCTYPE ");
+                    if let Some(name) = doctype.name {
+                        output.push_str(&String::from_utf8_lossy(&name));
+                    }
+                    if doctype.public_identifier.is_some() || doctype.system_identifier.is_some() {
+                        if let Some(public_id) = doctype.public_identifier {
+                            output
+                                .push_str(&format!(" \"{}\"", String::from_utf8_lossy(&public_id)));
+                        }
+                        if let Some(system_id) = doctype.system_identifier {
+                            output
+                                .push_str(&format!(" \"{}\"", String::from_utf8_lossy(&system_id)));
+                        }
+                    }
+                    output.push_str(">\n");
                 }
+            }
+            Some(&wp_html_api::tag_processor::TokenType::Tag) => {
+                let namespace = "html"; // TODO: Get actual namespace when implemented
+                let tag_name = processor.get_tag().unwrap();
+                let tag_bytes: Box<[u8]> = tag_name.clone().into();
+                let tag_name = if namespace == "html" {
+                    String::from_utf8_lossy(&tag_bytes).to_lowercase()
+                } else {
+                    format!("{} {}", namespace, String::from_utf8_lossy(&tag_bytes))
+                };
+
+                if is_closer {
+                    indent_level -= 1;
+                    if namespace == "html" && tag_name.eq_ignore_ascii_case("template") {
+                        indent_level -= 1;
+                    }
+                    continue;
+                }
+
+                let tag_indent = indent_level;
+                if processor.expects_closer(None).unwrap_or(false) {
+                    indent_level += 1;
+                }
+
+                // Write tag
+                output.push_str(&TREE_INDENT.repeat(tag_indent));
+                output.push_str(&format!("<{}>\n", tag_name));
+
+                // TODO: Handle attributes when API is available
+
+                // Handle template content
+                if namespace == "html" && tag_name.eq_ignore_ascii_case("template") {
+                    output.push_str(&TREE_INDENT.repeat(indent_level));
+                    output.push_str("content\n");
+                    indent_level += 1;
+                }
+            }
+            Some(&wp_html_api::tag_processor::TokenType::Text) => {
+                let text_content = processor.get_modifiable_text();
+                if text_content.is_empty() {
+                    continue;
+                }
+
+                was_text = true;
+                if text_node.is_empty() {
+                    text_node = TREE_INDENT.repeat(indent_level);
+                    text_node.push('"');
+                }
+                text_node.push_str(&String::from_utf8_lossy(&text_content));
+            }
+            Some(&wp_html_api::tag_processor::TokenType::Comment) => {
+                let comment = processor.get_full_comment_text().unwrap();
+                output.push_str(&TREE_INDENT.repeat(indent_level));
+                output.push_str(&format!("<!-- {} -->\n", String::from_utf8_lossy(&comment)));
             }
             _ => {}
         }
     }
 
-    builder.finish()
+    // Handle any remaining text node
+    if !text_node.is_empty() {
+        output.push_str(&text_node);
+        output.push_str("\"\n");
+    }
+
+    // Tests always end with a trailing newline
+    output.push('\n');
+    output
 }

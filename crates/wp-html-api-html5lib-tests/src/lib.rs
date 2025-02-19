@@ -6,6 +6,9 @@ use wp_html_api_html5lib_tests_gen_tests::parse_test_file;
 
 #[proc_macro]
 pub fn html5lib_tests(input: TokenStream) -> TokenStream {
+    #[allow(unused_imports)]
+    use wp_html_api_html5lib_tests_gen_tests::build_tree_representation;
+
     let input = parse_macro_input!(input as LitStr);
     let test_file_path = input.value();
 
@@ -45,10 +48,9 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
                 let expected = #expected;
 
                 let mut processor = HtmlProcessor::create_full_parser(input.as_bytes(), "UTF-8").expect("Failed to create HTML processor");
-                let actual_tree = build_tree(&mut processor);
-                let expected_tree = parse_expected_document(expected);
+                let actual = build_tree_representation(&mut processor);
 
-                assert_eq!(actual_tree, expected_tree, "\nExpected:\n{:#?}\n\nActual:\n{:#?}", expected_tree, actual_tree);
+                assert_eq!(actual, expected, "\nExpected:\n{}\nActual:\n{}", expected, actual);
 
                 #(#error_assertions)*
             }
@@ -60,6 +62,7 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
             pub mod #file_mod_name {
                 use super::super::*;
                 use wp_html_api::html_processor::{HtmlProcessor, errors::HtmlProcessorError};
+                use wp_html_api_html5lib_tests_gen_tests::build_tree_representation;
 
                 fn assert_error(processor: &HtmlProcessor, line: usize, col: usize, expected_msg: &str) {
                     // TODO: Once error reporting is implemented in HtmlProcessor,
