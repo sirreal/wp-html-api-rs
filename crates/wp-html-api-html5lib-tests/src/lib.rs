@@ -50,10 +50,9 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
                 let mut processor = HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Failed to create HTML processor");
                 let actual = build_tree_representation(&mut processor)?;
 
-                assert_eq!(
-                    actual,
-                    expected,
-                    "\nExpected:\n{}\nActual:\n{}",
+                assert!(
+                    actual == expected,
+                    "\n### Expected: ###\n{}### Actual: ###\n{}",
                     String::from_utf8_lossy(&expected),
                     String::from_utf8_lossy(&actual),
                 );
