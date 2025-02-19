@@ -52,7 +52,8 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
 
                 assert!(
                     actual == expected,
-                    "\n### Expected: ###\n{}### Actual: ###\n{}",
+                    "\n### Failed on HTML: ###\n{}\n### Expected: ###\n{}### Actual: ###\n{}",
+                    String::from_utf8_lossy(&input),
                     String::from_utf8_lossy(&expected),
                     String::from_utf8_lossy(&actual),
                 );
