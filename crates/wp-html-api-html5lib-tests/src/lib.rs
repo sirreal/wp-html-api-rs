@@ -6,9 +6,6 @@ use syn::{parse_macro_input, LitStr};
 use wp_html_api_html5lib_tests_gen_tests::parse_test_file;
 
 fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
-    #[allow(unused_imports)]
-    use wp_html_api_html5lib_tests_gen_tests::build_tree_representation;
-
     // Extract the file name from the path
     let file_name = test_file_path
         .split('/')
