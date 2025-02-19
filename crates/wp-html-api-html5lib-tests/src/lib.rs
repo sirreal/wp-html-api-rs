@@ -53,6 +53,8 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
                 pretty_assertions::assert_str_eq!(
                     String::from_utf8_lossy(&expected),
                     String::from_utf8_lossy(&actual),
+                    "Error on input:\n{}",
+                    String::from_utf8_lossy(&input),
                 );
 
                 #(#error_assertions)*
