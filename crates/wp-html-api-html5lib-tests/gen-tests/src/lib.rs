@@ -196,7 +196,7 @@ pub fn build_tree_representation(
                             };
                             output.extend(TREE_INDENT.repeat(tag_indent + 1));
                             output.extend(display_name);
-                            output.extend(b" \"");
+                            output.extend(b"=\"");
                             output.extend(val);
                             output.extend(b"\"\n");
                         }
