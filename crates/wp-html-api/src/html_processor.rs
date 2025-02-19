@@ -5831,7 +5831,7 @@ impl HtmlProcessor {
     fn push(&mut self, token: HTMLToken) -> () {
         self.state.stack_of_open_elements._push(token.clone());
 
-        let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
+        let is_virtual = self.state.current_token.is_none() || !self.is_tag_closer();
         let same_node = self.state.current_token.is_some()
             && token.node_name == self.state.current_token.as_ref().unwrap().node_name;
         let provenance = if !same_node || is_virtual {
@@ -5860,7 +5860,7 @@ impl HtmlProcessor {
     }
 
     fn after_pop(&mut self, token: &HTMLToken) {
-        let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
+        let is_virtual = self.state.current_token.is_none() || !self.is_tag_closer();
         let same_node = self.state.current_token.is_some()
             && token.node_name == self.state.current_token.as_ref().unwrap().node_name;
         let provenance = if !same_node || is_virtual {
