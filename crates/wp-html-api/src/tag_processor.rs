@@ -60,6 +60,11 @@ pub enum ParsingNamespace {
 }
 impl Into<String> for ParsingNamespace {
     fn into(self) -> String {
+        (&self).into()
+    }
+}
+impl Into<String> for &ParsingNamespace {
+    fn into(self) -> String {
         match self {
             ParsingNamespace::Html => "html",
             ParsingNamespace::Svg => "svg",

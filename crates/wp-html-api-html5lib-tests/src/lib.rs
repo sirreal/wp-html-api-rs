@@ -20,7 +20,7 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
         .unwrap_or("unknown")
         .to_string();
 
-    let content = fs::read_to_string(&test_file_path).expect("Failed to read test file");
+    let content = fs::read(&test_file_path).expect("Failed to read test file");
 
     let test_cases = parse_test_file(&content);
 
@@ -31,8 +31,8 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
             &format!("line{:04}", test.line_number),
             proc_macro2::Span::call_site()
         );
-        let input = &test.input;
-        let expected = &test.expected_document;
+        let input = &test.input[..];
+        let expected = &test.expected_document[..];
 
         // Generate error assertions
         let error_assertions = test.errors.iter().map(|(line, col, msg)| {
@@ -43,16 +43,24 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
 
         quote! {
             #[test]
-            fn #test_name () {
-                let input = #input;
-                let expected = #expected;
+            fn #test_name() -> Result<(), String> {
+                let input: Vec<u8> = vec![#(#input),*];
+                let expected: Vec<u8> = vec![#(#expected),*];
 
-                let mut processor = HtmlProcessor::create_full_parser(input.as_bytes(), "UTF-8").expect("Failed to create HTML processor");
-                let actual = build_tree_representation(&mut processor);
+                let mut processor = HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Failed to create HTML processor");
+                let actual = build_tree_representation(&mut processor)?;
 
-                assert_eq!(actual, expected, "\nExpected:\n{}\nActual:\n{}", expected, actual);
+                assert_eq!(
+                    actual,
+                    expected,
+                    "\nExpected:\n{}\nActual:\n{}",
+                    String::from_utf8_lossy(&expected),
+                    String::from_utf8_lossy(&actual),
+                );
 
                 #(#error_assertions)*
+
+                Ok(())
             }
         }
     });

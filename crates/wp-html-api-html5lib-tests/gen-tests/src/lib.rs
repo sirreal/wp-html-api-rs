@@ -1,65 +1,59 @@
-const TREE_INDENT: &str = "    ";
+use wp_html_api::{
+    tag_name::TagName,
+    tag_processor::{AttributeValue, ParsingNamespace, TokenType},
+};
+
+const TREE_INDENT: &[u8] = b"  ";
 
 pub struct TestCase {
-    pub input: String,
+    pub input: Vec<u8>,
     pub errors: Vec<(usize, usize, String)>, // (line, col, message)
-    pub expected_document: String,
+    pub expected_document: Vec<u8>,
     pub line_number: usize, // Line number where this test case starts
 }
 
-pub fn parse_test_file(content: &str) -> Vec<TestCase> {
+pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
     let mut tests = Vec::new();
     let mut current_section = None;
     let mut current_test = TestCase {
-        input: String::new(),
+        input: Vec::new(),
         errors: Vec::new(),
-        expected_document: String::new(),
+        expected_document: Vec::new(),
         line_number: 0,
     };
     let mut line_number = 0;
 
-    for line in content.lines() {
+    for line in content.split(|c| *c == b'\n') {
         line_number += 1;
-        if line.starts_with("#data") {
+        if line.starts_with(b"#data") {
             if !current_test.input.is_empty() {
                 tests.push(current_test);
                 current_test = TestCase {
-                    input: String::new(),
+                    input: Vec::new(),
                     errors: Vec::new(),
-                    expected_document: String::new(),
+                    expected_document: Vec::new(),
                     line_number: 0,
                 };
             }
-            current_test.line_number = line_number + 1; // Test data starts on next line
+            current_test.line_number = line_number;
             current_section = Some("data");
-        } else if line.starts_with("#errors") {
+        } else if line.starts_with(b"#errors") {
             current_section = Some("errors");
-        } else if line.starts_with("#document") {
+        } else if line.starts_with(b"#document") {
             current_section = Some("document");
         } else {
             match current_section {
                 Some("data") => {
-                    current_test.input.push_str(line);
-                    current_test.input.push('\n');
+                    current_test.input.extend(line);
                 }
-                Some("errors") => {
-                    if !line.is_empty() {
-                        // Parse error line like "(1,0): expected-doctype-but-got-chars"
-                        let parts: Vec<_> = line.split(": ").collect();
-                        if parts.len() == 2 {
-                            let coords = parts[0].trim_matches(|c| c == '(' || c == ')');
-                            let message = parts[1];
-                            if let Some((line, col)) = coords.split_once(',') {
-                                if let (Ok(line), Ok(col)) = (line.parse(), col.parse()) {
-                                    current_test.errors.push((line, col, message.to_string()));
-                                }
-                            }
-                        }
-                    }
-                }
+                Some("errors") => {}
                 Some("document") => {
-                    current_test.expected_document.push_str(line);
-                    current_test.expected_document.push('\n');
+                    if line.starts_with(b"| ") {
+                        current_test.expected_document.extend(&line[2..]);
+                    } else {
+                        current_test.expected_document.extend(line);
+                    }
+                    current_test.expected_document.push(b'\n');
                 }
                 _ => {}
             }
@@ -75,111 +69,217 @@ pub fn parse_test_file(content: &str) -> Vec<TestCase> {
 
 pub fn build_tree_representation(
     processor: &mut wp_html_api::html_processor::HtmlProcessor,
-) -> String {
-    let mut output = String::new();
+) -> Result<Vec<u8>, String> {
+    let mut output: Vec<u8> = Vec::new();
     let mut indent_level = 0;
     let mut was_text = false;
-    let mut text_node = String::new();
+    let mut text_node: Vec<u8> = Vec::new();
 
     while processor.next_token() {
-        let token_type = processor.get_token_type();
-        let is_closer = processor.is_tag_closer();
+        if processor.get_last_error().is_some() {
+            break;
+        }
 
-        // Handle text node buffering
-        if was_text && token_type != Some(&wp_html_api::tag_processor::TokenType::Text) {
-            if !text_node.is_empty() {
-                output.push_str(&text_node);
-                output.push_str("\"\n");
+        let token_type = processor.get_token_type();
+
+        if let Some(TokenType::Text) = token_type {
+            if was_text {
+                if !text_node.is_empty() {
+                    output.extend(text_node.drain(..));
+                    output.extend(b"\"\n");
+                }
+                was_text = false;
             }
-            was_text = false;
-            text_node.clear();
         }
 
         match token_type {
-            Some(&wp_html_api::tag_processor::TokenType::Doctype) => {
-                if let Some(doctype) = processor.get_doctype_info() {
-                    output.push_str("<!DOCTYPE ");
-                    if let Some(name) = doctype.name {
-                        output.push_str(&String::from_utf8_lossy(&name));
-                    }
-                    if doctype.public_identifier.is_some() || doctype.system_identifier.is_some() {
-                        if let Some(public_id) = doctype.public_identifier {
-                            output
-                                .push_str(&format!(" \"{}\"", String::from_utf8_lossy(&public_id)));
-                        }
-                        if let Some(system_id) = doctype.system_identifier {
-                            output
-                                .push_str(&format!(" \"{}\"", String::from_utf8_lossy(&system_id)));
-                        }
-                    }
-                    output.push_str(">\n");
+            Some(TokenType::Doctype) => {
+                let doctype = processor
+                    .get_doctype_info()
+                    .ok_or("Failed to process DOCTYPE token")?;
+                output.extend(b"<!DOCTYPE ");
+                if let Some(name) = doctype.name {
+                    output.extend(name);
                 }
+
+                if doctype.public_identifier.is_some() || doctype.system_identifier.is_some() {
+                    output.extend(b" \"");
+                    output.extend(doctype.public_identifier.unwrap_or_default());
+                    output.extend(b"\" \"");
+                    output.extend(doctype.system_identifier.unwrap_or_default());
+                    output.extend(b"\"");
+                }
+                output.extend(b">\n");
             }
-            Some(&wp_html_api::tag_processor::TokenType::Tag) => {
-                let namespace = "html"; // TODO: Get actual namespace when implemented
-                let tag_name = processor.get_tag().unwrap();
-                let tag_bytes: Box<[u8]> = tag_name.clone().into();
-                let tag_name = if namespace == "html" {
-                    String::from_utf8_lossy(&tag_bytes).to_lowercase()
+
+            Some(TokenType::Tag) => {
+                let namespace = processor.get_namespace();
+                let tag_name = processor.get_tag().ok_or("Failed to get tag name")?;
+                let printable_tag_name = if namespace == ParsingNamespace::Html {
+                    let s: Box<[u8]> = (&tag_name).into();
+                    s.to_ascii_lowercase()
                 } else {
-                    format!("{} {}", namespace, String::from_utf8_lossy(&tag_bytes))
+                    let s: String = (&namespace).into();
+                    let mut s: Vec<u8> = s.into();
+                    s.push(b' ');
+                    let qualified_tag_name = processor
+                        .get_qualified_tag_name()
+                        .ok_or("Failed to get qualified tag name ")?;
+                    s.extend(qualified_tag_name);
+                    s
                 };
 
-                if is_closer {
+                if processor.is_tag_closer() {
                     indent_level -= 1;
-                    if namespace == "html" && tag_name.eq_ignore_ascii_case("template") {
+                    if namespace == ParsingNamespace::Html && tag_name == TagName::TEMPLATE {
                         indent_level -= 1;
                     }
                     continue;
                 }
 
                 let tag_indent = indent_level;
-                if processor.expects_closer(None).unwrap_or(false) {
+                if processor
+                    .expects_closer(None)
+                    .ok_or("Failed to get expects closer")?
+                {
                     indent_level += 1;
                 }
 
-                // Write tag
-                output.push_str(&TREE_INDENT.repeat(tag_indent));
-                output.push_str(&format!("<{}>\n", tag_name));
+                output.extend(TREE_INDENT.repeat(tag_indent));
+                output.push(b'<');
+                output.extend(printable_tag_name);
+                output.extend(b">\n");
+                // Handle attributes
+                match processor.get_attribute_names_with_prefix(b"") {
+                    Some(attribute_names) if !attribute_names.is_empty() => {
+                        let mut attribute_names = attribute_names
+                            .iter()
+                            .map(|&name| {
+                                (
+                                    name,
+                                    processor
+                                        .get_qualified_attribute_name(name)
+                                        .expect("Failed to get qualified attribute name"),
+                                )
+                            })
+                            .collect::<Vec<_>>();
 
-                // TODO: Handle attributes when API is available
+                        attribute_names.sort_by(|(_, a_display), (_, b_display)| {
+                            use std::cmp::Ordering as O;
+                            let a_has_ns = a_display.contains(&b':');
+                            let b_has_ns = b_display.contains(&b':');
+                            if a_has_ns != b_has_ns {
+                                return if a_has_ns { O::Greater } else { O::Less };
+                            }
 
-                // Handle template content
-                if namespace == "html" && tag_name.eq_ignore_ascii_case("template") {
-                    output.push_str(&TREE_INDENT.repeat(indent_level));
-                    output.push_str("content\n");
+                            let a_has_sp = a_display.contains(&b' ');
+                            let b_has_sp = b_display.contains(&b' ');
+                            if a_has_sp != b_has_sp {
+                                return if a_has_sp { O::Greater } else { O::Less };
+                            }
+
+                            a_display.cmp(b_display)
+                        });
+
+                        for (name, display_name) in attribute_names {
+                            let val: &[u8] = match processor
+                                .get_attribute(name)
+                                .ok_or("Failed to get attribute value")?
+                            {
+                                AttributeValue::BooleanFalse => unreachable!(
+                                    "Expected set attribute when procissing attribute names."
+                                ),
+                                /*
+                                 * Attributes with no value use the empty string value
+                                 * in the tree structure.
+                                 */
+                                AttributeValue::BooleanTrue => b"",
+                                AttributeValue::String(value) => &value.clone(),
+                            };
+                            output.extend(TREE_INDENT.repeat(tag_indent + 1));
+                            output.extend(display_name);
+                            output.extend(b" \"");
+                            output.extend(val);
+                            output.extend(b"\"\n");
+                        }
+                    }
+                    _ => {}
+                };
+
+                let modifiable_text = processor.get_modifiable_text();
+                if !modifiable_text.is_empty() {
+                    output.extend(TREE_INDENT.repeat(tag_indent + 1));
+                    output.push(b'"');
+                    output.extend(modifiable_text);
+                    output.extend(b"\"\n");
+                }
+
+                if namespace == ParsingNamespace::Html && tag_name == TagName::TEMPLATE {
+                    output.extend(TREE_INDENT.repeat(tag_indent));
+                    output.extend(b"content\n");
                     indent_level += 1;
                 }
             }
-            Some(&wp_html_api::tag_processor::TokenType::Text) => {
+
+            Some(TokenType::CdataSection | TokenType::Text) => {
                 let text_content = processor.get_modifiable_text();
                 if text_content.is_empty() {
                     continue;
                 }
-
                 was_text = true;
                 if text_node.is_empty() {
-                    text_node = TREE_INDENT.repeat(indent_level);
-                    text_node.push('"');
+                    text_node.extend(TREE_INDENT.repeat(indent_level));
+                    text_node.push(b'"');
                 }
-                text_node.push_str(&String::from_utf8_lossy(&text_content));
+                text_node.extend(text_content);
             }
-            Some(&wp_html_api::tag_processor::TokenType::Comment) => {
-                let comment = processor.get_full_comment_text().unwrap();
-                output.push_str(&TREE_INDENT.repeat(indent_level));
-                output.push_str(&format!("<!-- {} -->\n", String::from_utf8_lossy(&comment)));
+
+            Some(TokenType::FunkyComment) => {
+                // Comments must be "<" then "!-- " then the data then " -->".
+                output.extend(TREE_INDENT.repeat(indent_level));
+                output.extend(b"<!-- ");
+                output.extend(processor.get_modifiable_text());
+                output.extend(b" -->\n");
             }
-            _ => {}
+
+            Some(TokenType::Comment) => {
+                // Comments must be "<" then "!-- " then the data then " -->".
+                output.extend(TREE_INDENT.repeat(indent_level));
+                output.extend(b"<!-- ");
+                output.extend(
+                    processor
+                        .get_full_comment_text()
+                        .ok_or("Failed to get comment text")?,
+                );
+                output.extend(b" -->\n");
+            }
+
+            Some(TokenType::PresumptuousTag) => {
+                // </> is ignored in HTML.
+            }
+
+            None => Err("Got None, expected a token type.")?,
         }
     }
 
-    // Handle any remaining text node
+    if processor.get_unsupported_exception().is_some() {
+        return Err("Unsupported operation".to_string());
+    }
+
+    if let Some(error) = processor.get_last_error() {
+        return Err(format!("Parser error: {}", error));
+    }
+
+    if processor.paused_at_incomplete_token() {
+        return Err("Paused at incomplete token".to_string());
+    }
+
     if !text_node.is_empty() {
-        output.push_str(&text_node);
-        output.push_str("\"\n");
+        output.extend(text_node.drain(..));
+        output.extend(b"\"\n");
     }
 
     // Tests always end with a trailing newline
-    output.push('\n');
-    output
+    output.push(b'\n');
+    Ok(output)
 }

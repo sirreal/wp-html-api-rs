@@ -272,6 +272,12 @@ impl From<&[u8]> for TagName {
 
 impl Into<Box<[u8]>> for TagName {
     fn into(self) -> Box<[u8]> {
+        (&self).into()
+    }
+}
+
+impl Into<Box<[u8]>> for &TagName {
+    fn into(self) -> Box<[u8]> {
         match self {
             TagName::A => b"A".as_slice(),
             TagName::ADDRESS => b"ADDRESS".as_slice(),
