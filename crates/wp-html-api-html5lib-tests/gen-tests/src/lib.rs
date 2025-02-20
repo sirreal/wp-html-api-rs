@@ -85,13 +85,13 @@ pub fn build_tree_representation(
     let mut text_node: Vec<u8> = Vec::new();
 
     enum Reached {
-        NONE,
-        HTML,
-        HEAD,
-        BODY_or_FRAMESET,
+        None,
+        Html,
+        Head,
+        BodyOrFrameset,
     }
 
-    let mut reached = Reached::NONE;
+    let mut reached = Reached::None;
     while processor.next_token() {
         if processor.get_last_error().is_some() {
             break;
@@ -153,9 +153,9 @@ pub fn build_tree_representation(
                 }
 
                 match tag_name {
-                    TagName::HTML => reached = Reached::HTML,
-                    TagName::HEAD => reached = Reached::HEAD,
-                    TagName::BODY | TagName::FRAMESET => reached = Reached::BODY_or_FRAMESET,
+                    TagName::HTML => reached = Reached::Html,
+                    TagName::HEAD => reached = Reached::Head,
+                    TagName::BODY | TagName::FRAMESET => reached = Reached::BodyOrFrameset,
                     _ => {}
                 }
 
@@ -298,10 +298,10 @@ pub fn build_tree_representation(
     }
 
     match reached {
-        Reached::NONE => output.extend(b"<html>\n  <head>\n  <body>\n"),
-        Reached::HTML => output.extend(b"  <head>\n  <body>\n"),
-        Reached::HEAD => output.extend(b"  <body>\n"),
-        Reached::BODY_or_FRAMESET => {}
+        Reached::None => output.extend(b"<html>\n  <head>\n  <body>\n"),
+        Reached::Html => output.extend(b"  <head>\n  <body>\n"),
+        Reached::Head => output.extend(b"  <body>\n"),
+        Reached::BodyOrFrameset => {}
     }
 
     // Tests always end with a trailing newline
