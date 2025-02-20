@@ -4065,7 +4065,75 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_after_frameset(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
+             * >   U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
+             * >
+             * > Insert the character.
+             *
+             * This algorithm effectively strips non-whitespace characters from text and inserts
+             * them under HTML. This is not supported at this time.
+             */
+            Op::Token(TokenType::Text)
+                if self.tag_processor.text_node_classification
+                    == TextNodeClassification::Whitespace =>
+            {
+                self.step_in_body()
+            }
+            Op::Token(TokenType::Text) => {
+                self.bail(UnsupportedException::NonWhitespaceCharsAfterFrameset)
+            }
+
+            /*
+             * > A comment token
+             */
+            Op::Token(
+                TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
+            ) => {
+                self.insert_html_element(self.state.current_token.clone().unwrap());
+                true
+            }
+
+            /*
+             * > A DOCTYPE token
+             */
+            Op::Token(TokenType::Doctype) => {
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "html"
+             */
+            Op::TagPush(TagName::HTML) => self.step_in_body(),
+
+            /*
+             * > An end tag whose tag name is "html"
+             */
+            Op::TagPop(TagName::HTML) => {
+                self.state.insertion_mode = InsertionMode::AFTER_AFTER_FRAMESET;
+                /*
+                 * The HTML element is not removed from the stack of open elements.
+                 * Only internal state has changed, this does not qualify as a "step"
+                 * in terms of advancing through the document to another token.
+                 * Nothing has been pushed or popped.
+                 * Proceed to parse the next item.
+                 */
+                self.step(NodeToProcess::ProcessNextNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "noframes"
+             */
+            Op::TagPush(TagName::NOFRAMES) => self.step_in_head(),
+
+            /*
+             * > Anything else
+             * >   Parse error. Ignore the token.
+             */
+            _ => self.step(NodeToProcess::ProcessNextNode),
+        }
     }
 
     /// Parses next element in the 'after after body' insertion mode.
