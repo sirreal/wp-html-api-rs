@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
 #[macro_use]
 pub(crate) mod macros;
 

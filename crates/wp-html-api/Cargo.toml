@@ -9,3 +9,6 @@ license.workspace = true
 
 [dependencies]
 
+[dev-dependencies]
+quickcheck = "1"
+quickcheck_macros = "1"
