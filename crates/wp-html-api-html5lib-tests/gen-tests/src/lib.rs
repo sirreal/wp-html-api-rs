@@ -301,7 +301,7 @@ pub fn build_tree_representation(
     }
 
     if processor.paused_at_incomplete_token() {
-        Err("Paused at incomplete token")?;
+        Err(TreeBuilderError::PausedAtIncompleteToken)?;
     }
 
     if !text_node.is_empty() {
@@ -322,6 +322,7 @@ pub fn build_tree_representation(
 }
 
 pub enum TreeBuilderError {
+    PausedAtIncompleteToken,
     Arbitrary(String),
     HtmlProcessor(HtmlProcessorError),
 }
@@ -338,6 +339,7 @@ impl From<&HtmlProcessorError> for TreeBuilderError {
 impl From<TreeBuilderError> for String {
     fn from(err: TreeBuilderError) -> String {
         match err {
+            TreeBuilderError::PausedAtIncompleteToken => "Paused at incomplete token.".into(),
             TreeBuilderError::Arbitrary(s) => s,
             TreeBuilderError::HtmlProcessor(err) => match err {
                 HtmlProcessorError::ExceededMaxBookmarks => {

@@ -53,6 +53,9 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
                     Err(inner_err) => {
                         match inner_err {
                             TreeBuilderError::Arbitrary(_) => return Err(inner_err.into()),
+
+                            // Treat these like skips.
+                            TreeBuilderError::PausedAtIncompleteToken => return Ok(()),
                             TreeBuilderError::HtmlProcessor(_) => return Ok(()),
                         }
                     }
