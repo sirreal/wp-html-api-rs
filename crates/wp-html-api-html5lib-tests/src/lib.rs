@@ -107,6 +107,7 @@ pub fn html5lib_tests(input: TokenStream) -> TokenStream {
     }
 
     let expanded = quote! {
+        #[cfg(test)]
         pub mod html5lib_tests {
             #(#all_tests)*
         }
