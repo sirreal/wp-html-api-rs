@@ -1,6 +1,3 @@
-use proc_macro2::TokenStream;
-use quote::{ToTokens, TokenStreamExt};
-
 use wp_html_api::{
     html_processor::errors::HtmlProcessorError,
     tag_name::TagName,
@@ -304,7 +301,7 @@ pub fn build_tree_representation(
     }
 
     if processor.paused_at_incomplete_token() {
-        Err(TreeBuilderError::PausedAtIncompleteToken)?;
+        Err("Paused at incomplete token")?;
     }
 
     if !text_node.is_empty() {
@@ -325,44 +322,9 @@ pub fn build_tree_representation(
 }
 
 pub enum TreeBuilderError {
-    PausedAtIncompleteToken,
     Arbitrary(String),
     HtmlProcessor(HtmlProcessorError),
 }
-
-impl ToTokens for TreeBuilderError {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            TreeBuilderError::PausedAtIncompleteToken => {
-                tokens.extend(quote::quote! {
-                    TreeBuilderError::PausedAtIncompleteToken
-                });
-            }
-            TreeBuilderError::Arbitrary(msg) => {
-                tokens.extend(quote::quote! {
-                    TreeBuilderError::Arbitrary(#msg.to_string())
-                });
-            }
-            TreeBuilderError::HtmlProcessor(html_processor_error) => match html_processor_error {
-                HtmlProcessorError::ExceededMaxBookmarks => {
-                    tokens.extend(quote::quote! {
-                        TreeBuilderError::HtmlProcessor(HtmlProcessorError::ExceededMaxBookmarks)
-                    });
-                }
-                HtmlProcessorError::UnsupportedException(unsupported_exception) => {
-                    // Convert UnsupportedException to a string first
-                    let exception_str: &str = unsupported_exception.into();
-                    tokens.extend(quote::quote! {
-                        TreeBuilderError::HtmlProcessor(
-                            HtmlProcessorError::UnsupportedException(#exception_str.into())
-                        )
-                    });
-                }
-            },
-        }
-    }
-}
-
 impl From<&str> for TreeBuilderError {
     fn from(s: &str) -> Self {
         TreeBuilderError::Arbitrary(s.to_string())
@@ -376,7 +338,6 @@ impl From<&HtmlProcessorError> for TreeBuilderError {
 impl From<TreeBuilderError> for String {
     fn from(err: TreeBuilderError) -> String {
         match err {
-            TreeBuilderError::PausedAtIncompleteToken => "Paused at incomplete token.".into(),
             TreeBuilderError::Arbitrary(s) => s,
             TreeBuilderError::HtmlProcessor(err) => match err {
                 HtmlProcessorError::ExceededMaxBookmarks => {
