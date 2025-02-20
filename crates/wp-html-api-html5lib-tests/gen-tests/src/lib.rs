@@ -13,50 +13,62 @@ pub struct TestCase {
     pub expected_document: Vec<u8>,
     pub line_number: usize, // Line number where this test case starts
 }
+impl Default for TestCase {
+    fn default() -> Self {
+        TestCase {
+            input: Vec::new(),
+            context: Vec::new(),
+            errors: Vec::new(),
+            expected_document: Vec::new(),
+            line_number: 0,
+        }
+    }
+}
 
 pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
+    #[derive(Debug, PartialEq)]
+    enum Section {
+        Unknown,
+        Data,
+        Errors,
+        Context,
+        Document,
+    }
+
     let mut tests = Vec::new();
-    let mut current_section = None;
-    let mut current_test = TestCase {
-        input: Vec::new(),
-        context: Vec::new(),
-        errors: Vec::new(),
-        expected_document: Vec::new(),
-        line_number: 0,
-    };
+    let mut current_section = Section::Unknown;
+    let mut current_test = TestCase::default();
     let mut line_number = 0;
 
     for line in content.split(|c| *c == b'\n') {
         line_number += 1;
-        if line.starts_with(b"#data") {
-            if !current_test.input.is_empty() {
-                tests.push(current_test);
-                current_test = TestCase {
-                    input: Vec::new(),
-                    context: Vec::new(),
-                    errors: Vec::new(),
-                    expected_document: Vec::new(),
-                    line_number: 0,
-                };
+        match line {
+            b"#data" => {
+                if current_section != Section::Unknown {
+                    tests.push(current_test);
+                    current_test = TestCase::default();
+                }
+                current_test.line_number = line_number;
+                current_section = Section::Data;
             }
-            current_test.line_number = line_number;
-            current_section = Some("data");
-        } else if line.starts_with(b"#errors") {
-            current_section = Some("errors");
-        } else if line.starts_with(b"#document-fragment") {
-            current_section = Some("context");
-        } else if line.starts_with(b"#document") {
-            current_section = Some("document");
-        } else {
-            match current_section {
-                Some("data") => {
+            b"#errors" => {
+                current_section = Section::Errors;
+            }
+            b"#document-fragment" => {
+                current_section = Section::Context;
+            }
+            b"#document" => {
+                current_section = Section::Document;
+            }
+            _ => match current_section {
+                Section::Data => {
                     current_test.input.extend(line);
                 }
-                Some("errors") => {}
-                Some("context") => {
+                Section::Errors => {}
+                Section::Context => {
                     current_test.context.extend(line);
                 }
-                Some("document") => {
+                Section::Document => {
                     if line.starts_with(b"| ") {
                         current_test.expected_document.extend(&line[2..]);
                     } else {
@@ -64,9 +76,9 @@ pub fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
                     }
                     current_test.expected_document.push(b'\n');
                 }
-                _ => unreachable!("unhandled section"),
-            }
-        }
+                _ => unreachable!("attempted to parse in unknown section"),
+            },
+        };
     }
 
     if !current_test.input.is_empty() {

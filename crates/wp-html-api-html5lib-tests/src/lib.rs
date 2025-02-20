@@ -61,7 +61,7 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
                 pretty_assertions::assert_str_eq!(
                     String::from_utf8_lossy(&expected),
                     String::from_utf8_lossy(&actual),
-                    "Error with input:\n{}",
+                    "Error with input:\n{:?}",
                     String::from_utf8_lossy(&input),
                 );
 
