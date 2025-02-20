@@ -827,7 +827,7 @@ impl TagProcessor {
          *
          * @see https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
          */
-        let starts_with_equal = self.html_bytes.get(self.bytes_already_parsed).unwrap() == &b'=';
+        let starts_with_equal = self.html_bytes[self.bytes_already_parsed] == b'=';
         let start_shift = if starts_with_equal { 1 } else { 0 };
         let name_length = start_shift
             + strcspn!(
@@ -1371,7 +1371,7 @@ impl TagProcessor {
     fn skip_whitespace(&mut self) {
         self.bytes_already_parsed += strspn!(
             &self.html_bytes,
-            b' ' | b'\t' | b'\x0C' | b'\r' | b'\n',
+            b' ' | b'\t' | 0x0C | b'\r' | b'\n',
             self.bytes_already_parsed
         );
     }
@@ -2059,8 +2059,9 @@ impl TagProcessor {
         while at < end {
             let skipped = strspn!(
                 self.html_bytes,
-                b' ' | b'\t' | 0x0c | b'\r' | b'\n' | b'/' | b'>',
-                at
+                b' ' | b'\t' | 0x0c | b'\r' | b'\n',
+                at,
+                end - at
             );
             at += skipped;
 
@@ -2171,7 +2172,7 @@ pub(crate) enum ParserState {
     FunkyComment,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum TextNodeClassification {
     Generic,
     NullSequence,
