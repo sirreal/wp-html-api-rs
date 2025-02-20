@@ -84,6 +84,14 @@ pub fn build_tree_representation(
     let mut was_text = false;
     let mut text_node: Vec<u8> = Vec::new();
 
+    enum Reached {
+        NONE,
+        HTML,
+        HEAD,
+        BODY_or_FRAMESET,
+    }
+
+    let mut reached = Reached::NONE;
     while processor.next_token() {
         if processor.get_last_error().is_some() {
             break;
@@ -142,6 +150,13 @@ pub fn build_tree_representation(
                         indent_level -= 1;
                     }
                     continue;
+                }
+
+                match tag_name {
+                    TagName::HTML => reached = Reached::HTML,
+                    TagName::HEAD => reached = Reached::HEAD,
+                    TagName::BODY | TagName::FRAMESET => reached = Reached::BODY_or_FRAMESET,
+                    _ => {}
                 }
 
                 let tag_indent = indent_level;
@@ -280,6 +295,13 @@ pub fn build_tree_representation(
     if !text_node.is_empty() {
         output.extend(text_node.drain(..));
         output.extend(b"\"\n");
+    }
+
+    match reached {
+        Reached::NONE => output.extend(b"<html>\n  <head>\n  <body>\n"),
+        Reached::HTML => output.extend(b"  <head>\n  <body>\n"),
+        Reached::HEAD => output.extend(b"  <body>\n"),
+        Reached::BODY_or_FRAMESET => {}
     }
 
     // Tests always end with a trailing newline
