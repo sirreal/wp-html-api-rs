@@ -2354,6 +2354,14 @@ pub enum NodeName {
     Tag(TagName),
     Token(TokenType),
 }
+impl NodeName {
+    pub fn tag(&self) -> Option<&TagName> {
+        match self {
+            NodeName::Tag(tag_name) => Some(tag_name),
+            _ => None,
+        }
+    }
+}
 impl Into<NodeName> for TagName {
     fn into(self) -> NodeName {
         NodeName::Tag(self)

@@ -2681,47 +2681,47 @@ impl HtmlProcessor {
                 // >   4. Set node to the previous entry in the stack of open elements.
                 // >   5. Return to the step labeled loop.
 
-                let mut found_special = false;
-                let mut found_node = None;
-                for node @ HTMLToken {
-                    node_name,
-                    namespace,
-                    ..
-                } in self.state.stack_of_open_elements.walk_up()
-                {
-                    if namespace == &ParsingNamespace::Html {
-                        if let NodeName::Tag(node_tag_name) = node_name {
-                            if node_tag_name == &tag_name {
-                                found_node = Some(node.clone());
-                                break;
-                            }
+                enum Continuation {
+                    FoundSpecial,
+                    FoundMatchingNode,
+                }
+
+                let continuation: Option<Continuation> = self
+                    .state
+                    .stack_of_open_elements
+                    .walk_up()
+                    .find_map(|node| {
+                        if node.namespace != ParsingNamespace::Html {
+                            return None;
                         }
-                    }
 
-                    if Self::is_special(&tag_name) {
-                        found_special = true;
-                        break;
-                    }
-                }
+                        let node_tag_name = node.node_name.tag()?;
 
-                // This is a parse error, ignore the token.
-                if found_special {
-                    return self.step(NodeToProcess::ProcessNextNode);
-                }
-
-                if let Some(found_node) = found_node {
-                    self.generate_implied_end_tags(Some(&tag_name));
-
-                    // @todo If node is not the current node, then this is a parse error.
-                    //
-                    while let Some(popped_node) = self.pop() {
-                        if popped_node == found_node {
-                            break;
+                        if *node_tag_name == tag_name {
+                            return Some(Continuation::FoundMatchingNode);
                         }
-                    }
-                }
 
-                true
+                        if Self::is_special(&node_tag_name) {
+                            return Some(Continuation::FoundSpecial);
+                        }
+
+                        None
+                    });
+
+                match continuation {
+                    Some(Continuation::FoundSpecial) => {
+                        // This is a parse error, ignore the token.
+                        self.step(NodeToProcess::ProcessNextNode)
+                    }
+                    Some(Continuation::FoundMatchingNode) => {
+                        self.generate_implied_end_tags(Some(&tag_name));
+
+                        // @todo "If node is not the current node, then this is a parse error."
+                        self.pop_until(&tag_name);
+                        true
+                    }
+                    None => false,
+                }
             }
 
             Op::Token(TokenType::CdataSection) => unreachable!("CDATA does not exist in HTML5."),
