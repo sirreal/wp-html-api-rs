@@ -276,6 +276,7 @@ impl TagProcessor {
         let tag_name_starts_at = self.tag_name_starts_at.unwrap();
         let tag_name_length = self.tag_name_length.unwrap();
         let tag_ends_at = self.token_starts_at.unwrap() + self.token_length.unwrap();
+        let attributes = Vec::clone(&self.attributes);
 
         let found_closer = match tag {
             TagName::SCRIPT => self.skip_script_data(),
@@ -321,6 +322,7 @@ impl TagProcessor {
         self.text_starts_at = Some(tag_ends_at);
         self.text_length = Some(self.tag_name_starts_at.unwrap() - self.text_starts_at.unwrap());
         self.tag_name_starts_at = Some(tag_name_starts_at);
+        self.attributes = attributes;
         self.tag_name_length = Some(tag_name_length);
 
         return true;
@@ -2272,6 +2274,7 @@ impl Into<&str> for &TokenType {
     }
 }
 
+#[derive(Debug, Clone)]
 struct AttributeToken {
     // The byte length of the name.
     pub name_length: usize,
