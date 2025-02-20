@@ -3,7 +3,10 @@ use proc_macro::TokenStream;
 use quote::quote;
 use std::fs;
 use syn::{parse_macro_input, LitStr};
-use wp_html_api_html5lib_tests_gen_tests::parse_test_file;
+use wp_html_api::html_processor::HtmlProcessor;
+use wp_html_api_html5lib_tests_gen_tests::{
+    build_tree_representation, parse_test_file, TreeBuilderError,
+};
 
 fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
     // Extract the file name from the path
@@ -23,14 +26,45 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
     let test_fns = test_cases.iter().map(|test| {
         let test_name = syn::Ident::new(
             &format!("line{:04}", test.line_number),
-            proc_macro2::Span::call_site()
+            proc_macro2::Span::call_site(),
         );
         let input = &test.input[..];
         let expected = &test.expected_document[..];
 
         // @todo: Implement context element parsing}
         let has_context = !test.context.is_empty();
-        let ignore = if has_context { quote! { #[ignore] } } else { quote! {} };
+
+        let mut processor = HtmlProcessor::create_full_parser(&input, "UTF-8")
+            .expect("Failed to create HTML processor");
+        let processed = build_tree_representation(&mut processor);
+
+        let should_skip = match &processed {
+            Ok(_) => false,
+            Err(err) => {
+                match err {
+                    TreeBuilderError::Arbitrary(_) => false,
+
+                    // Treat these like skips.
+                    TreeBuilderError::PausedAtIncompleteToken => true,
+                    TreeBuilderError::HtmlProcessor(_) => true,
+                }
+            }
+        };
+
+        let output = match &processed {
+            Ok(output) => quote! {
+                Ok( vec![#(#output),*] )
+            },
+            Err(err) => quote! {
+                Err(#err)
+            },
+        };
+
+        let ignore = if should_skip || has_context {
+            quote! { #[ignore] }
+        } else {
+            quote! {}
+        };
 
         // Generate error assertions
         let error_assertions = test.errors.iter().map(|(line, col, msg)| {
@@ -45,18 +79,7 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
             fn #test_name() -> Result<(), String> {
                 let input: Vec<u8> = vec![#(#input),*];
                 let expected: Vec<u8> = vec![#(#expected),*];
-
-                let mut processor = HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Failed to create HTML processor");
-                let actual = build_tree_representation(&mut processor);
-                let actual = match actual {
-                    Ok(actual) => actual,
-                    Err(inner_err) => {
-                        match inner_err {
-                            TreeBuilderError::Arbitrary(_) => return Err(inner_err.into()),
-                            TreeBuilderError::HtmlProcessor(_) => return Ok(()),
-                        }
-                    }
-                };
+                let output = #output?;
 
                 pretty_assertions::assert_str_eq!(
                     String::from_utf8_lossy(&expected),
