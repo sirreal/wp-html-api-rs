@@ -4284,7 +4284,7 @@ impl HtmlProcessor {
                     self.state.frameset_ok = false;
                 }
 
-                self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
+                self.insert_foreign_element_from_current_token(false);
                 true
             }
 
@@ -4323,7 +4323,7 @@ impl HtmlProcessor {
                     self.state.frameset_ok = false;
                 }
 
-                self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
+                self.insert_foreign_element_from_current_token(false);
                 true
             }
 
@@ -4336,7 +4336,7 @@ impl HtmlProcessor {
                 ),
                 _,
             ) => {
-                self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
+                self.insert_foreign_element_from_current_token(false);
                 true
             }
 
@@ -4445,7 +4445,7 @@ impl HtmlProcessor {
                     .as_ref()
                     .unwrap()
                     .has_self_closing_flag;
-                self.insert_foreign_element(self.state.current_token.clone().unwrap(), false);
+                self.insert_foreign_element_from_current_token(false);
 
                 /*
                  * > If the token has its self-closing flag set, then run
@@ -5673,20 +5673,26 @@ impl HtmlProcessor {
     ///                                                 insertion point will be updated correctly.
     /// @param bool          $only_add_to_element_stack Whether to skip the "insert an element at the adjusted
     ///                                                 insertion location" algorithm when adding this element.
-    fn insert_foreign_element(
-        &mut self,
-        mut token: HTMLToken,
-        only_add_to_element_stack: bool,
-    ) -> () {
-        let adjusted_current_node = self.get_adjusted_current_node();
-        token.namespace = adjusted_current_node
-            .map(|n| n.namespace.clone())
-            .unwrap_or(ParsingNamespace::Html);
+    fn insert_foreign_element_from_current_token(&mut self, only_add_to_element_stack: bool) -> () {
+        let adjusted_namespace = self
+            .get_adjusted_current_node()
+            .map_or(ParsingNamespace::Html, |tok| tok.namespace.clone());
+
+        self.state
+            .current_token
+            .as_mut()
+            .map(|token| token.namespace = adjusted_namespace);
 
         if self.is_mathml_integration_point() {
-            token.integration_node_type = Some(IntegrationNodeType::MathML);
+            self.state
+                .current_token
+                .as_mut()
+                .map(|token| token.integration_node_type = Some(IntegrationNodeType::MathML));
         } else if self.is_html_integration_point() {
-            token.integration_node_type = Some(IntegrationNodeType::HTML);
+            self.state
+                .current_token
+                .as_mut()
+                .map(|token| token.integration_node_type = Some(IntegrationNodeType::HTML));
         }
 
         if !only_add_to_element_stack {
@@ -5702,7 +5708,7 @@ impl HtmlProcessor {
              */
         }
 
-        self.insert_html_element(token);
+        self.insert_html_element(self.state.current_token.as_ref().unwrap().clone());
     }
 
     /// Inserts a virtual element on the stack of open elements.
