@@ -111,8 +111,10 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
     let file_mod_name = syn::Ident::new(&file_name, proc_macro2::Span::call_site());
 
     let test_fns = test_cases.iter().map(|test| {
-        let test_name = syn::Ident::new(
-            &format!("line{:04}", test.line_number),
+
+        let test_name =   &format!("line{:04}", test.line_number);
+        let test_name_fn_name = syn::Ident::new(
+            &test_name,
             proc_macro2::Span::call_site()
         );
         let input = &test.input[..];
@@ -120,7 +122,11 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
 
         // @todo: Implement context element parsing}
         let has_context = !test.context.is_empty();
-        let ignore = if has_context { quote! { #[ignore] } } else { quote! {} };
+        let ignore = if let Some((_,_,reason)) = EXCLUDED_TESTS.iter().find(|(file, test,_ )| file == &file_name && test == test_name) {
+            quote! { #[ignore = #reason] }
+        } else if has_context {
+            quote! { #[ignore = "Fragment tests are not yet supported."] }
+        } else { quote! {} };
 
         // Generate error assertions
         let error_assertions = test.errors.iter().map(|(line, col, msg)| {
@@ -132,7 +138,7 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
         quote! {
             #ignore
             #[test]
-            fn #test_name() -> Result<(), String> {
+            fn #test_name_fn_name() -> Result<(), String> {
                 let input: Vec<u8> = vec![#(#input),*];
                 let expected: Vec<u8> = vec![#(#expected),*];
 
@@ -181,6 +187,64 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
         }
     }
 }
+
+const EXCLUDED_TESTS: &[(&str, &str, &str)] = &[
+    (
+        "noscript01",
+        "line0014",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests14",
+        "line0022",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests14",
+        "line0055",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests19",
+        "line0488",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests19",
+        "line0500",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests19",
+        "line1079",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests2",
+        "line0207",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests2",
+        "line0686",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests2",
+        "line0697",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "tests2",
+        "line0709",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+    (
+        "webkit01",
+        "line0231",
+        "Unimplemented: This parser does not add missing attributes to existing HTML or BODY tags.",
+    ),
+];
 
 #[proc_macro]
 pub fn html5lib_tests(input: TokenStream) -> TokenStream {
