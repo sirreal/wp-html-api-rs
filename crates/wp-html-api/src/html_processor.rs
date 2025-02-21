@@ -4644,9 +4644,7 @@ impl HtmlProcessor {
                     // Instead of manually looping, the steps are applied here after the
                     // first iteration.
                     if !first_iteration {
-                        if node.namespace != ParsingNamespace::Html {
-                            continue;
-                        } else {
+                        if node.namespace == ParsingNamespace::Html {
                             continuation = Continuation::StepInCurrentInsertionMode;
                             break;
                         }
