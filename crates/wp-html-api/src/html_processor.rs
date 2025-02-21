@@ -549,7 +549,7 @@ impl HtmlProcessor {
         } else {
             (
                 &self.get_token_name()?,
-                &self.get_namespace(),
+                self.get_namespace(),
                 self.has_self_closing_flag(),
             )
         };
@@ -4629,9 +4629,9 @@ impl HtmlProcessor {
     /// Indicates the namespace of the current token, or "html" if there is none.
     ///
     /// @return string One of "html", "math", or "svg".
-    pub fn get_namespace(&self) -> ParsingNamespace {
+    pub fn get_namespace(&self) -> &ParsingNamespace {
         if let Some(current_element) = self.current_element.as_ref() {
-            current_element.token.namespace.clone()
+            &current_element.token.namespace
         } else {
             self.tag_processor.get_namespace()
         }
@@ -4674,7 +4674,7 @@ impl HtmlProcessor {
          */
         let option_tag_name = self.tag_processor.get_tag();
         if let Some(tag_name) = &option_tag_name {
-            if self.get_namespace() == ParsingNamespace::Html
+            if self.get_namespace() == &ParsingNamespace::Html
                 && matches!(tag_name , TagName::Arbitrary(arbitrary_name) if &**arbitrary_name == b"IMAGE")
             {
                 return Some(TagName::IMG);

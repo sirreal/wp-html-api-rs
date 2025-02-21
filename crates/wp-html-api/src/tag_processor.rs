@@ -1607,8 +1607,8 @@ impl TagProcessor {
     }
 
     /// Returns the namespace of the matched token.
-    pub fn get_namespace(&self) -> ParsingNamespace {
-        self.parsing_namespace.clone()
+    pub fn get_namespace(&self) -> &ParsingNamespace {
+        &self.parsing_namespace
     }
 
     /// Returns the modifiable text for a matched token, or an empty string.

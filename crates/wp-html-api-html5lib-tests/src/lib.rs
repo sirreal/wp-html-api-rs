@@ -60,11 +60,11 @@ pub fn build_tree_representation(
             Some(TokenType::Tag) => {
                 let namespace = processor.get_namespace();
                 let tag_name = processor.get_tag().ok_or("Failed to get tag name")?;
-                let printable_tag_name = if namespace == ParsingNamespace::Html {
+                let printable_tag_name = if namespace == &ParsingNamespace::Html {
                     let s: Box<[u8]> = (&tag_name).into();
                     s.to_ascii_lowercase()
                 } else {
-                    let s: String = (&namespace).into();
+                    let s: String = namespace.into();
                     let mut s: Vec<u8> = s.into();
                     s.push(b' ');
                     let qualified_tag_name = processor
@@ -76,7 +76,7 @@ pub fn build_tree_representation(
 
                 if processor.is_tag_closer() {
                     indent_level -= 1;
-                    if namespace == ParsingNamespace::Html && tag_name == TagName::TEMPLATE {
+                    if namespace == &ParsingNamespace::Html && tag_name == TagName::TEMPLATE {
                         indent_level -= 1;
                     }
                     continue;
@@ -166,7 +166,7 @@ pub fn build_tree_representation(
                     output.extend(b"\"\n");
                 }
 
-                if namespace == ParsingNamespace::Html && tag_name == TagName::TEMPLATE {
+                if namespace == &ParsingNamespace::Html && tag_name == TagName::TEMPLATE {
                     output.extend(TREE_INDENT.repeat(tag_indent));
                     output.extend(b"content\n");
                     indent_level += 1;
@@ -272,4 +272,3 @@ impl From<TreeBuilderError> for String {
         }
     }
 }
-
