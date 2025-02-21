@@ -4,7 +4,7 @@ extern crate quickcheck_macros;
 
 #[macro_use]
 pub(crate) mod macros;
-
+pub(crate) mod attributes;
 pub(crate) mod str_fns;
 
 pub mod compat_mode;

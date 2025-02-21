@@ -10,6 +10,7 @@ mod stack_of_open_elements;
 use std::{collections::VecDeque, rc::Rc};
 
 use crate::{
+    attributes::qualified_attribute_name,
     compat_mode::CompatMode,
     doctype::HtmlDoctypeInfo,
     tag_name::TagName,
@@ -4811,8 +4812,13 @@ impl HtmlProcessor {
     ///
     /// @return string|null
     pub fn get_qualified_attribute_name(&self, attribute_name: &[u8]) -> Option<Box<[u8]>> {
-        self.tag_processor
-            .get_qualified_attribute_name(attribute_name)
+        if self.tag_processor.parser_state != ParserState::MatchedTag {
+            return None;
+        }
+        Some(qualified_attribute_name(
+            attribute_name,
+            self.get_namespace(),
+        ))
     }
 
     /// Indicates if the currently matched tag contains the self-closing flag.

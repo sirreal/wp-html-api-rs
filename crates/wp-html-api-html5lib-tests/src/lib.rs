@@ -116,14 +116,29 @@ pub fn build_tree_representation(
                             })
                             .collect::<Vec<_>>();
 
+                        /*
+                         * Sorts attributes to match html5lib sort order.
+                         *
+                         *  - First comes normal HTML attributes.
+                         *  - Then come adjusted foreign attributes; these have spaces in their names.
+                         *  - Finally come non-adjusted foreign attributes; these have a colon in their names.
+                         *
+                         * Example:
+                         *
+                         *       From: <math xlink:author definitionurl xlink:title xlink:show>
+                         *     Sorted: 'definitionURL', 'xlink show', 'xlink title', 'xlink:author'
+                         */
                         attribute_names.sort_by(|(_, a_display), (_, b_display)| {
                             use std::cmp::Ordering as O;
                             let a_has_ns = a_display.contains(&b':');
                             let b_has_ns = b_display.contains(&b':');
+
+                            // Attributes with `:` should follow all other attributes.
                             if a_has_ns != b_has_ns {
                                 return if a_has_ns { O::Greater } else { O::Less };
                             }
 
+                            // Attributes with a namespace ' ' should come after those without.
                             let a_has_sp = a_display.contains(&b' ');
                             let b_has_sp = b_display.contains(&b' ');
                             if a_has_sp != b_has_sp {
