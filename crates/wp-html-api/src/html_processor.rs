@@ -4688,7 +4688,7 @@ impl HtmlProcessor {
     ///
     /// @return string|null Name of current tag name.
     pub fn get_qualified_tag_name(&self) -> Option<Box<[u8]>> {
-        self.tag_processor.get_qualified_tag_name()
+        Some(self.get_tag()?.qualified_name(self.get_namespace()))
     }
 
     /// Returns the adjusted attribute name for a given attribute, taking into

@@ -937,70 +937,9 @@ impl TagProcessor {
     /// Returns the adjusted tag name for a given token, taking into
     /// account the current parsing context, whether HTML, SVG, or MathML.
     ///
-    /// @todo move this to the tag_name module.
-    ///
     /// @return string|null Name of current tag name.
     pub fn get_qualified_tag_name(&self) -> Option<Box<[u8]>> {
-        let tag_name = self.get_tag()?;
-
-        Some(match self.get_namespace() {
-            ParsingNamespace::Html => tag_name.into(),
-            ParsingNamespace::MathML => {
-                let s: Box<[u8]> = tag_name.into();
-                let lower = s.to_ascii_lowercase();
-                lower.into()
-            }
-            ParsingNamespace::Svg => match tag_name {
-                TagName::Arbitrary(arbitrary_name) => {
-                    match arbitrary_name.to_ascii_lowercase().as_slice() {
-                        b"altglyph" => b"altGlyph".as_slice(),
-                        b"altglyphdef" => b"altGlyphDef",
-                        b"altglyphitem" => b"altGlyphItem",
-                        b"animatecolor" => b"animateColor",
-                        b"animatemotion" => b"animateMotion",
-                        b"animatetransform" => b"animateTransform",
-                        b"clippath" => b"clipPath",
-                        b"feblend" => b"feBlend",
-                        b"fecolormatrix" => b"feColorMatrix",
-                        b"fecomponenttransfer" => b"feComponentTransfer",
-                        b"fecomposite" => b"feComposite",
-                        b"feconvolvematrix" => b"feConvolveMatrix",
-                        b"fediffuselighting" => b"feDiffuseLighting",
-                        b"fedisplacementmap" => b"feDisplacementMap",
-                        b"fedistantlight" => b"feDistantLight",
-                        b"fedropshadow" => b"feDropShadow",
-                        b"feflood" => b"feFlood",
-                        b"fefunca" => b"feFuncA",
-                        b"fefuncb" => b"feFuncB",
-                        b"fefuncg" => b"feFuncG",
-                        b"fefuncr" => b"feFuncR",
-                        b"fegaussianblur" => b"feGaussianBlur",
-                        b"feimage" => b"feImage",
-                        b"femerge" => b"feMerge",
-                        b"femergenode" => b"feMergeNode",
-                        b"femorphology" => b"feMorphology",
-                        b"feoffset" => b"feOffset",
-                        b"fepointlight" => b"fePointLight",
-                        b"fespecularlighting" => b"feSpecularLighting",
-                        b"fespotlight" => b"feSpotLight",
-                        b"fetile" => b"feTile",
-                        b"feturbulence" => b"feTurbulence",
-                        b"foreignobject" => b"foreignObject",
-                        b"glyphref" => b"glyphRef",
-                        b"lineargradient" => b"linearGradient",
-                        b"radialgradient" => b"radialGradient",
-                        b"textpath" => b"textPath",
-                        otherwise => otherwise,
-                    }
-                    .into()
-                }
-                _ => {
-                    let s: Box<[u8]> = tag_name.into();
-                    let lower = s.to_ascii_lowercase();
-                    lower.into()
-                }
-            },
-        })
+        Some(self.get_tag()?.qualified_name(self.get_namespace()))
     }
 
     /// Returns the adjusted attribute name for a given attribute, taking into
