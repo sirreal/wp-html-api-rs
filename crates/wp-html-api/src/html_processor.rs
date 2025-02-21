@@ -674,15 +674,9 @@ impl HtmlProcessor {
                         )))
                         || token_name == TokenType::Text.into()))
                 || (adjusted_current_node.namespace == ParsingNamespace::MathML
-                    && matches!(
-                        &adjusted_current_node.node_name,
-                        NodeName::Tag(TagName::ANNOTATION_XML)
-                    )
+                    && adjusted_current_node.node_name == NodeName::Tag(TagName::ANNOTATION_XML)
                     && is_start_tag
-                    && matches!(
-                        &adjusted_current_node.node_name,
-                        NodeName::Tag(TagName::SVG)
-                    ))
+                    && token_name == NodeName::Tag(TagName::SVG))
                 || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::HTML)
                     && (is_start_tag || token_name == TokenType::Text.into()))
         };
