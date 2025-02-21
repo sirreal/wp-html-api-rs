@@ -5297,7 +5297,38 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::generate_implied_end_tags
     /// @see https://html.spec.whatwg.org/#generate-implied-end-tags
     fn generate_implied_end_tags_thoroughly(&mut self) -> () {
-        todo!()
+        while let Some(token) = self.state.stack_of_open_elements.current_node() {
+            if token.namespace != ParsingNamespace::Html {
+                return;
+            }
+
+            match &token.node_name {
+                NodeName::Tag(
+                    TagName::CAPTION
+                    | TagName::COLGROUP
+                    | TagName::DD
+                    | TagName::DT
+                    | TagName::LI
+                    | TagName::OPTGROUP
+                    | TagName::OPTION
+                    | TagName::P
+                    | TagName::RB
+                    | TagName::RP
+                    | TagName::RT
+                    | TagName::RTC
+                    | TagName::TBODY
+                    | TagName::TD
+                    | TagName::TFOOT
+                    | TagName::TH
+                    | TagName::THEAD
+                    | TagName::TR,
+                ) => {
+                    self.pop();
+                }
+                NodeName::Tag(_) => return,
+                NodeName::Token(_) => return,
+            }
+        }
     }
 
     /// Returns the adjusted current node.
