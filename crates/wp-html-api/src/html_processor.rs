@@ -3839,7 +3839,120 @@ impl HtmlProcessor {
     ///
     /// @return bool Whether an element was found.
     fn step_in_template(&mut self) -> bool {
-        todo!()
+        match self.make_op() {
+            /*
+             * > A character token
+             * > A comment token
+             * > A DOCTYPE token
+             */
+            Op::Token(
+                TokenType::Text
+                | TokenType::Comment
+                | TokenType::FunkyComment
+                | TokenType::PresumptuousTag
+                | TokenType::Doctype,
+            ) => self.step_in_body(),
+
+            /*
+             * > A start tag whose tag name is one of: "base", "basefont", "bgsound", "link",
+             * > "meta", "noframes", "script", "style", "template", "title"
+             * > An end tag whose tag name is "template"
+             */
+            Op::TagPush(
+                TagName::BASE
+                | TagName::BASEFONT
+                | TagName::BGSOUND
+                | TagName::LINK
+                | TagName::META
+                | TagName::NOFRAMES
+                | TagName::SCRIPT
+                | TagName::STYLE
+                | TagName::TEMPLATE
+                | TagName::TITLE,
+            )
+            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+
+            /*
+             * > A start tag whose tag name is one of: "caption", "colgroup", "tbody", "tfoot", "thead"
+             */
+            Op::TagPush(
+                TagName::CAPTION
+                | TagName::COLGROUP
+                | TagName::TBODY
+                | TagName::TFOOT
+                | TagName::THEAD,
+            ) => {
+                self.state.stack_of_template_insertion_modes.pop();
+                self.state
+                    .stack_of_template_insertion_modes
+                    .push(InsertionMode::IN_TABLE);
+                self.state.insertion_mode = InsertionMode::IN_TABLE;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "col"
+             */
+            Op::TagPush(TagName::COL) => {
+                self.state.stack_of_template_insertion_modes.pop();
+                self.state
+                    .stack_of_template_insertion_modes
+                    .push(InsertionMode::IN_COLUMN_GROUP);
+                self.state.insertion_mode = InsertionMode::IN_COLUMN_GROUP;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > A start tag whose tag name is "tr"
+             */
+            Op::TagPush(TagName::TR) => {
+                self.state.stack_of_template_insertion_modes.pop();
+                self.state
+                    .stack_of_template_insertion_modes
+                    .push(InsertionMode::IN_TABLE_BODY);
+                self.state.insertion_mode = InsertionMode::IN_TABLE_BODY;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > A start tag whose tag name is one of: "td", "th"
+             */
+            Op::TagPush(TagName::TD | TagName::TH) => {
+                self.state.stack_of_template_insertion_modes.pop();
+                self.state
+                    .stack_of_template_insertion_modes
+                    .push(InsertionMode::IN_ROW);
+                self.state.insertion_mode = InsertionMode::IN_ROW;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > Any other start tag
+             */
+            Op::TagPush(_) => {
+                self.state.stack_of_template_insertion_modes.pop();
+                self.state
+                    .stack_of_template_insertion_modes
+                    .push(InsertionMode::IN_BODY);
+                self.state.insertion_mode = InsertionMode::IN_BODY;
+                self.step(NodeToProcess::ReprocessCurrentNode)
+            }
+
+            /*
+             * > Any other end tag
+             * >   Parse error: ignore the token.
+             */
+            Op::TagPop(_) => self.step(NodeToProcess::ProcessNextNode),
+
+            Op::Token(TokenType::CdataSection) => {
+                unreachable!("CDATA sections cannot appear in HTML content.")
+            }
+            Op::Token(TokenType::Tag) => {
+                unreachable!(
+                    "TAG tokens are represented as Op::TagPush or Op::TagPop, never Op::Token."
+                )
+            }
+        }
     }
 
     /// Parses next element in the 'after body' insertion mode.
