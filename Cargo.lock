@@ -1853,11 +1853,7 @@ dependencies = [
 name = "wp-html-api-html5lib-tests"
 version = "0.0.0"
 dependencies = [
- "glob",
  "pretty_assertions",
- "proc-macro2",
- "quote",
- "syn 2.0.96",
  "wp-html-api",
  "wp-html-api-html5lib-tests-gen-tests",
 ]
@@ -1866,10 +1862,10 @@ dependencies = [
 name = "wp-html-api-html5lib-tests-gen-tests"
 version = "0.0.0"
 dependencies = [
+ "glob",
  "proc-macro2",
  "quote",
  "syn 2.0.96",
- "wp-html-api",
 ]
 
 [[package]]
