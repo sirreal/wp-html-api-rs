@@ -658,32 +658,34 @@ impl HtmlProcessor {
             }
         }
 
-        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0
-            || {
-                let adjusted_current_node = self.get_adjusted_current_node().unwrap();
-                let is_closer = self.is_tag_closer();
-                let is_start_tag =
-                    self.tag_processor.parser_state == ParserState::MatchedTag && !is_closer;
+        let parse_in_current_insertion_mode = self.state.stack_of_open_elements.count() == 0 || {
+            let adjusted_current_node = self.get_adjusted_current_node().unwrap();
+            let is_closer = self.is_tag_closer();
+            let is_start_tag =
+                self.tag_processor.parser_state == ParserState::MatchedTag && !is_closer;
 
-                adjusted_current_node.namespace == ParsingNamespace::Html
-                    || (adjusted_current_node.integration_node_type
-                        == Some(IntegrationNodeType::MathML)
-                        && ((is_start_tag
-                            && (!matches!(
-                                &token_name,
-                                NodeName::Tag(TagName::MALIGNMARK | TagName::MGLYPH)
-                            )))
-                            || token_name == TokenType::Text.into()))
-                    || (adjusted_current_node.namespace == ParsingNamespace::MathML
-                        && matches!(
-                            &adjusted_current_node.node_name, NodeName::Tag(TagName::Arbitrary(arbitrary_name)) if &**arbitrary_name == b"ANNOTATION-XML")
-                        && is_start_tag
-                        && matches!(
-                            &adjusted_current_node.node_name, NodeName::Tag(TagName::Arbitrary(arbitrary_name)) if &**arbitrary_name == b"SVG"))
-                    || (adjusted_current_node.integration_node_type
-                        == Some(IntegrationNodeType::HTML)
-                        && (is_start_tag || token_name == TokenType::Text.into()))
-            };
+            adjusted_current_node.namespace == ParsingNamespace::Html
+                || (adjusted_current_node.integration_node_type
+                    == Some(IntegrationNodeType::MathML)
+                    && ((is_start_tag
+                        && (!matches!(
+                            &token_name,
+                            NodeName::Tag(TagName::MALIGNMARK | TagName::MGLYPH)
+                        )))
+                        || token_name == TokenType::Text.into()))
+                || (adjusted_current_node.namespace == ParsingNamespace::MathML
+                    && matches!(
+                        &adjusted_current_node.node_name,
+                        NodeName::Tag(TagName::ANNOTATION_XML)
+                    )
+                    && is_start_tag
+                    && matches!(
+                        &adjusted_current_node.node_name,
+                        NodeName::Tag(TagName::SVG)
+                    ))
+                || (adjusted_current_node.integration_node_type == Some(IntegrationNodeType::HTML)
+                    && (is_start_tag || token_name == TokenType::Text.into()))
+        };
 
         if parse_in_current_insertion_mode {
             self.step_in_current_insertion_mode()
