@@ -167,7 +167,7 @@ pub fn build_tree_representation(
                 }
 
                 if namespace == &ParsingNamespace::Html && tag_name == TagName::TEMPLATE {
-                    output.extend(TREE_INDENT.repeat(tag_indent));
+                    output.extend(TREE_INDENT.repeat(indent_level));
                     output.extend(b"content\n");
                     indent_level += 1;
                 }
