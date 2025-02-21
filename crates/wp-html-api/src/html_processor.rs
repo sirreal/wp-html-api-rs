@@ -4480,58 +4480,107 @@ impl HtmlProcessor {
 
             /*
              * > Any other end tag
+             * >
+             * >   Run these steps:
+             * >     1. Initialize node to be the current node (the bottommost node of the stack).
+             * >     2. If node's tag name, converted to ASCII lowercase, is not the same as the tag name of the token,
+             * >        then this is a parse error.
+             * >     3. Loop: If node is the topmost element in the stack of open elements, then return. (fragment case)
+             * >     4. If node's tag name, converted to ASCII lowercase, is the same as the tag name of the token,
+             * >        pop elements from the stack of open elements until node has been popped from the stack,
+             * >        and then return.
+             * >     5. Set node to the previous entry in the stack of open elements.
+             * >     6. If node is not an element in the HTML namespace, return to the step labeled loop.
+             * >     7. Otherwise, process the token according to the rules given in the section corresponding to
+             * >        the current insertion mode in HTML content.
              */
             (Op::TagPop(tag_name), _) => {
-                let mut node = self
-                    .state
-                    .stack_of_open_elements
-                    .current_node()
-                    .unwrap()
-                    .clone();
-                if let NodeName::Tag(current_node_tag_name) = &node.node_name {
-                    if &tag_name != current_node_tag_name {
-                        // @todo Indicate a parse error once it's possible.
-                    }
-                } else {
-                    // @todo Indicate a parse error once it's possible.
-                }
-
-                // in_foreign_content_end_tag_loop:
-                loop {
-                    if self
-                        .state
-                        .stack_of_open_elements
-                        .at(1)
-                        .map_or(false, |top_node| &node == top_node)
-                    {
-                        return true;
-                    }
-
-                    /*
-                     * > If node's tag name, converted to ASCII lowercase, is the same as the tag name
-                     * > of the token, pop elements from the stack of open elements until node has
-                     * > been popped from the stack, and then return.
-                     */
-                    if matches!(&node.node_name, NodeName::Tag(tag_name)) {
-                        while let Some(popped_node) = self.pop() {
-                            if popped_node == node {
-                                break;
-                            }
-                        }
-                    }
-
-                    node = self
+                /*
+                 * This section is just to produce a parse error that is not currently supported.
+                 * Commented out.
+                 *
+                {
+                    let initial_current_node = self
                         .state
                         .stack_of_open_elements
                         .current_node()
-                        .unwrap()
-                        .clone();
+                        .expect("There must be a node on the stack.");
+                    let current_node_tag_name = initial_current_node
+                        .node_name
+                        .tag()
+                        .expect("There must be a tag name.");
+                    if current_node_tag_name != &tag_name {
+                        // @todo Indicate a parse error once it's possible.
+                    }
+                }
+                */
 
-                    if node.namespace != ParsingNamespace::Html {
-                        continue;
+                enum Continuation {
+                    Unknown,
+                    ProcessNextToken,
+                    PopUntilTagName,
+                    StepInCurrentInsertionMode,
+                }
+
+                let mut continuation = Continuation::Unknown;
+
+                let mut first_iteration = true;
+                for node in self.state.stack_of_open_elements.walk_up() {
+                    // The spec describes some steps _after_ the updating the current node.
+                    // Instead of manually looping, the steps are applied here after the
+                    // first iteration.
+                    if !first_iteration {
+                        if node.namespace != ParsingNamespace::Html {
+                            continue;
+                        } else {
+                            continuation = Continuation::StepInCurrentInsertionMode;
+                            break;
+                        }
+                    } else {
+                        first_iteration = false;
                     }
 
-                    break self.step_in_current_insertion_mode();
+                    let node_tag_name = node.node_name.tag().expect("Must have a tag node.");
+                    if node
+                        == self
+                            .state
+                            .stack_of_open_elements
+                            .at(1)
+                            .expect("There must be a node on the stack.")
+                    {
+                        continuation = Continuation::ProcessNextToken;
+                        break;
+                    }
+
+                    if node_tag_name == &tag_name {
+                        continuation = Continuation::PopUntilTagName;
+                        break;
+                    }
+                }
+
+                match continuation {
+                    Continuation::Unknown => {
+                        unreachable!("Unknown foreign content end tag continuation.")
+                    }
+                    Continuation::PopUntilTagName => {
+                        // See ::pop_until
+                        while let Some(token) = self.pop() {
+                            let token_node_name = token.node_name.tag();
+                            match token_node_name {
+                                Some(token_tag_name) => {
+                                    if &tag_name == token_tag_name {
+                                        return true;
+                                    }
+                                }
+                                None => {}
+                            }
+                        }
+                        unreachable!("Must have returned before reaching this point.");
+                    }
+                    Continuation::ProcessNextToken => self.step(NodeToProcess::ProcessNextNode),
+                    Continuation::StepInCurrentInsertionMode => {
+                        self.step_in_current_insertion_mode()
+                    }
                 }
             }
 
