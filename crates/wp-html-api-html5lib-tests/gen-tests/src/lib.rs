@@ -37,20 +37,27 @@ fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
     let mut current_section = Section::Unknown;
     let mut current_test = TestCase::default();
     let mut line_number = 0;
+    let mut script_flag = false;
 
     for line in content.split(|c| *c == b'\n') {
         line_number += 1;
         match line {
             b"#data" => {
-                if current_section != Section::Unknown {
+                if current_section != Section::Unknown && !script_flag {
+                    // Trim trailing newline from test input.
+                    current_test.input.truncate(current_test.input.len() - 1);
                     tests.push(current_test);
                     current_test = TestCase::default();
+                    script_flag = false;
                 }
                 current_test.line_number = line_number;
                 current_section = Section::Data;
             }
             b"#errors" => {
                 current_section = Section::Errors;
+            }
+            b"#script" => {
+                script_flag = true;
             }
             b"#document-fragment" => {
                 current_section = Section::Context;
@@ -61,10 +68,12 @@ fn parse_test_file(content: &[u8]) -> Vec<TestCase> {
             _ => match current_section {
                 Section::Data => {
                     current_test.input.extend(line);
+                    current_test.input.push(b'\n');
                 }
                 Section::Errors => {}
                 Section::Context => {
                     current_test.context.extend(line);
+                    current_test.context.push(b'\n');
                 }
                 Section::Document => {
                     if line.starts_with(b"| ") {
