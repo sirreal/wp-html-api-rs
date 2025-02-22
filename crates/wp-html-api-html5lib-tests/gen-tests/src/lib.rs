@@ -131,12 +131,14 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
             quote! { #[ignore = "Fragment tests are not yet supported."] }
         } else { quote! {} };
 
+        let input_len = input.len();
+        let expected_len = expected.len();
         quote! {
             #ignore
             #[test]
             fn #test_name_fn_name() -> Result<(), String> {
-                let input: Vec<u8> = vec![#(#input),*];
-                let expected: Vec<u8> = vec![#(#expected),*];
+                let input: [u8; #input_len] = [#(#input),*];
+                let expected: [u8; #expected_len] = [#(#expected),*];
 
                 let mut processor = HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Failed to create HTML processor");
                 let actual = build_tree_representation(&mut processor);
