@@ -6,3 +6,5 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+#gen-entities = { path = "gen-entities" }
+lazy_static = "1.5.0"
