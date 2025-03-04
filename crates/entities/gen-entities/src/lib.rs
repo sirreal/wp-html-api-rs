@@ -5,54 +5,105 @@ use std::{collections::BTreeMap, fs};
 use syn::{parse_macro_input, LitStr};
 
 #[derive(Deserialize)]
-struct DesrializedJSONEntities {
-    codepoints: Box<[u64]>,
+struct DeserializedJSONEntity {
     characters: Box<str>,
 }
 
-fn process_file(test_file_path: &str) -> Vec<(Box<[u8]>, Box<[u8]>)> {
-    let content = fs::read(test_file_path).expect("Failed to read test file");
-    let ents: BTreeMap<&str, DesrializedJSONEntities> =
-        serde_json::from_slice(&content).expect("Failed to parse test file");
-    let mut bytes_to_bytes: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
-    for (html_ent, DesrializedJSONEntities { characters, .. }) in ents.iter() {
-        let key = html_ent.bytes().collect::<Vec<_>>().into();
-        let val = characters.bytes().collect::<Vec<_>>().into();
-        bytes_to_bytes.push((key, val));
-    }
-    let bytes_to_bytes = bytes_to_bytes
-        .into_iter()
-        .map(|(k, v)| -> (Box<[u8]>, Box<[u8]>) { (k.into(), v.into()) })
-        .collect();
+fn process_file(file_path: &str) -> BTreeMap<[u8; 2], Vec<(Vec<u8>, Vec<u8>)>> {
+    // Read the JSON file
+    let json_content =
+        fs::read_to_string(file_path).expect(&format!("Failed to read file: {}", file_path));
 
-    bytes_to_bytes
+    // Parse the JSON file
+    let entities: BTreeMap<String, DeserializedJSONEntity> =
+        serde_json::from_str(&json_content).expect("Failed to parse JSON");
+
+    // Group by prefix
+    let mut prefix_map: BTreeMap<[u8; 2], Vec<(Vec<u8>, Vec<u8>)>> = BTreeMap::new();
+
+    for (entity_name, entity_data) in entities {
+        // Skip the '&' and take the first 2 characters as the prefix
+        if entity_name.len() <= 1 {
+            continue; // Skip if entity name is too short (just '&')
+        }
+
+        let entity_without_amp = &entity_name[1..]; // Skip the '&'
+
+        // We can assume all entities have at least 2 bytes after the '&'
+        let entity_bytes = entity_without_amp.as_bytes();
+        let prefix = [entity_bytes[0], entity_bytes[1]]; // First 2 bytes as array
+
+        // The rest of the bytes are the suffix
+        let suffix = if entity_bytes.len() > 2 {
+            entity_bytes[2..].to_vec()
+        } else {
+            Vec::new()
+        };
+
+        // Convert characters to UTF-8 bytes
+        let bytes = entity_data.characters.as_bytes().to_vec();
+
+        // Add to prefix map
+        prefix_map.entry(prefix).or_default().push((suffix, bytes));
+    }
+
+    // Sort each group by suffix length (longer first)
+    for entries in prefix_map.values_mut() {
+        entries.sort_by(|(a, _), (b, _)| b.len().cmp(&a.len()));
+    }
+
+    prefix_map
 }
 
 #[proc_macro]
-pub fn entities_map(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as LitStr);
-    let entity_map = process_file(&input.value());
+pub fn entities_lookup(input: TokenStream) -> TokenStream {
+    // Parse the input to get the file path
+    let file_path = parse_macro_input!(input as LitStr).value();
 
-    let (mut ts, mut vs) = (Vec::new(), Vec::new());
-    entity_map.iter().for_each(|(k, v)| {
-        let k_len = k.len();
-        let v_len = v.len();
-        ts.push(quote! { (&[u8], &[u8]) });
-        vs.push(quote! { (&[#(#k),*], &[#(#v),*]) });
-    });
-    let len = entity_map.len();
+    // Process the file
+    let prefix_map = process_file(&file_path);
 
-    let val = quote! {
-        lazy_static::lazy_static! {
-            static ref entity_data: [(&'static [u8], &'static [u8]); #len] = [#(#vs),*];
-            static ref mapped_entities: std::collections::BTreeMap<&'static [u8], &'static [u8]> = {
-                let mut m = std::collections::BTreeMap::new();
-                for (k, v) in entity_data.into_iter() {
-                    m.insert(k, v);
-                }
-                m
+    // Generate the BTreeMap initialization code
+    let mut prefix_entries = Vec::new();
+
+    // For each prefix, generate the entry code
+    for (prefix, suffixes) in prefix_map {
+        let prefix_bytes = [prefix[0], prefix[1]];
+        let mut suffix_entries = Vec::new();
+
+        // For each suffix in this prefix group
+        for (suffix, bytes) in suffixes {
+            let suffix_bytes: Vec<_> = suffix.iter().map(|&b| quote! { #b }).collect();
+            let char_bytes: Vec<_> = bytes.iter().map(|&b| quote! { #b }).collect();
+
+            // Create an entry with Box::leak to ensure 'static lifetime
+            suffix_entries.push(quote! {
+                (
+                    Box::leak(Box::new([#(#suffix_bytes),*])) as &'static [u8],
+                    Box::leak(Box::new([#(#char_bytes),*])) as &'static [u8]
+                )
+            });
+        }
+
+        // Create the prefix entry with Box::leak for the slice of pairs
+        prefix_entries.push(quote! {
+            ([#(#prefix_bytes),*], Box::leak(Box::new([#(#suffix_entries),*])) as &'static [(&'static [u8], &'static [u8])])
+        });
+    }
+
+    // Generate the final TokenStream
+    let result = quote! {
+        use lazy_static::lazy_static;
+        use std::collections::BTreeMap;
+
+        lazy_static! {
+            static ref ENTITIES: BTreeMap<[u8; 2], &'static [(&'static [u8], &'static [u8])]> = {
+                let mut map = BTreeMap::new();
+                #(map.insert(#prefix_entries.0, #prefix_entries.1);)*
+                map
             };
         }
     };
-    val.into()
+
+    result.into()
 }
