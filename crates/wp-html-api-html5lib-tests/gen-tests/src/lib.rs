@@ -137,8 +137,8 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
             #ignore
             #[test]
             fn #test_name_fn_name() -> Result<(), String> {
-                let input: [u8; #input_len] = [#(#input),*];
-                let expected: [u8; #expected_len] = [#(#expected),*];
+                let input: Vec<u8> = vec![#(#input),*];
+                let expected: Vec<u8> = vec![#(#expected),*];
 
                 let mut processor = HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Failed to create HTML processor");
                 let actual = build_tree_representation(&mut processor);
@@ -156,10 +156,10 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
                 };
 
                 pretty_assertions::assert_str_eq!(
-                    String::from_utf8(expected.to_vec()).expect("Must have valid UTF-8 expected."),
-                    String::from_utf8(actual.to_vec()).expect("Must have valid UTF-8 output."),
+                    String::from_utf8(expected).expect("Must have valid UTF-8 expected."),
+                    String::from_utf8(actual).expect("Must have valid UTF-8 output."),
                     "Error with input:\n{:?}",
-                    String::from_utf8(input.to_vec()).expect("Must have valid UTF-8 input."),
+                    String::from_utf8(input).expect("Must have valid UTF-8 input."),
                 );
 
                 Ok(())
