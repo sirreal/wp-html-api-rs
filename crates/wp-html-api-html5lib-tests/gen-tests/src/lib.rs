@@ -156,10 +156,10 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
                 };
 
                 pretty_assertions::assert_str_eq!(
-                    String::from_utf8_lossy(&expected),
-                    String::from_utf8_lossy(&actual),
+                    String::from_utf8(expected.to_vec()).expect("Must have valid UTF-8 expected."),
+                    String::from_utf8(actual.to_vec()).expect("Must have valid UTF-8 output."),
                     "Error with input:\n{:?}",
-                    String::from_utf8_lossy(&input),
+                    String::from_utf8(input.to_vec()).expect("Must have valid UTF-8 input."),
                 );
 
                 Ok(())
