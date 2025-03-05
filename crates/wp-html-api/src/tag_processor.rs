@@ -1902,11 +1902,16 @@ impl TagProcessor {
          * NULL bytes are treated categorically different than numeric character
          * references whose number is zero. `&#x00;` is not the same as `"\x00"`.
          */
-        let leading_nulls = strspn!(&self.html_bytes, b'\x00', self.text_starts_at.unwrap());
+        let leading_nulls = strspn!(
+            &self.html_bytes,
+            b'\x00',
+            self.text_starts_at.unwrap(),
+            self.text_length.unwrap()
+        );
         if leading_nulls > 0 {
             self.token_length = Some(leading_nulls);
             self.text_length = Some(leading_nulls);
-            self.bytes_already_parsed = self.token_length.unwrap() + leading_nulls;
+            self.bytes_already_parsed = self.token_starts_at.unwrap() + leading_nulls;
             self.text_node_classification = TextNodeClassification::NullSequence;
             return true;
         }
