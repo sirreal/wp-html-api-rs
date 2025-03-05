@@ -2069,7 +2069,71 @@ impl HtmlProcessor {
             /*
              * > An end tag whose tag name is "form"
              */
-            Op::TagPop(TagName::FORM) => todo!(),
+            Op::TagPop(TagName::FORM) => {
+                if !self
+                    .state
+                    .stack_of_open_elements
+                    .contains(&TagName::TEMPLATE)
+                {
+                    let node = self.state.form_element.take();
+
+                    /*
+                     * > If node is null or if the stack of open elements does not have node
+                     * > in scope, then this is a parse error; return and ignore the token.
+                     *
+                     * @todo It's necessary to check if the form token itself is in scope, not
+                     *       simply whether any FORM is in scope.
+                     */
+                    if node.is_none()
+                        || !self
+                            .state
+                            .stack_of_open_elements
+                            .has_element_in_scope(&TagName::FORM)
+                    {
+                        // Parse error: ignore the token.
+                        return self.step(NodeToProcess::ProcessNextNode);
+                    }
+
+                    let node = node.unwrap();
+
+                    self.generate_implied_end_tags(None);
+                    if node != *self.state.stack_of_open_elements.current_node().unwrap() {
+                        // @todo Indicate a parse error once it's possible. This error does not impact the logic here.
+                        return self
+                            .bail(UnsupportedException::CannotCloseFormWithOtherElementsOpen);
+                    }
+                    self.remove_node_from_stack_of_open_elements(&node);
+                    return true;
+                } else {
+                    /*
+                     * > If the stack of open elements does not have a form element in scope,
+                     * > then this is a parse error; return and ignore the token.
+                     *
+                     * Note that unlike in the clause above, this is checking for any FORM in scope.
+                     */
+                    if !self
+                        .state
+                        .stack_of_open_elements
+                        .has_element_in_scope(&TagName::FORM)
+                    {
+                        // Parse error: ignore the token.
+                        return self.step(NodeToProcess::ProcessNextNode);
+                    }
+
+                    self.generate_implied_end_tags(None);
+
+                    if !self
+                        .state
+                        .stack_of_open_elements
+                        .current_node_is(&NodeName::Tag(TagName::FORM))
+                    {
+                        // @todo Indicate a parse error once it's possible. This error does not impact the logic here.
+                    }
+
+                    self.pop_until(&TagName::FORM);
+                    true
+                }
+            }
 
             /*
              * > An end tag whose tag name is "p"
