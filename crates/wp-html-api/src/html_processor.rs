@@ -3682,7 +3682,34 @@ impl HtmlProcessor {
              * > An end tag whose tag name is "optgroup"
              */
             Op::TagPop(TagName::OPTGROUP) => {
-                todo!("step_in_select -OPTGROUP handling");
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::OPTION))
+                {
+                    // Get the current node parent
+                    if let Some(parent) = {
+                        let mut walker = self.state.stack_of_open_elements.walk_up();
+                        walker.next();
+                        walker.next()
+                    } {
+                        if parent.node_name.tag() == Some(&TagName::OPTGROUP) {
+                            self.pop();
+                        }
+                    }
+                }
+
+                if self
+                    .state
+                    .stack_of_open_elements
+                    .current_node_is(&NodeName::Tag(TagName::OPTGROUP))
+                {
+                    self.pop();
+                    return true;
+                }
+
+                // Parse error: ignore the token.
+                self.step(NodeToProcess::ProcessNextNode)
             }
 
             /*
