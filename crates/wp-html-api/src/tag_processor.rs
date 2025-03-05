@@ -1544,12 +1544,6 @@ impl TagProcessor {
                             text_normalized.push(b'\n');
                         }
                     }
-                    b'\0' => {
-                        "\u{FFFD}"
-                            .as_bytes()
-                            .iter()
-                            .for_each(|c| text_normalized.push(*c));
-                    }
                     _ => text_normalized.push(c),
                 }
             }
@@ -1639,21 +1633,13 @@ impl TagProcessor {
         if self.parsing_namespace == ParsingNamespace::Html
             && self.get_token_type() == Some(&TokenType::Text)
         {
-            return text
-                .iter()
-                .flat_map(|&c| -> Option<u8> {
-                    if c == b'\0' {
-                        None
-                    } else {
-                        Some(c)
-                    }
-                })
+            text.into_iter()
+                .filter(|&c| c != b'\0')
                 .collect::<Vec<u8>>()
-                .into();
+                .into()
         } else {
-            return text
-                .iter()
-                .flat_map(|&c| -> Vec<u8> {
+            text.into_iter()
+                .flat_map(|c| -> Vec<u8> {
                     if c == b'\0' {
                         "\u{FFFD}".as_bytes().into()
                     } else {
@@ -1661,7 +1647,7 @@ impl TagProcessor {
                     }
                 })
                 .collect::<Vec<u8>>()
-                .into();
+                .into()
         }
     }
 
