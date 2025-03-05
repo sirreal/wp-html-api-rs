@@ -4461,14 +4461,17 @@ impl HtmlProcessor {
     /// @return bool Whether an element was found.
     fn step_in_foreign_content(&mut self) -> bool {
         let op = self.make_op();
-        let is_font_with_attributes = matches!(op, Op::TagPush(TagName::FONT))
+
+        // Guards are at the pattern level, which is awkward to use.
+        // Calculate this here to allow pattern matching the fond we're interested in.
+        let is_font_with_special_attributes = matches!(op, Op::TagPush(TagName::FONT))
             && self
                 .get_attribute(b"color")
                 .or_else(|| self.get_attribute(b"face"))
                 .or_else(|| self.get_attribute(b"size"))
-                .is_some();
+                .map_or(false, |attr| !matches!(attr, AttributeValue::BooleanFalse));
 
-        match (op, is_font_with_attributes) {
+        match (op, is_font_with_special_attributes) {
             (Op::Token(TokenType::Text), _) => {
                 /*
                  * > A character token that is U+0000 NULL
@@ -4612,7 +4615,7 @@ impl HtmlProcessor {
                 | Op::TagPop(TagName::BR | TagName::P),
                 _,
             )
-            | (Op::TagPush(TagName::FONT), true) => {
+            | (_, true) => {
                 // @todo Indicate a parse error once it's possible.
                 let pop_times = self.state.stack_of_open_elements.walk_up().position(
                     |HTMLToken {
