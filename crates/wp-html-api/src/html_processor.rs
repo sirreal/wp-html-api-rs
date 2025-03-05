@@ -4465,11 +4465,15 @@ impl HtmlProcessor {
         // Guards are at the pattern level, which is awkward to use.
         // Calculate this here to allow pattern matching the fond we're interested in.
         let is_font_with_special_attributes = matches!(op, Op::TagPush(TagName::FONT))
-            && self
+            && (self
                 .get_attribute(b"color")
-                .or_else(|| self.get_attribute(b"face"))
-                .or_else(|| self.get_attribute(b"size"))
-                .map_or(false, |attr| !matches!(attr, AttributeValue::BooleanFalse));
+                .map_or(false, |attr| !matches!(attr, AttributeValue::BooleanFalse))
+                || self
+                    .get_attribute(b"face")
+                    .map_or(false, |attr| !matches!(attr, AttributeValue::BooleanFalse))
+                || self
+                    .get_attribute(b"size")
+                    .map_or(false, |attr| !matches!(attr, AttributeValue::BooleanFalse)));
 
         match (op, is_font_with_special_attributes) {
             (Op::Token(TokenType::Text), _) => {
