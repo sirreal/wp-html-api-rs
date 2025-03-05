@@ -87,8 +87,6 @@ pub fn decode_html_ref(
         return decode_html5_numeric_character_reference(input, offset);
     }
 
-    let s = String::from_utf8_lossy(&input[offset..]);
-
     let prefix = [input[offset + 1], input[offset + 2]];
     gen_entities::entities_lookup!("crates/entities/data/entities.json");
 
