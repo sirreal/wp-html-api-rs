@@ -1148,7 +1148,6 @@ impl TagProcessor {
     /// @return bool Whether an end to the RCDATA region was found before the end of the document.
     fn skip_rcdata(&mut self, tag_name: &TagName) -> bool {
         let doc_length = self.html_bytes.len();
-        let tag_length = self.tag_name_length.unwrap();
 
         let mut at = self.bytes_already_parsed;
 

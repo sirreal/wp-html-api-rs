@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_variables, unreachable_code, non_camel_case_types)]
+#![allow(dead_code, unused_variables, non_camel_case_types)]
 
 mod active_formatting_elements;
 pub mod errors;
