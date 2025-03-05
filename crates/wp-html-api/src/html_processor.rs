@@ -5559,7 +5559,13 @@ impl HtmlProcessor {
                  */
                 TagName::SELECT => {
                     if !last {
-                        for ancestor in self.state.stack_of_open_elements.walk_up() {
+                        for ancestor in self
+                            .state
+                            .stack_of_open_elements
+                            .walk_up()
+                            .skip_while(|&ancestor| ancestor != node)
+                            .skip(1)
+                        {
                             if node == first_node {
                                 break;
                             }
@@ -5569,7 +5575,7 @@ impl HtmlProcessor {
                             }
 
                             // This function is not interested in tokens, only tags.
-                            let ancestor_tag = if let NodeName::Tag(tag_name) = &node.node_name {
+                            let ancestor_tag = if let Some(tag_name) = ancestor.node_name.tag() {
                                 tag_name
                             } else {
                                 continue;
