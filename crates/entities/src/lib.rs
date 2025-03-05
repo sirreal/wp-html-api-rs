@@ -1,7 +1,3 @@
-#![allow(dead_code, unused_variables, unused_imports)]
-
-use std::collections::BTreeMap;
-
 /// U+FFFD REPLACEMENT CHARACTER
 const UNICODE_REPLACEMENT_CHAR: &[u8] = b"\xEF\xBF\xBD";
 
@@ -68,6 +64,8 @@ pub fn decode(ctx: &HtmlContext, input: &[u8]) -> Box<[u8]> {
     decoded.into_boxed_slice()
 }
 
+/// Decodes a reference to an HTML entity.
+/// @todo Ambiguous entitites based on ctx?
 pub fn decode_html_ref(
     ctx: &HtmlContext,
     input: &[u8],
