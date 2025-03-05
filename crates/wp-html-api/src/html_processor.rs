@@ -980,7 +980,7 @@ impl HtmlProcessor {
              * Closing BR tags are always reported by the Tag Processor as opening tags.
              */
             Op::TagPop(tag_name)
-                if matches!(
+                if !matches!(
                     tag_name,
                     TagName::HEAD | TagName::BODY | TagName::HTML | TagName::BR,
                 ) =>
@@ -1070,7 +1070,7 @@ impl HtmlProcessor {
              * Closing BR tags are always reported by the Tag Processor as opening tags.
              */
             Op::TagPop(tag_name)
-                if matches!(
+                if !matches!(
                     tag_name,
                     TagName::HEAD | TagName::BODY | TagName::HTML | TagName::BR,
                 ) =>
