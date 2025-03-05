@@ -131,8 +131,6 @@ fn process_test_file(test_file_path: &str) -> proc_macro2::TokenStream {
             quote! { #[ignore = "Fragment tests are not yet supported."] }
         } else { quote! {} };
 
-        let input_len = input.len();
-        let expected_len = expected.len();
         quote! {
             #ignore
             #[test]
