@@ -2,8 +2,6 @@ use crate::tag_processor::ParsingNamespace;
 
 pub fn qualified_attribute_name(attribute_name: &[u8], ns: &ParsingNamespace) -> Box<[u8]> {
     let lower_name = attribute_name.to_ascii_lowercase();
-    let d = String::from_utf8_lossy(attribute_name);
-    dbg!(d, ns);
 
     if ns != &ParsingNamespace::Html {
         let transformed = match lower_name.as_slice() {

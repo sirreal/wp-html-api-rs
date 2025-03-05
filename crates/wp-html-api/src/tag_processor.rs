@@ -1605,8 +1605,7 @@ impl TagProcessor {
             }
         }
 
-        // @todo decode the text.
-        let mut text = text;
+        let mut text = entities::decode(&entities::HtmlContext::BodyText, &text).to_vec();
 
         /*
          * Skip the first line feed after LISTING, PRE, and TEXTAREA opening tags.
@@ -1825,8 +1824,8 @@ impl TagProcessor {
                 } else {
                     let raw_value = &self.html_bytes[attr_token.value_starts_at
                         ..attr_token.value_starts_at + attr_token.value_length];
-                    // TODO: decode attribute value.
-                    AttributeValue::String(Rc::from(raw_value))
+                    let decoded = entities::decode(&entities::HtmlContext::Attribute, raw_value);
+                    AttributeValue::String(Rc::from(decoded))
                 }
             } else {
                 AttributeValue::BooleanFalse

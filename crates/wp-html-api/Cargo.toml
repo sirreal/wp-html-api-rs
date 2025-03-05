@@ -8,6 +8,7 @@ license.workspace = true
 [lib]
 
 [dependencies]
+entities = { path = "../entities" }
 
 [dev-dependencies]
 quickcheck = "1"
