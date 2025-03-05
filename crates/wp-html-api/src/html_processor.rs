@@ -1283,6 +1283,7 @@ impl HtmlProcessor {
                         .active_formatting_elements
                         .clear_up_to_last_marker();
                     self.state.stack_of_template_insertion_modes.pop();
+                    self.reset_insertion_mode_appropriately();
                     true
                 }
             }
