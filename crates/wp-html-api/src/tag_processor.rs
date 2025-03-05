@@ -1923,9 +1923,16 @@ impl TagProcessor {
             at += skipped;
 
             if at < end && b'&' == self.html_bytes[at] {
-                // @TODO: implement character reference handling
-                // This needs to check for whitespace character references.
-                // todo!("implement character reference handling");
+                if let Some((decoded, matched_byte_length)) = entities::decode_html_ref(
+                    &entities::HtmlContext::BodyText,
+                    &self.html_bytes,
+                    at,
+                ) {
+                    if matches!(decoded[0], b' ' | b'\t' | 0x0c | b'\r' | b'\n',) {
+                        at += matched_byte_length;
+                        continue;
+                    }
+                }
             }
 
             break;
