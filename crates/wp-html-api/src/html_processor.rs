@@ -5297,8 +5297,9 @@ impl HtmlProcessor {
     ///
     /// @param string $bookmark_name Identifies this particular bookmark.
     /// @return bool Whether the bookmark was successfully created.
-    pub fn set_bookmark(&mut self, bookmark_name: &str) -> bool {
-        todo!()
+    pub fn set_bookmark(&mut self, bookmark_name: &str) -> Result<(), ()> {
+        let bookmark_name = format!("_{}", bookmark_name);
+        self.tag_processor.set_bookmark(&bookmark_name)
     }
 
     /// Checks whether a bookmark with the given name exists.

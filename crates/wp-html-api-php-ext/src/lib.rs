@@ -286,6 +286,10 @@ impl WP_HTML_Processor {
             .get_full_comment_text()
             .map(|value| value.to_vec().into())
     }
+
+    pub fn set_bookmark(#[this] this: &mut ZendClassObject<Self>, name: &str) -> bool {
+        this.processor.set_bookmark(name).is_ok()
+    }
 }
 
 #[php_class]
