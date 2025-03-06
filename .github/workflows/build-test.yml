@@ -16,14 +16,14 @@ jobs:
     timeout-minutes: 5
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Checkout submodules
-      run: git submodule update --init --recursive --depth=1 --single-branch
-    - name: Rust Cache
-      uses: Swatinem/rust-cache@v2.7.7
-      with:
-        save-if: ${{ github.ref == 'refs/heads/main' }}
-    - name: Build
-      run: cargo build --verbose --tests -p wp-html-api-html5lib-tests
-    - name: Run tests
-      run: cargo test --package wp-html-api-html5lib-tests --tests
+      - uses: actions/checkout@v4
+      - name: Checkout submodules
+        run: git submodule update --init --recursive --depth=1 --single-branch
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.7
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build
+        run: cargo build --verbose --tests -p wp-html-api-html5lib-tests
+      - name: Run tests
+        run: cargo test --package wp-html-api-html5lib-tests --tests
