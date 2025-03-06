@@ -11,6 +11,7 @@ fn bench_html_processor(bencher: divan::Bencher) {
         let mut processor =
             HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Processor must read input");
         while processor.next_token() {}
+        processor
     });
 }
 
@@ -19,6 +20,7 @@ fn bench_tag_processor(bencher: divan::Bencher) {
     bencher.with_inputs(|| get_input()).bench_values(|input| {
         let mut processor = TagProcessor::new(&input);
         while processor.next_token() {}
+        processor
     });
 }
 
