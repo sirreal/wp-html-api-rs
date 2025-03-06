@@ -11,5 +11,10 @@ license.workspace = true
 entities = { path = "../entities" }
 
 [dev-dependencies]
+divan = { version = "2.8.1", package = "codspeed-divan-compat" }
 quickcheck = "1"
 quickcheck_macros = "1"
+
+[[bench]]
+name = "process-html-standard"
+harness = false
