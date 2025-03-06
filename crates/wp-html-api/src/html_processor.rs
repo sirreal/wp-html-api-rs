@@ -42,6 +42,7 @@ pub struct TagQuery<'a> {
     class_name: Option<&'a str>,
     breadcrumbs: Option<Vec<&'a str>>,
 }
+
 #[derive(Default, PartialEq)]
 pub enum VisitClosers {
     Visit,

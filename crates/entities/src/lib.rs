@@ -240,13 +240,13 @@ fn decode_html5_numeric_character_reference(
     let mut code_point = 0u32;
     at = digits_at;
     if base == Base::Hexadecimal {
-        for i in 0..digit_count {
+        for _ in 0..digit_count {
             code_point <<= 4;
             code_point += HEX_DIGITS[input[at] as usize] as u32;
             at += 1;
         }
     } else {
-        for i in 0..digit_count {
+        for _ in 0..digit_count {
             code_point *= 10;
             code_point += HEX_DIGITS[input[at] as usize] as u32;
             at += 1;
