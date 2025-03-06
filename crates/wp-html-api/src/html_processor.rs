@@ -5,6 +5,7 @@ pub mod errors;
 mod html_stack_event;
 mod html_token;
 mod insertion_mode;
+mod processor_state;
 mod stack_of_open_elements;
 
 use std::{collections::VecDeque, rc::Rc};
@@ -24,7 +25,8 @@ use errors::{HtmlProcessorError, UnsupportedException};
 use html_stack_event::*;
 use html_token::*;
 use insertion_mode::InsertionMode;
-use stack_of_open_elements::*;
+use processor_state::ProcessorState;
+use stack_of_open_elements::StackOfOpenElements;
 
 #[derive(PartialEq)]
 enum NodeToProcess {
@@ -45,34 +47,6 @@ pub enum VisitClosers {
     Visit,
     #[default]
     Skip,
-}
-pub struct ProcessorState {
-    active_formatting_elements: ActiveFormattingElements,
-    current_token: Option<HTMLToken>,
-    encoding: Rc<str>,
-    encoding_confidence: EncodingConfidence,
-    form_element: Option<HTMLToken>,
-    frameset_ok: bool,
-    head_element: Option<HTMLToken>,
-    insertion_mode: InsertionMode,
-    stack_of_open_elements: StackOfOpenElements,
-    stack_of_template_insertion_modes: Vec<InsertionMode>,
-}
-impl ProcessorState {
-    fn new() -> Self {
-        Self {
-            active_formatting_elements: ActiveFormattingElements::new(),
-            current_token: None,
-            encoding: "UTF-8".into(),
-            encoding_confidence: EncodingConfidence::Tentative,
-            form_element: None,
-            frameset_ok: true,
-            head_element: None,
-            insertion_mode: InsertionMode::INITIAL,
-            stack_of_open_elements: StackOfOpenElements::new(),
-            stack_of_template_insertion_modes: Vec::new(),
-        }
-    }
 }
 
 #[derive(PartialEq)]
