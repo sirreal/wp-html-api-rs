@@ -68,6 +68,7 @@ foreach ([
 	$n    = new NumberFormatter( 'en-US', NumberFormatter::DEFAULT_STYLE );
 	$ms   = $n->format( $ns / 1e6 );
 	$mbps = $n->format( strlen( $html ) / 1e6 / ( $ns / 1e9 ) );
+	$c    = $n->format( $c );
 
 	echo "With {$class}\n";
 	if ( $use_color ) {
