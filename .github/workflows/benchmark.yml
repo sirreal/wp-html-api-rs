@@ -24,10 +24,10 @@ jobs:
           bins: cargo-codspeed
 
       - name: Build the benchmark target(s)
-        run: cargo codspeed build
+        run: cargo codspeed build -p wp-html-api
 
       - name: Run the benchmarks
         uses: CodSpeedHQ/action@v3
         with:
-          run: cargo codspeed run
+          run: cargo codspeed run -p wp-html-api
           token: ${{ secrets.CODSPEED_TOKEN }}
