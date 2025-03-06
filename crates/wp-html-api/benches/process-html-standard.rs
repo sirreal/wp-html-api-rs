@@ -5,7 +5,7 @@ fn main() {
     divan::main();
 }
 
-#[divan::bench(skip_ext_time)]
+#[divan::bench(skip_ext_time = true)]
 fn bench_html_processor(bencher: divan::Bencher) {
     bencher.with_inputs(|| get_input()).bench_values(|input| {
         let mut processor =
@@ -14,7 +14,7 @@ fn bench_html_processor(bencher: divan::Bencher) {
     });
 }
 
-#[divan::bench(skip_ext_time)]
+#[divan::bench(skip_ext_time = true)]
 fn bench_tag_processor(bencher: divan::Bencher) {
     bencher.with_inputs(|| get_input()).bench_values(|input| {
         let mut processor = TagProcessor::new(&input);
