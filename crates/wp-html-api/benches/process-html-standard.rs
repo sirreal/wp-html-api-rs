@@ -5,23 +5,23 @@ fn main() {
     divan::main();
 }
 
-#[divan::bench]
+#[divan::bench(skip_ext_time)]
 fn bench_html_processor(bencher: divan::Bencher) {
-    let input = std::fs::read("../../data/html-standard.html").expect("Missing input!");
-
-    bencher.bench(|| {
+    bencher.with_inputs(|| get_input()).bench_values(|input| {
         let mut processor =
             HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Processor must read input");
         while processor.next_token() {}
     });
 }
 
-#[divan::bench]
+#[divan::bench(skip_ext_time)]
 fn bench_tag_processor(bencher: divan::Bencher) {
-    let input = std::fs::read("../../data/html-standard.html").expect("Missing input!");
-
-    bencher.bench(|| {
+    bencher.with_inputs(|| get_input()).bench_values(|input| {
         let mut processor = TagProcessor::new(&input);
         while processor.next_token() {}
     });
+}
+
+fn get_input() -> Vec<u8> {
+    std::fs::read("../../data/html-standard.html").expect("Missing input!")
 }
