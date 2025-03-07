@@ -28,4 +28,4 @@ wasm-pack build --release --no-pack --target=nodejs --out-dir="../../pkg-node"  
 RUSTFLAGS="-C opt-level=s" wasm-pack build --release --no-pack --target=web --out-dir="../../pkg-web" crates/wp-html-api-wasm
 ```
 
-- [wasm-pack]: https://rustwasm.github.io/wasm-pack/installer/
+[wasm-pack]: https://rustwasm.github.io/wasm-pack/installer/
