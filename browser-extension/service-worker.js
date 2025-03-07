@@ -75,29 +75,34 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 // Process the HTML with the WASM module
 function processHTML(html, tabId) {
 	const byteLength = new TextEncoder().encode(html).byteLength;
-	// Create the HTML processor
-	const processor = WP_HTML_Processor.create_full_parser(html);
-
-	if (!processor) {
-		console.error("Failed to create HTML processor");
-		return;
-	}
 
 	// Count token types
 	const tokenCounts = new Map();
 	let totalTokens = 0;
+	let start, done;
 
-	// Process all tokens
-	const start = performance.now();
-	while (processor.next_token()) {
-		const tokenType = processor.get_token_type();
-		if (tokenType) {
-			let c = tokenCounts.get(tokenType) ?? 0;
-			tokenCounts.set(tokenType, c + 1);
-			totalTokens++;
+	// Create the HTML processor
+	const processor = WP_HTML_Processor.create_full_parser(html);
+	try {
+		if (!processor) {
+			console.error("Failed to create HTML processor");
+			return;
 		}
+
+		// Process all tokens
+		start = performance.now();
+		while (processor.next_token()) {
+			const tokenType = processor.get_token_type();
+			if (tokenType) {
+				let c = tokenCounts.get(tokenType) ?? 0;
+				tokenCounts.set(tokenType, c + 1);
+				totalTokens++;
+			}
+		}
+		done = performance.now();
+	} finally {
+		processor.free();
 	}
-	const done = performance.now();
 	const mbps = fmt.format(byteLength / 1e6 / ((done - start) / 1e3));
 	const ms = fmt.format(done - start);
 
