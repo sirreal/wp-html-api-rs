@@ -1,5 +1,6 @@
 {
 	"$schema": "https://json.schemastore.org/chrome-manifest.json",
+        "author": "",
 	"manifest_version": 3,
 	"name": "WP HTML Processor Token Counter",
 	"version": "1.0",
@@ -12,7 +13,7 @@
 		"default_popup": "popup.html"
 	},
 	"content_security_policy": {
-		"extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+		"extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'"
 	},
 	"background": {
 		"service_worker": "service-worker.js",
