@@ -1,0 +1,28 @@
+{
+	"$schema": "https://json.schemastore.org/chrome-manifest.json",
+	"manifest_version": 3,
+	"name": "WP HTML Processor Token Counter",
+	"version": "1.0",
+	"description": "Counts HTML token types using WP_HTML_Processor",
+	"permissions": ["activeTab", "scripting"],
+	"action": {
+		"default_popup": "popup.html"
+	},
+	"content_security_policy": {
+		"extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+	},
+	"background": {
+		"service_worker": "service-worker.js",
+		"type": "module"
+	},
+	"web_accessible_resources": [
+		{
+			"resources": [
+				"wp_html_api_wasm.js",
+				"wp_html_api_wasm_bg.js",
+				"wp_html_api_wasm_bg.wasm"
+			],
+			"matches": ["<all_urls>"]
+		}
+	]
+}
