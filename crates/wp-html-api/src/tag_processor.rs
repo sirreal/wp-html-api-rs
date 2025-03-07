@@ -929,7 +929,13 @@ impl TagProcessor {
     /// @return string|null Name of currently matched tag in input HTML, or `null` if none found.
     pub fn get_tag(&self) -> Option<TagName> {
         if let (Some(at), Some(length)) = (self.tag_name_starts_at, self.tag_name_length) {
-            Some(substr(&self.html_bytes, at, length).into())
+            Some(
+                (
+                    substr(&self.html_bytes, at, length),
+                    &self.parsing_namespace,
+                )
+                    .into(),
+            )
         } else {
             None
         }

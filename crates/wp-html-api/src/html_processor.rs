@@ -4850,19 +4850,7 @@ impl HtmlProcessor {
             };
         }
 
-        /*
-         * > A start tag whose tag name is "image"
-         * > Change the token's tag name to "img" and reprocess it. (Don't ask.)
-         */
-        let option_tag_name = self.tag_processor.get_tag();
-        if let Some(tag_name) = &option_tag_name {
-            if self.get_namespace() == &ParsingNamespace::Html
-                && matches!(tag_name , TagName::Arbitrary(arbitrary_name) if &**arbitrary_name == b"IMAGE")
-            {
-                return Some(TagName::IMG);
-            }
-        }
-        option_tag_name
+        self.tag_processor.get_tag()
     }
 
     /// Returns the adjusted tag name for a given token, taking into

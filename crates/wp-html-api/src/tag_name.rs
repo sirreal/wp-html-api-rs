@@ -197,9 +197,18 @@ impl TagName {
     }
 }
 
-impl From<&[u8]> for TagName {
-    fn from(value: &[u8]) -> Self {
+impl From<(&[u8], &ParsingNamespace)> for TagName {
+    fn from((value, namespace): (&[u8], &ParsingNamespace)) -> Self {
         let upper_cased = value.to_ascii_uppercase();
+
+        /*
+         * > A start tag whose tag name is "image"
+         * > Change the token's tag name to "img" and reprocess it. (Don't ask.)
+         */
+        if namespace != &ParsingNamespace::Html && upper_cased == b"IMAGE" {
+            return Self::Arbitrary(upper_cased.into());
+        }
+
         match upper_cased.as_slice() {
             b"A" => Self::A,
             b"ADDRESS" => Self::ADDRESS,
@@ -326,7 +335,7 @@ impl From<&[u8]> for TagName {
             b"MS" => Self::MS,
             b"MTEXT" => Self::MTEXT,
 
-            _ => Self::Arbitrary(value.into()),
+            _ => Self::Arbitrary(upper_cased.into()),
         }
     }
 }
@@ -753,7 +762,10 @@ mod test {
     #[test]
     fn test_tag_name_eq_arbitrary() {
         fn make_names(a: &str, b: &str) -> (TagName, TagName) {
-            (a.as_bytes().into(), b.as_bytes().into())
+            (
+                (a.as_bytes(), &ParsingNamespace::Html).into(),
+                (b.as_bytes(), &ParsingNamespace::Html).into(),
+            )
         }
 
         let (a, b) = make_names("FOO", "foo");
