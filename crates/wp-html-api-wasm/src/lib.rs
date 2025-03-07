@@ -27,8 +27,8 @@ pub struct WP_HTML_Tag_Processor {
 #[wasm_bindgen]
 impl WP_HTML_Tag_Processor {
     #[wasm_bindgen(constructor)]
-    pub fn new(html: &[u8]) -> Self {
-        let processor = TagProcessor::new(html);
+    pub fn new(html: String) -> Self {
+        let processor = TagProcessor::new(html.as_bytes());
         Self { processor }
     }
 
@@ -65,13 +65,11 @@ pub struct WP_HTML_Processor {
 #[wasm_bindgen]
 impl WP_HTML_Processor {
     pub fn create_full_parser(
-        html: Box<[u8]>,
-        known_definite_encoding: Option<Box<[u8]>>,
+        html: String,
+        known_definite_encoding: Option<String>,
     ) -> Option<Self> {
-        let known_definite_encoding = known_definite_encoding
-            .and_then(|val| String::from_utf8(val.to_vec()).ok())
-            .unwrap_or("UTF-8".to_owned());
-        HtmlProcessor::create_full_parser(html.as_ref(), &known_definite_encoding)
+        let known_definite_encoding = known_definite_encoding.unwrap_or("UTF-8".to_owned());
+        HtmlProcessor::create_full_parser(html.as_bytes(), &known_definite_encoding)
             .map(|processor| Self { processor })
     }
 

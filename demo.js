@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import * as htmlApi from "./crates/wp-html-api-wasm/pkg/wp_html_api_wasm.js";
-
-const { WP_HTML_Tag_Processor, WP_HTML_Processor } = htmlApi;
+import {
+	WP_HTML_Tag_Processor,
+	WP_HTML_Processor,
+} from "./pkg-node/wp_html_api_wasm.js";
 
 import fs from "node:fs";
 import { performance } from "node:perf_hooks";
@@ -14,11 +15,11 @@ const html = fs.readFileSync(
 const $use_color = true;
 
 function make_html_processor() {
-	return WP_HTML_Processor.create_full_parser(new TextEncoder().encode(html));
+	return WP_HTML_Processor.create_full_parser(html);
 }
 
 function make_tag_processor() {
-	return new WP_HTML_Tag_Processor(new TextEncoder().encode(html));
+	return new WP_HTML_Tag_Processor(html);
 }
 
 const fmt = new Intl.NumberFormat("en-US");

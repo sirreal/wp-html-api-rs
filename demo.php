@@ -16,15 +16,7 @@ $input_file = $opts['i'] ?? null;
 $is_verbose = isset( $opts['v'] );
 
 if ( null === $input_file ) {
-    $html = <<<'HTML'
-        <title lang=en-US> <titl> foo bar & great <titl></tItLe>
-        <p class='separator introduction' =5>Hello world!</p>
-        <script>
-        a script
-        </script>
-        <h1 name="title">You made it!</h1>
-        <!-- look at this comment -->
-        HTML;
+    $html = file_get_contents( __DIR__ . '/data/html-standard.html' );
 } else {
     $html = file_get_contents( $input_file );
 }
