@@ -5,6 +5,9 @@
 	"version": "1.0",
 	"description": "Counts HTML token types using WP_HTML_Processor",
 	"permissions": ["activeTab", "scripting"],
+        "icons": {
+                "128": "icon.png"
+        },
 	"action": {
 		"default_popup": "popup.html"
 	},
@@ -14,15 +17,5 @@
 	"background": {
 		"service_worker": "service-worker.js",
 		"type": "module"
-	},
-	"web_accessible_resources": [
-		{
-			"resources": [
-				"wp_html_api_wasm.js",
-				"wp_html_api_wasm_bg.js",
-				"wp_html_api_wasm_bg.wasm"
-			],
-			"matches": ["<all_urls>"]
-		}
-	]
+	}
 }

@@ -12,47 +12,65 @@ self.addEventListener("install", async (event) => {
 });
 
 // Process message from popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	if (message.action === "analyzeTokens") {
-		handleAnalyzeTokens();
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+	const tabId = await new Promise((resolve, reject) => {
+		chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+			if (tabs && tabs.length > 0) {
+				resolve(tabs[0].id);
+			} else {
+				reject();
+			}
+		});
+	});
+
+	let html = null;
+	switch (message.action) {
+		case "analyzeClean":
+			html = await new Promise((resolve, reject) => {
+				chrome.scripting.executeScript(
+					{
+						target: { tabId },
+						function: async () => {
+							const resp = await fetch(document.location.href);
+							return await resp.text();
+						},
+					},
+					([{ result, error }]) => {
+						if (error) {
+							reject(error);
+						} else {
+							resolve(result);
+						}
+					},
+				);
+			});
+			break;
+
+		case "analyzeDom":
+			html = await new Promise((resolve, reject) => {
+				chrome.scripting.executeScript(
+					{
+						target: { tabId },
+						function: async () => {
+							return document.documentElement.outerHTML;
+						},
+					},
+					([{ result, error }]) => {
+						if (error) {
+							reject(error);
+						} else {
+							resolve(result);
+						}
+					},
+				);
+			});
+			break;
+	}
+
+	if (html != null) {
+		processHTML(html, tabId);
 	}
 });
-
-// Handle analyze tokens request
-function handleAnalyzeTokens() {
-	chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-		if (tabs && tabs.length > 0) {
-			analyzeTokens(tabs[0].id);
-		} else {
-			console.error("No active tab found");
-		}
-	});
-}
-
-// Analyze HTML tokens
-async function analyzeTokens(tabId) {
-	try {
-		// Get the HTML content of the page using content script
-		chrome.scripting.executeScript(
-			{
-				target: { tabId },
-				function: async () => {
-					const resp = await fetch(document.location.href);
-					return await resp.text();
-				},
-			},
-			([{ result: htmlText, error }]) => {
-				if (error) {
-					console.error(error);
-					return;
-				}
-				processHTML(htmlText, tabId);
-			},
-		);
-	} catch (error) {
-		console.error(error);
-	}
-}
 
 // Process the HTML with the WASM module
 function processHTML(html, tabId) {

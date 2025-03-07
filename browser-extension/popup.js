@@ -1,6 +1,14 @@
-document.getElementById("analyze").addEventListener("click", () => {
-	// Send message directly to service worker
-	chrome.runtime.sendMessage({ action: "analyzeTokens" }).catch((error) => {
-		console.error("Error sending message to service worker:", error);
-	});
-});
+document.getElementById("analyzeClean").addEventListener(
+	"click",
+	() => {
+		chrome.runtime.sendMessage({ action: "analyzeClean" });
+	},
+	{ passive: true },
+);
+document.getElementById("analyzeDom").addEventListener(
+	"click",
+	() => {
+		chrome.runtime.sendMessage({ action: "analyzeDom" });
+	},
+	{ passive: true },
+);

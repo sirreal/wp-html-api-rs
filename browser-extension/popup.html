@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <style>
@@ -8,6 +9,7 @@
       padding: 10px;
       font-family: sans-serif;
     }
+
     button {
       padding: 8px 16px;
       background-color: #0073aa;
@@ -16,15 +18,17 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     button:hover {
       background-color: #005d8c;
     }
   </style>
+  <script type="module" src="popup.js"></script>
 </head>
 <body>
   <h2>WP HTML Token Counter</h2>
   <p>Click the button to analyze HTML tokens on the current page:</p>
-  <button id="analyze">Analyze Tokens</button>
-  <script src="popup.js"></script>
+  <button id="analyzeDom">Analyze from DOM</button><br>
+  <button id="analyzeClean">⤿ Load and analyze page source</button>
 </body>
 </html>
