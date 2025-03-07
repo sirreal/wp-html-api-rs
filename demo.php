@@ -1,3 +1,4 @@
+#!/usr/bin/env php -d extension=target/release/libwp_html_api_php_ext.dylib
 <?php
 
 declare(strict_types=1);
