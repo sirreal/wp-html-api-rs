@@ -1357,7 +1357,20 @@ impl TagProcessor {
     /// @param string $wanted_class Look for this CSS class name, ASCII case-insensitive.
     /// @return bool|null Whether the matched tag contains the given class name, or null if not matched.
     pub fn has_class(&self, wanted_class: &str) -> Option<bool> {
-        todo!()
+        if self.parser_state != ParserState::MatchedTag {
+            return None;
+        }
+
+        let case_insensitive = self.compat_mode == CompatMode::Quirks;
+
+        let wanted_bytes = wanted_class.as_bytes();
+        Some(self.class_list().any(|class_name| {
+            if case_insensitive {
+                class_name.eq_ignore_ascii_case(wanted_bytes)
+            } else {
+                class_name.as_ref() == wanted_bytes
+            }
+        }))
     }
 
     /// Adds a new class name to the currently matched tag.
@@ -1402,8 +1415,24 @@ impl TagProcessor {
     ///         echo "{$class_name} ";
     ///     }
     ///     // Outputs: "free <egg> lang-en "
-    pub fn class_list(&self) -> () {
-        todo!()
+    pub fn class_list(&self) -> impl Iterator<Item = Box<[u8]>> {
+        if self.parser_state != ParserState::MatchedTag {
+            return ClassList::empty();
+        }
+
+        let is_quirks = self.compat_mode == CompatMode::Quirks;
+
+        if let Some(class_attribute) = self.get_attribute(b"class") {
+            match class_attribute {
+                AttributeValue::String(class_attribute) => ClassList {
+                    attribute_value: class_attribute.clone(),
+                    at: 0,
+                },
+                _ => ClassList::empty(),
+            }
+        } else {
+            return ClassList::empty();
+        }
     }
 
     /// Removes an attribute from the currently matched tag.
@@ -2338,4 +2367,59 @@ pub enum AttributeValue {
     BooleanFalse,
     BooleanTrue,
     String(Rc<[u8]>),
+}
+
+pub struct ClassList {
+    attribute_value: Rc<[u8]>,
+    at: usize,
+}
+
+impl ClassList {
+    pub fn new(attribute_value: Rc<[u8]>) -> Self {
+        let mut s = Self {
+            attribute_value,
+            at: 0,
+        };
+
+        // Start by skipping whitespace.
+        s.at = strspn!(s.attribute_value, b' ' | b'\t' | 0x0c | b'\r' | b'\n', s.at);
+
+        s
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            attribute_value: Rc::new([]),
+            at: 0,
+        }
+    }
+}
+
+impl Iterator for ClassList {
+    type Item = Box<[u8]>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.at >= self.attribute_value.len() {
+            return None;
+        }
+
+        // Find the byte length until the next boundary.
+        let len = strcspn!(
+            self.attribute_value,
+            b' ' | b'\t' | 0x0c | b'\r' | b'\n',
+            self.at
+        );
+
+        let value = self.attribute_value[self.at..self.at + len].into();
+
+        // Move past trailing whitespace.
+        self.at += len
+            + strspn!(
+                self.attribute_value,
+                b' ' | b'\t' | 0x0c | b'\r' | b'\n',
+                self.at + len
+            );
+
+        Some(value)
+    }
 }
