@@ -13,6 +13,30 @@ use std::{collections::HashMap, rc::Rc};
 
 const MAX_BOOKMARKS: usize = 1_000_000;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum TagClosers {
+    Skip,
+    Visit,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct NextTagQuery {
+    pub tag_name: Option<TagName>,
+    pub match_offset: usize,
+    pub class_name: Option<String>,
+    pub tag_closers: TagClosers,
+}
+impl Default for NextTagQuery {
+    fn default() -> Self {
+        Self {
+            tag_name: None,
+            match_offset: 1,
+            class_name: None,
+            tag_closers: TagClosers::Skip,
+        }
+    }
+}
+
 pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
     pub bytes_already_parsed: usize,
@@ -31,22 +55,24 @@ pub struct TagProcessor {
     token_length: Option<usize>,
     token_starts_at: Option<usize>,
 
+    /// Indicates if the document is in quirks mode or no-quirks mode.
     ///
-    /// indicates if the document is in quirks mode or no-quirks mode.
+    ///  Impact on HTML parsing:
     ///
-    ///  impact on html parsing:
+    ///   - In `NO_QUIRKS_MODE` (also known as "standard mode"):
+    ///       - CSS class and ID selectors match byte-for-byte (case-sensitively).
+    ///       - A TABLE start tag `<table>` implicitly closes any open `P` element.
     ///
-    ///   - in `no_quirks_mode` (also known as "standard mode"):
-    ///       - css class and id selectors match byte-for-byte (case-sensitively).
-    ///       - a table start tag `<table>` implicitly closes any open `p` element.
-    ///
-    ///   - in `quirks_mode`:
-    ///       - css class and id selectors match match in an ascii case-insensitive manner.
-    ///       - a table start tag `<table>` opens a `table` element as a child of a `p`
+    ///   - In `QUIRKS_MODE`:
+    ///       - CSS class and ID selectors match match in an ASCII case-insensitive manner.
+    ///       - A TABLE start tag `<table>` opens a `TABLE` element as a child of a `P`
     ///         element if one is open.
     ///
-    /// quirks and no-quirks mode are thus mostly about styling, but have an impact when
+    /// Quirks and no-quirks mode are thus mostly about styling, but have an impact when
     /// tables are found inside paragraph elements.
+    ///
+    /// @see self::QUIRKS_MODE
+    /// @see self::NO_QUIRKS_MODE
     pub(crate) compat_mode: CompatMode,
 
     pub(crate) bookmarks: HashMap<Rc<str>, HtmlSpan>,
@@ -136,6 +162,72 @@ impl TagProcessor {
     /// @return bool Whether a token was parsed.
     pub fn next_token(&mut self) -> bool {
         self.base_class_next_token()
+    }
+
+    /// Finds the next tag matching the $query.
+    ///
+    /// @param array|string|null $query {
+    ///     Optional. Which tag name to find, having which class, etc. Default is to find any tag.
+    ///
+    ///     @type string|null $tag_name     Which tag to find, or `null` for "any tag."
+    ///     @type int|null    $match_offset Find the Nth tag matching all search criteria.
+    ///                                     1 for "first" tag, 3 for "third," etc.
+    ///                                     Defaults to first tag.
+    ///     @type string|null $class_name   Tag must contain this whole class name to match.
+    ///     @type string|null $tag_closers  "visit" or "skip": whether to stop on tag closers, e.g. </div>.
+    /// }
+    /// @return bool Whether a tag was matched.
+    pub fn next_tag(&mut self, query: Option<NextTagQuery>) -> bool {
+        let query = query.unwrap_or_default();
+        let mut already_found = 0;
+
+        loop {
+            if !self.next_token() {
+                return false;
+            }
+
+            if self.parser_state != ParserState::MatchedTag {
+                continue;
+            }
+
+            if self.matches(&query) {
+                already_found += 1
+            }
+
+            // Check if we've found enough matches
+            if already_found >= query.match_offset {
+                return true;
+            }
+        }
+    }
+
+    /// Checks whether a given tag and its attributes match the search criteria.
+    ///
+    /// @return bool Whether the given tag and its attribute match the search criteria.
+    fn matches(&self, query: &NextTagQuery) -> bool {
+        let stop_on_tag_closers = query.tag_closers == TagClosers::Visit;
+        if self.is_closing_tag.unwrap_or(false) && !stop_on_tag_closers {
+            return false;
+        }
+
+        // Does the tag name match the requested tag name in a case-insensitive manner?
+        if let Some(sought_tag) = &query.tag_name {
+            if let Some(current_tag) = &self.get_tag() {
+                if current_tag != sought_tag {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        if let Some(class_name) = &query.class_name {
+            if !self.has_class(class_name).unwrap_or(false) {
+                return false;
+            }
+        }
+
+        true
     }
 
     /// Internal method which finds the next token in the HTML document.

@@ -1,13 +1,19 @@
 #![allow(non_camel_case_types)]
 
-use ext_php_rs::convert::IntoZval;
 use ext_php_rs::{
-    binary::Binary, binary_slice::BinarySlice, builders::ModuleBuilder, prelude::*,
-    types::ZendClassObject,
+    binary::Binary,
+    binary_slice::BinarySlice,
+    builders::ModuleBuilder,
+    convert::{FromZval, IntoZval},
+    prelude::*,
+    types::{ZendClassObject, Zval},
 };
-use wp_html_api::doctype::HtmlDoctypeInfo;
+use std::ops::Deref;
 use wp_html_api::html_processor::HtmlProcessor;
-use wp_html_api::tag_processor::{AttributeValue, NodeName, TagProcessor};
+use wp_html_api::tag_processor::{
+    AttributeValue, NextTagQuery, NodeName, ParsingNamespace, TagClosers, TagProcessor,
+};
+use wp_html_api::{doctype::HtmlDoctypeInfo, tag_name::TagName};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -35,6 +41,13 @@ impl WP_HTML_Tag_Processor {
 
     pub fn next_token(#[this] this: &mut ZendClassObject<Self>) -> bool {
         this.processor.next_token()
+    }
+
+    pub fn next_tag(
+        #[this] this: &mut ZendClassObject<Self>,
+        query: Option<PhpNextTagQuery>,
+    ) -> bool {
+        this.processor.next_tag(query.map(Into::into))
     }
 
     pub fn get_tag(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
@@ -139,6 +152,95 @@ impl IntoZval for AttributeValueWrapper {
             AttributeValue::BooleanTrue => zv.set_bool(true),
             AttributeValue::String(value) => zv.set_binary(value.to_vec().into()),
         })
+    }
+}
+
+/// Wrapper struct for NextTagQuery to implement FromZval
+struct PhpNextTagQuery(NextTagQuery);
+
+impl Deref for PhpNextTagQuery {
+    type Target = NextTagQuery;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<NextTagQuery> for PhpNextTagQuery {
+    fn into(self) -> NextTagQuery {
+        self.0
+    }
+}
+
+impl<'a> FromZval<'a> for PhpNextTagQuery {
+    const TYPE: ext_php_rs::flags::DataType = ext_php_rs::flags::DataType::Mixed;
+
+    fn from_zval(zval: &'a Zval) -> Option<Self> {
+        // Simple string query (tag name)
+        if zval.is_string() {
+            let tag_name = zval.binary().expect("Expected a string");
+            // NextTagQuery directly implements From<&[u8]>
+            let tag_name: TagName = (tag_name.as_slice(), &ParsingNamespace::Html).into();
+            return Some(PhpNextTagQuery(NextTagQuery {
+                tag_name: Some(tag_name),
+                ..Default::default()
+            }));
+        }
+
+        // Array-based query
+        if zval.is_array() {
+            let array = zval.array().expect("Expected an array");
+            let mut next_tag_query = NextTagQuery::default();
+
+            // Process tag_name if provided
+            if let Some(tag_name) = array.get("tag_name") {
+                if tag_name.is_string() {
+                    if let Some(tag_name_str) = tag_name.binary() {
+                        // We need to explicitly construct the TagName from a slice and namespace
+                        next_tag_query.tag_name =
+                            Some((tag_name_str.as_slice(), &ParsingNamespace::Html).into());
+                    }
+                }
+            }
+
+            // Process match_offset if provided
+            if let Some(match_offset) = array.get("match_offset") {
+                if match_offset.is_long() {
+                    if let Some(offset) = match_offset.long() {
+                        // Ensure offset is positive and convert to usize
+                        if offset > 0 {
+                            next_tag_query.match_offset = offset as usize;
+                        }
+                    }
+                }
+            }
+
+            // Process class_name if provided
+            if let Some(class_name) = array.get("class_name") {
+                if class_name.is_string() {
+                    if let Some(class_name_str) = class_name.binary() {
+                        next_tag_query.class_name =
+                            Some(String::from_utf8_lossy(class_name_str.as_slice()).to_string());
+                    }
+                }
+            }
+
+            // Process tag_closers if provided
+            if let Some(tag_closers) = array.get("tag_closers") {
+                if tag_closers.is_string() {
+                    if let Some(tag_closers_str) = tag_closers.binary() {
+                        if tag_closers_str.as_slice().eq_ignore_ascii_case(b"visit") {
+                            next_tag_query.tag_closers = TagClosers::Visit;
+                        }
+                    }
+                }
+            }
+
+            return Some(PhpNextTagQuery(next_tag_query));
+        }
+
+        // Default to an empty query
+        Some(PhpNextTagQuery(NextTagQuery::default()))
     }
 }
 
