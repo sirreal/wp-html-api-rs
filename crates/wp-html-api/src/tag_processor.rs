@@ -9,7 +9,10 @@ use crate::{
 
 use super::tag_name::TagName;
 
-use std::{collections::HashMap, rc::Rc};
+use std::{
+    collections::{BTreeSet, HashMap},
+    rc::Rc,
+};
 
 const MAX_BOOKMARKS: usize = 1_000_000;
 
@@ -1415,7 +1418,7 @@ impl TagProcessor {
     ///         echo "{$class_name} ";
     ///     }
     ///     // Outputs: "free <egg> lang-en "
-    pub fn class_list(&self) -> impl Iterator<Item = Box<[u8]>> {
+    pub fn class_list(&self) -> ClassList {
         if self.parser_state != ParserState::MatchedTag {
             return ClassList::empty();
         }
@@ -1424,10 +1427,7 @@ impl TagProcessor {
 
         if let Some(class_attribute) = self.get_attribute(b"class") {
             match class_attribute {
-                AttributeValue::String(class_attribute) => ClassList {
-                    attribute_value: class_attribute.clone(),
-                    at: 0,
-                },
+                AttributeValue::String(class_attribute) => ClassList::new(class_attribute),
                 _ => ClassList::empty(),
             }
         } else {
@@ -2371,6 +2371,7 @@ pub enum AttributeValue {
 
 pub struct ClassList {
     attribute_value: Rc<[u8]>,
+    seen: BTreeSet<Box<[u8]>>,
     at: usize,
 }
 
@@ -2378,6 +2379,7 @@ impl ClassList {
     pub fn new(attribute_value: Rc<[u8]>) -> Self {
         let mut s = Self {
             attribute_value,
+            seen: BTreeSet::new(),
             at: 0,
         };
 
@@ -2391,6 +2393,7 @@ impl ClassList {
         Self {
             attribute_value: Rc::new([]),
             at: 0,
+            seen: BTreeSet::new(),
         }
     }
 }
@@ -2410,7 +2413,7 @@ impl Iterator for ClassList {
             self.at
         );
 
-        let value = self.attribute_value[self.at..self.at + len].into();
+        let value = &self.attribute_value[self.at..self.at + len];
 
         // Move past trailing whitespace.
         self.at += len
@@ -2420,6 +2423,24 @@ impl Iterator for ClassList {
                 self.at + len
             );
 
-        Some(value)
+        let value: Vec<u8> = value
+            .into_iter()
+            .flat_map(|&byte| {
+                if byte == 0x00 {
+                    b"\xEF\xBF\xBD".to_vec()
+                } else {
+                    vec![byte]
+                }
+            })
+            .collect();
+
+        let value = value.into_boxed_slice();
+
+        if self.seen.contains(&value) {
+            self.next()
+        } else {
+            self.seen.insert(value.clone());
+            Some(value)
+        }
     }
 }

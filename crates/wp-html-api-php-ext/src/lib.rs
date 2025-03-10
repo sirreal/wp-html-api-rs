@@ -1,19 +1,21 @@
 #![allow(non_camel_case_types)]
 
+use ext_php_rs::zend;
 use ext_php_rs::{
     binary::Binary,
     binary_slice::BinarySlice,
     builders::ModuleBuilder,
     convert::{FromZval, IntoZval},
+    ffi::{zend_class_entry, zend_objects_new},
     prelude::*,
     types::{ZendClassObject, Zval},
 };
 use std::ops::Deref;
-use wp_html_api::html_processor::HtmlProcessor;
 use wp_html_api::tag_processor::{
     AttributeValue, NextTagQuery, NodeName, ParsingNamespace, TagClosers, TagProcessor,
 };
 use wp_html_api::{doctype::HtmlDoctypeInfo, tag_name::TagName};
+use wp_html_api::{html_processor::HtmlProcessor, tag_processor::ClassList};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -48,6 +50,25 @@ impl WP_HTML_Tag_Processor {
         query: Option<PhpNextTagQuery>,
     ) -> bool {
         this.processor.next_tag(query.map(Into::into))
+    }
+
+    pub fn class_list(#[this] this: &ZendClassObject<Self>) -> Vec<Binary<u8>> {
+        this.processor
+            .class_list()
+            .map(|class_name| class_name.to_vec().into())
+            .collect()
+    }
+
+    pub fn has_class(#[this] this: &ZendClassObject<Self>, wanted_class: &str) -> Option<bool> {
+        this.processor.has_class(wanted_class)
+    }
+
+    pub fn get_doctype_info(
+        #[this] this: &mut ZendClassObject<Self>,
+    ) -> Option<WP_HTML_Doctype_Info> {
+        this.processor
+            .get_doctype_info()
+            .map(|internal| WP_HTML_Doctype_Info { internal })
     }
 
     pub fn get_tag(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
