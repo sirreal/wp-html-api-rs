@@ -2099,6 +2099,11 @@ impl TagProcessor {
             )
         }
     }
+
+    /// Needed to expose PHP protected proptery.
+    pub fn parser_state(&self) -> &ParserState {
+        &self.parser_state
+    }
 }
 
 //#[derive(Debug, PartialEq, Clone)]
@@ -2145,7 +2150,7 @@ impl Default for TagProcessor {
 }
 
 #[derive(Default, PartialEq, Debug)]
-pub(crate) enum ParserState {
+pub enum ParserState {
     #[default]
     Ready,
     Complete,

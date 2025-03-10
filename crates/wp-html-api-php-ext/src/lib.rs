@@ -1,21 +1,19 @@
 #![allow(non_camel_case_types)]
 
-use ext_php_rs::zend;
 use ext_php_rs::{
     binary::Binary,
     binary_slice::BinarySlice,
     builders::ModuleBuilder,
     convert::{FromZval, IntoZval},
-    ffi::{zend_class_entry, zend_objects_new},
     prelude::*,
     types::{ZendClassObject, Zval},
 };
 use std::ops::Deref;
+use wp_html_api::html_processor::HtmlProcessor;
 use wp_html_api::tag_processor::{
-    AttributeValue, NextTagQuery, NodeName, ParsingNamespace, TagClosers, TagProcessor,
+    AttributeValue, NextTagQuery, NodeName, ParserState, ParsingNamespace, TagClosers, TagProcessor,
 };
 use wp_html_api::{doctype::HtmlDoctypeInfo, tag_name::TagName};
-use wp_html_api::{html_processor::HtmlProcessor, tag_processor::ClassList};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -45,6 +43,10 @@ impl WP_HTML_Tag_Processor {
         this.processor.next_token()
     }
 
+    pub fn set_bookmark(#[this] this: &mut ZendClassObject<Self>, name: &str) -> bool {
+        this.processor.set_bookmark(name).is_ok()
+    }
+
     pub fn next_tag(
         #[this] this: &mut ZendClassObject<Self>,
         query: Option<PhpNextTagQuery>,
@@ -61,6 +63,14 @@ impl WP_HTML_Tag_Processor {
 
     pub fn has_class(#[this] this: &ZendClassObject<Self>, wanted_class: &str) -> Option<bool> {
         this.processor.has_class(wanted_class)
+    }
+
+    pub fn is_tag_closer(#[this] this: &ZendClassObject<Self>) -> bool {
+        this.processor.is_tag_closer()
+    }
+
+    pub fn has_self_closing_flag(#[this] this: &ZendClassObject<Self>) -> bool {
+        this.processor.has_self_closing_flag()
     }
 
     pub fn get_doctype_info(
@@ -157,7 +167,59 @@ impl WP_HTML_Tag_Processor {
             .get_full_comment_text()
             .map(|value| value.to_vec().into())
     }
+
+    #[getter]
+    #[protected]
+    fn parser_state(&self) -> Binary<u8> {
+        match self.processor.parser_state() {
+            ParserState::Ready => STATE_READY,
+            ParserState::Complete => STATE_COMPLETE,
+            ParserState::IncompleteInput => STATE_INCOMPLETE_INPUT,
+            ParserState::MatchedTag => STATE_MATCHED_TAG,
+            ParserState::TextNode => STATE_TEXT_NODE,
+            ParserState::CDATANode => STATE_CDATA_NODE,
+            ParserState::Comment => STATE_COMMENT,
+            ParserState::Doctype => STATE_DOCTYPE,
+            ParserState::PresumptuousTag => STATE_PRESUMPTUOUS_TAG,
+            ParserState::FunkyComment => STATE_FUNKY_COMMENT,
+        }
+        .bytes()
+        .collect::<Vec<_>>()
+        .into()
+    }
+
+    #[php_const]
+    pub const STATE_READY: &str = STATE_READY;
+    #[php_const]
+    pub const STATE_COMPLETE: &str = STATE_COMPLETE;
+    #[php_const]
+    pub const STATE_INCOMPLETE_INPUT: &str = STATE_INCOMPLETE_INPUT;
+    #[php_const]
+    pub const STATE_MATCHED_TAG: &str = STATE_MATCHED_TAG;
+    #[php_const]
+    pub const STATE_TEXT_NODE: &str = STATE_TEXT_NODE;
+    #[php_const]
+    pub const STATE_CDATA_NODE: &str = STATE_CDATA_NODE;
+    #[php_const]
+    pub const STATE_COMMENT: &str = STATE_COMMENT;
+    #[php_const]
+    pub const STATE_DOCTYPE: &str = STATE_DOCTYPE;
+    #[php_const]
+    pub const STATE_PRESUMPTUOUS_TAG: &str = STATE_PRESUMPTUOUS_TAG;
+    #[php_const]
+    pub const STATE_FUNKY_COMMENT: &str = STATE_FUNKY_COMMENT;
 }
+
+const STATE_READY: &str = "STATE_READY";
+const STATE_COMPLETE: &str = "STATE_COMPLETE";
+const STATE_INCOMPLETE_INPUT: &str = "STATE_INCOMPLETE_INPUT";
+const STATE_MATCHED_TAG: &str = "STATE_MATCHED_TAG";
+const STATE_TEXT_NODE: &str = "STATE_TEXT_NODE";
+const STATE_CDATA_NODE: &str = "STATE_CDATA_NODE";
+const STATE_COMMENT: &str = "STATE_COMMENT";
+const STATE_DOCTYPE: &str = "STATE_DOCTYPE";
+const STATE_PRESUMPTUOUS_TAG: &str = "STATE_PRESUMPTUOUS_TAG";
+const STATE_FUNKY_COMMENT: &str = "STATE_WP_FUNKY";
 
 struct AttributeValueWrapper(AttributeValue);
 impl IntoZval for AttributeValueWrapper {
