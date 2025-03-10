@@ -106,7 +106,7 @@ pub fn build_tree_representation(
                     Some(attribute_names) if !attribute_names.is_empty() => {
                         let mut attribute_names = attribute_names
                             .iter()
-                            .map(|&name| {
+                            .map(|name| {
                                 (
                                     name,
                                     processor

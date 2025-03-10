@@ -1445,7 +1445,7 @@ impl TagProcessor {
     ///
     ///     $p->next_tag() === false;
     ///     $p->get_attribute_names_with_prefix( 'data-' ) === null;
-    pub fn get_attribute_names_with_prefix(&self, prefix: &[u8]) -> Option<Vec<&[u8]>> {
+    pub fn get_attribute_names_with_prefix(&self, prefix: &[u8]) -> Option<Vec<Box<[u8]>>> {
         if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(false) {
             return None;
         }
@@ -1462,7 +1462,9 @@ impl TagProcessor {
                         } else {
                             let name = &self.html_bytes[*start..start + prefix.len()];
                             if name.eq_ignore_ascii_case(prefix) {
-                                Some(&self.html_bytes[*start..start + name_length])
+                                let slice = self.html_bytes[*start..start + name_length]
+                                    .to_ascii_lowercase();
+                                Some(slice.into_boxed_slice())
                             } else {
                                 None
                             }

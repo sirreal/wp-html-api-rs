@@ -109,7 +109,7 @@ impl WP_HTML_Tag_Processor {
             .get_attribute_names_with_prefix(&prefix)
             .map(|vec| {
                 vec.iter()
-                    .map(|&name| name.to_vec().into())
+                    .map(|name| name.to_vec().into())
                     .collect::<Vec<Binary<u8>>>()
             })
     }
@@ -224,7 +224,7 @@ impl WP_HTML_Processor {
             .get_attribute_names_with_prefix(&prefix)
             .map(|vec| {
                 vec.iter()
-                    .map(|&name| name.to_vec().into())
+                    .map(|name| name.to_vec().into())
                     .collect::<Vec<Binary<u8>>>()
             })
     }
