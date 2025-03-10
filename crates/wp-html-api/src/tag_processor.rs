@@ -1157,15 +1157,15 @@ impl TagProcessor {
 
         let mut at = self.bytes_already_parsed;
 
-        let match_end_tag: Box<[u8]> = match tag_name {
-            TagName::IFRAME => Box::new(*b"</IFRAME"),
-            TagName::NOEMBED => Box::new(*b"</NOEMBED"),
-            TagName::NOFRAMES => Box::new(*b"</NOFRAMES"),
-            TagName::STYLE => Box::new(*b"</STYLE"),
-            TagName::TEXTAREA => Box::new(*b"</TEXTAREA"),
-            TagName::TITLE => Box::new(*b"</TITLE"),
-            TagName::XMP => Box::new(*b"</XMP"),
-            _ => unreachable!("skip_rcdata must receive and allowed tag_name"),
+        let match_end_tag: &[u8] = match tag_name {
+            TagName::IFRAME => b"</IFRAME",
+            TagName::NOEMBED => b"</NOEMBED",
+            TagName::NOFRAMES => b"</NOFRAMES",
+            TagName::STYLE => b"</STYLE",
+            TagName::TEXTAREA => b"</TEXTAREA",
+            TagName::TITLE => b"</TITLE",
+            TagName::XMP => b"</XMP",
+            _ => unreachable!("skipping RCDATA at unexpected tag."),
         };
 
         while at + match_end_tag.len() + 1 < doc_length {
@@ -1175,7 +1175,11 @@ impl TagProcessor {
             } else {
                 return false;
             };
+
             self.bytes_already_parsed = at;
+            if at >= doc_length {
+                return false;
+            }
 
             /*
              * Ensure that the tag name terminates to avoid matching on
