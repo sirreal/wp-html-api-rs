@@ -789,12 +789,12 @@ impl HtmlDoctypeInfo {
             }
         }
 
-        return Some(Self::new(
+        Some(Self::new(
             doctype_name,
             doctype_public_id,
             doctype_system_id,
             false,
-        ));
+        ))
     }
 }
 

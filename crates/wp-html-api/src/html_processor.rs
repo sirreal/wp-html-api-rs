@@ -852,7 +852,7 @@ impl HtmlProcessor {
                 if self.tag_processor.text_node_classification
                     == TextNodeClassification::Whitespace =>
             {
-                return self.step(NodeToProcess::ProcessNextNode).into();
+                self.step(NodeToProcess::ProcessNextNode)
             }
 
             /*
@@ -862,7 +862,7 @@ impl HtmlProcessor {
                 TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
             ) => {
                 self.insert_html_element(self.state.current_token.clone().unwrap());
-                return true;
+                true
             }
 
             /*
@@ -910,7 +910,7 @@ impl HtmlProcessor {
             /*
              * > A DOCTYPE token
              */
-            Op::Token(TokenType::Doctype) => return self.step(NodeToProcess::ProcessNextNode),
+            Op::Token(TokenType::Doctype) => self.step(NodeToProcess::ProcessNextNode),
 
             /*
              * > A comment token
@@ -1234,7 +1234,7 @@ impl HtmlProcessor {
                     .push(InsertionMode::IN_TEMPLATE);
 
                 self.insert_html_element(self.state.current_token.clone().unwrap());
-                return true;
+                true
             }
 
             /*
@@ -1473,7 +1473,7 @@ impl HtmlProcessor {
                  * > Process the token using the rules for the "in head" insertion mode.
                  * > Remove the node pointed to by the head element pointer from the stack of open elements. (It might not be the current node at this point.)
                  */
-                return self.bail(UnsupportedException::AfterHeadElementsReopenHead);
+                self.bail(UnsupportedException::AfterHeadElementsReopenHead)
             }
 
             /*
@@ -1681,7 +1681,7 @@ impl HtmlProcessor {
                     /*
                      * > Otherwise, run the following steps:
                      */
-                    return self.bail(UnsupportedException::CannotProcessNonIgnoredFrameset);
+                    self.bail(UnsupportedException::CannotProcessNonIgnoredFrameset)
                 }
             }
 
@@ -2077,7 +2077,7 @@ impl HtmlProcessor {
                             .bail(UnsupportedException::CannotCloseFormWithOtherElementsOpen);
                     }
                     self.remove_node_from_stack_of_open_elements(&node);
-                    return true;
+                    true
                 } else {
                     /*
                      * > If the stack of open elements does not have a form element in scope,
@@ -3490,7 +3490,7 @@ impl HtmlProcessor {
                 | TagName::TH,
             ) => {
                 // Parse error: ignore the token.
-                return self.step(NodeToProcess::ProcessNextNode);
+                self.step(NodeToProcess::ProcessNextNode)
             }
 
             /*
@@ -5452,9 +5452,9 @@ impl HtmlProcessor {
             return false;
         }
 
-        return self.bail(
+        self.bail(
             UnsupportedException::ActiveFormattingElementsWhenAdvancingAndRewindingIsRequired,
-        );
+        )
     }
 
     /// Runs the reset the insertion mode appropriately algorithm.
@@ -5754,7 +5754,7 @@ impl HtmlProcessor {
                 Some(element) => element,
                 None => {
                     self.bail(UnsupportedException::AdoptionAgencyWhenAnyOtherEndTagIsRequired);
-                    return ();
+                    return ;
                 }
             };
 
@@ -5824,7 +5824,7 @@ impl HtmlProcessor {
             }
 
             self.bail(UnsupportedException::AdoptionAgencyCannotExtractCommonAncestor);
-            return ();
+            return ;
         }
 
         self.bail(UnsupportedException::AdoptionAgencyWhenLoopingRequired);

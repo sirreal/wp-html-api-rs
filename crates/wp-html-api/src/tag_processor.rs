@@ -421,7 +421,7 @@ impl TagProcessor {
         self.attributes = attributes;
         self.tag_name_length = Some(tag_name_length);
 
-        return true;
+        true
     }
 
     /// Applies attribute updates and cleans up once a tag is fully parsed.
@@ -1328,7 +1328,7 @@ impl TagProcessor {
          * decoded, and since functionality to read the inner markup isn't supported, it's
          * not necessary to implement these two functions separately.
          */
-        return self.skip_rcdata(tag_name);
+        self.skip_rcdata(tag_name)
     }
 
     /// Move the internal cursor past any immediate successive whitespace.
@@ -1433,7 +1433,7 @@ impl TagProcessor {
                 _ => ClassList::empty(),
             }
         } else {
-            return ClassList::empty();
+            ClassList::empty()
         }
     }
 
