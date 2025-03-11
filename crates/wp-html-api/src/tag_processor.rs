@@ -2431,7 +2431,7 @@ impl Iterator for ClassList {
             );
 
         let value: Vec<u8> = value
-            .into_iter()
+            .iter()
             .flat_map(|&byte| {
                 if byte == 0x00 {
                     b"\xEF\xBF\xBD".to_vec()

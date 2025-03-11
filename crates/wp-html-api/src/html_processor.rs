@@ -884,7 +884,7 @@ impl HtmlProcessor {
             _ => {
                 self.tag_processor.compat_mode = CompatMode::Quirks;
                 self.state.insertion_mode = InsertionMode::BEFORE_HTML;
-                self.step(NodeToProcess::ReprocessCurrentNode).into()
+                self.step(NodeToProcess::ReprocessCurrentNode)
             }
         }
     }
