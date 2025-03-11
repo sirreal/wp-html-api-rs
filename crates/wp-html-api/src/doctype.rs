@@ -203,9 +203,9 @@ impl HtmlDoctypeInfo {
          * Normative documents will contain the literal `<!DOCTYPE html>` with no
          * public or system identifiers; short-circuit to avoid extra parsing.
          */
-        if name.as_ref().map_or(false, |n| n.as_ref() == b"html")
-            && public_identifier.as_ref().map_or(true, |n| n.is_empty())
-            && system_identifier.as_ref().map_or(true, |n| n.is_empty())
+        if name.as_ref().is_some_and(|n| n.as_ref() == b"html")
+            && public_identifier.as_ref().is_none_or(|n| n.is_empty())
+            && system_identifier.as_ref().is_none_or(|n| n.is_empty())
         {
             return Self {
                 name,
@@ -221,7 +221,7 @@ impl HtmlDoctypeInfo {
          * The tokenizer must report the name in lower case even if provided in
          * the document in upper case; thus no conversion is required here.
          */
-        if !name.as_ref().map_or(false, |n| n.as_ref() == b"html") {
+        if name.as_ref().is_none_or(|n| n.as_ref() != b"html") {
             return Self {
                 name,
                 public_identifier,

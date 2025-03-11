@@ -1632,7 +1632,7 @@ impl TagProcessor {
         let has_enqueued_update = !self.lexical_updates.is_empty();
 
         if !has_enqueued_update
-            && (self.text_starts_at.is_none() || self.text_length.map_or(true, |x| x == 0))
+            && (self.text_starts_at.is_none() || self.text_length.is_none_or(|x| x == 0))
         {
             return Box::new([]);
         }

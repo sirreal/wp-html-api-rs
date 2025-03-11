@@ -410,8 +410,7 @@ impl HtmlProcessor {
         if current_element
             .token
             .bookmark_name
-            .as_ref()
-            .map_or(false, |name| name.as_ref() == "root-node")
+            .as_ref().is_some_and(|name| name.as_ref() == "root-node")
         {
             return self.next_visitable_token();
         }
@@ -470,8 +469,7 @@ impl HtmlProcessor {
     /// @return bool Whether the current token is virtual.
     fn is_virtual(&self) -> bool {
         self.current_element
-            .as_ref()
-            .map_or(false, |current_element| {
+            .as_ref().is_some_and(|current_element| {
                 current_element.provenance == StackProvenance::Virtual
             })
     }
@@ -3002,8 +3000,7 @@ impl HtmlProcessor {
              */
             Op::TagPush(TagName::INPUT)
                 if self
-                    .get_attribute(b"type")
-                    .map_or(false, |type_value| match type_value {
+                    .get_attribute(b"type").is_some_and(|type_value| match type_value {
                         AttributeValue::String(type_value) => {
                             type_value.eq_ignore_ascii_case(b"hidden")
                         }
@@ -4442,14 +4439,11 @@ impl HtmlProcessor {
         // Calculate this here to allow pattern matching the fond we're interested in.
         let is_font_with_special_attributes = matches!(op, Op::TagPush(TagName::FONT))
             && (self
-                .get_attribute(b"color")
-                .map_or(false, |attr| !matches!(attr, AttributeValue::BooleanFalse))
+                .get_attribute(b"color").is_some_and(|attr| !matches!(attr, AttributeValue::BooleanFalse))
                 || self
-                    .get_attribute(b"face")
-                    .map_or(false, |attr| !matches!(attr, AttributeValue::BooleanFalse))
+                    .get_attribute(b"face").is_some_and(|attr| !matches!(attr, AttributeValue::BooleanFalse))
                 || self
-                    .get_attribute(b"size")
-                    .map_or(false, |attr| !matches!(attr, AttributeValue::BooleanFalse)));
+                    .get_attribute(b"size").is_some_and(|attr| !matches!(attr, AttributeValue::BooleanFalse)));
 
         match (op, is_font_with_special_attributes) {
             (Op::Token(TokenType::Text), _) => {
@@ -6014,8 +6008,7 @@ impl HtmlProcessor {
             ParsingNamespace::MathML => {
                 tag_name == &TagName::ANNOTATION_XML
                     && self
-                        .get_attribute(b"encoding")
-                        .map_or(false, |encoding| match encoding {
+                        .get_attribute(b"encoding").is_some_and(|encoding| match encoding {
                             AttributeValue::String(encoding) => {
                                 encoding.eq_ignore_ascii_case(b"application/xhtml+xml")
                                     || encoding.eq_ignore_ascii_case(b"text/html")
@@ -6215,8 +6208,7 @@ impl HtmlProcessor {
         let same_node = self
             .state
             .current_token
-            .as_ref()
-            .map_or(false, |current| current.node_name == token.node_name);
+            .as_ref().is_some_and(|current| current.node_name == token.node_name);
         let provenance = if !same_node || is_virtual {
             StackProvenance::Virtual
         } else {
@@ -6247,8 +6239,7 @@ impl HtmlProcessor {
         let same_node = self
             .state
             .current_token
-            .as_ref()
-            .map_or(false, |current| current.node_name == token.node_name);
+            .as_ref().is_some_and(|current| current.node_name == token.node_name);
         let provenance = if !same_node || is_virtual {
             StackProvenance::Virtual
         } else {
