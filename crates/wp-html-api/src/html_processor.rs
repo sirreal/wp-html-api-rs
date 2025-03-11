@@ -560,11 +560,7 @@ impl HtmlProcessor {
                         | TagName::XMP
                 ) {
                     false
-                } else if Self::is_void(&tag_name) {
-                    false
-                } else {
-                    true
-                }
+                } else { !Self::is_void(tag_name) }
             }
         };
         Some(result)

@@ -264,7 +264,7 @@ impl TagProcessor {
         }
 
         // Find the next tag if it exists.
-        if false == self.parse_next_tag() {
+        if !self.parse_next_tag() {
             if self.parser_state == ParserState::IncompleteInput {
                 self.bytes_already_parsed = was_at;
             }
