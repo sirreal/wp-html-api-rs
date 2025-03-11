@@ -7,7 +7,7 @@ fn main() {
 
 #[divan::bench(skip_ext_time = true)]
 fn bench_html_processor(bencher: divan::Bencher) {
-    bencher.with_inputs(|| get_input()).bench_values(|input| {
+    bencher.with_inputs(get_input).bench_values(|input| {
         let mut processor =
             HtmlProcessor::create_full_parser(&input, "UTF-8").expect("Processor must read input");
         while processor.next_token() {}
@@ -17,7 +17,7 @@ fn bench_html_processor(bencher: divan::Bencher) {
 
 #[divan::bench(skip_ext_time = true)]
 fn bench_tag_processor(bencher: divan::Bencher) {
-    bencher.with_inputs(|| get_input()).bench_values(|input| {
+    bencher.with_inputs(get_input).bench_values(|input| {
         let mut processor = TagProcessor::new(&input);
         while processor.next_token() {}
         processor
