@@ -1924,9 +1924,7 @@ impl HtmlProcessor {
                                 .state
                                 .stack_of_open_elements
                                 .walk_up()
-                                .skip_while(|&stack_node| stack_node != some_node)
-                                .skip(1)
-                                .next();
+                                .skip_while(|&stack_node| stack_node != some_node).nth(1);
                             continue;
                         }
                         None => break,
