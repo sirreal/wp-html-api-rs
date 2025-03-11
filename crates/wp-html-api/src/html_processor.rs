@@ -5012,7 +5012,7 @@ impl HtmlProcessor {
     /// > There must never be two or more attributes on
     /// > the same start tag whose names are an ASCII
     /// > case-insensitive match for each other.
-    ///     - HTML 5 spec
+    /// - HTML 5 spec
     ///
     /// Example:
     ///
