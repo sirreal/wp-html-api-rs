@@ -100,7 +100,7 @@ impl HtmlProcessor {
     /// @param string $encoding Text encoding of the document; must be default of 'UTF-8'.
     /// @return static|null The created processor if successful, otherwise null.
     pub fn create_fragment(
-        html: &str,
+        html: &[u8],
         context: &str,
         known_definite_encoding: &str,
     ) -> Option<Self> {
@@ -769,7 +769,7 @@ impl HtmlProcessor {
     ///
     /// @return string|null Normalized output, or `null` if unable to normalize.
 
-    pub fn normalize(html: &str) -> Result<String, ()> {
+    pub fn normalize(html: &[u8]) -> Result<String, ()> {
         let processor = Self::create_fragment(html, "<body>", "UTF-8")
             .expect("Fragment creation fails when not UTF-8. Statically set here.");
         processor.serialize()
