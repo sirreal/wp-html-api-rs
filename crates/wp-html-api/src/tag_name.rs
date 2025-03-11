@@ -340,15 +340,15 @@ impl From<(&[u8], &ParsingNamespace)> for TagName {
     }
 }
 
-impl Into<Box<[u8]>> for TagName {
-    fn into(self) -> Box<[u8]> {
-        (&self).into()
+impl From<TagName> for Box<[u8]> {
+    fn from(val: TagName) -> Self {
+        (&val).into()
     }
 }
 
-impl Into<Box<[u8]>> for &TagName {
-    fn into(self) -> Box<[u8]> {
-        match self {
+impl From<&TagName> for Box<[u8]> {
+    fn from(val: &TagName) -> Self {
+        match val {
             TagName::A => b"A".as_slice(),
             TagName::ADDRESS => b"ADDRESS".as_slice(),
             TagName::APPLET => b"APPLET".as_slice(),

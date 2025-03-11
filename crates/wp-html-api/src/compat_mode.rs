@@ -21,15 +21,15 @@ pub enum CompatMode {
     LimitedQuirks,
 }
 
-impl Into<String> for &CompatMode {
-    fn into(self) -> String {
-        let s: &str = self.into();
+impl From<&CompatMode> for String {
+    fn from(val: &CompatMode) -> Self {
+        let s: &str = val.into();
         s.to_string()
     }
 }
-impl Into<&str> for &CompatMode {
-    fn into(self) -> &'static str {
-        match self {
+impl From<&CompatMode> for &str {
+    fn from(val: &CompatMode) -> Self {
+        match val {
             CompatMode::NoQuirks => "no-quirks",
             CompatMode::Quirks => "quirks",
             CompatMode::LimitedQuirks => "limited-quirks",
