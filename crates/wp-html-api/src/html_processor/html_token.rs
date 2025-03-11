@@ -83,7 +83,7 @@ impl HTMLToken {
             bookmark_name: bookmark_name.map(|s| s.into()),
             namespace: Default::default(),
             integration_node_type: None,
-            node_name: node_name.into(),
+            node_name,
             has_self_closing_flag,
         }
     }
