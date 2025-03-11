@@ -332,11 +332,22 @@ impl TagProcessor {
          */
         if self.is_closing_tag.unwrap_or(false)
             || ParsingNamespace::Html != self.parsing_namespace
-            || match self.html_bytes[self.token_starts_at.unwrap()] {
-                b'i' | b'I' | b'l' | b'L' | b'n' | b'N' | b'p' | b'P' | b's' | b'S' | b't'
-                | b'T' | b'x' | b'X' => true,
-                _ => false,
-            }
+            || matches!(
+                self.html_bytes[self.token_starts_at.unwrap()],
+                b'i' | b'I'
+                    | b'l'
+                    | b'L'
+                    | b'n'
+                    | b'N'
+                    | b'p'
+                    | b'P'
+                    | b's'
+                    | b'S'
+                    | b't'
+                    | b'T'
+                    | b'x'
+                    | b'X'
+            )
         {
             return true;
         }
