@@ -834,7 +834,6 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_initial(&mut self) -> bool {
         match self.make_op() {
             /*
@@ -900,7 +899,6 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_before_html(&mut self) -> bool {
         match self.make_op() {
             /*
@@ -1387,7 +1385,6 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-
     fn step_after_head(&mut self) -> bool {
         match self.make_op() {
             /*
