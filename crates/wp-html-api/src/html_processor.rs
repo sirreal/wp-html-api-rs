@@ -2732,7 +2732,7 @@ impl HtmlProcessor {
                             return Some(Continuation::FoundMatchingNode);
                         }
 
-                        if Self::is_special(&node_tag_name) {
+                        if Self::is_special(node_tag_name) {
                             return Some(Continuation::FoundSpecial);
                         }
 
@@ -5770,7 +5770,7 @@ impl HtmlProcessor {
             if !self
                 .state
                 .stack_of_open_elements
-                .has_element_in_scope(&subject)
+                .has_element_in_scope(subject)
             {
                 return;
             }
