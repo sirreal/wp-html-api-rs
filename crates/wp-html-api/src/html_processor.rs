@@ -2208,18 +2208,20 @@ impl HtmlProcessor {
              * > A start tag whose tag name is "a"
              */
             Op::TagPush(TagName::A) => {
-                let item =
-                    self.state
-                        .active_formatting_elements
-                        .walk_up()
-                        .find(|item| match item {
-                            ActiveFormattingElement::Marker => true,
-                            ActiveFormattingElement::Token(HTMLToken {
-                                node_name: NodeName::Tag(TagName::A),
-                                ..
-                            }) => true,
-                            _ => false,
-                        });
+                let item = self
+                    .state
+                    .active_formatting_elements
+                    .walk_up()
+                    .find(|item| {
+                        matches!(
+                            item,
+                            ActiveFormattingElement::Marker
+                                | ActiveFormattingElement::Token(HTMLToken {
+                                    node_name: NodeName::Tag(TagName::A),
+                                    ..
+                                })
+                        )
+                    });
                 if let Some(ActiveFormattingElement::Token(a_token)) = item {
                     let remove_token = a_token.clone();
                     self.run_adoption_agency_algorithm();
