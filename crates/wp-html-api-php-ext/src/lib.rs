@@ -187,6 +187,30 @@ impl WP_HTML_Tag_Processor {
         this.processor.subdivide_text_appropriately()
     }
 
+    pub fn change_parsing_namespace(
+        #[this] this: &mut ZendClassObject<Self>,
+        new_namespace: BinarySlice<u8>,
+    ) -> bool {
+        match *new_namespace {
+            b"html" => {
+                this.processor
+                    .change_parsing_namespace(ParsingNamespace::Html);
+                true
+            }
+            b"math" => {
+                this.processor
+                    .change_parsing_namespace(ParsingNamespace::MathML);
+                true
+            }
+            b"svg" => {
+                this.processor
+                    .change_parsing_namespace(ParsingNamespace::Svg);
+                true
+            }
+            _ => false,
+        }
+    }
+
     #[getter]
     #[protected]
     fn parser_state(&self) -> Binary<u8> {
