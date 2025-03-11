@@ -7,6 +7,7 @@ use ext_php_rs::{
     convert::{FromZval, IntoZval},
     prelude::*,
     types::{ZendClassObject, Zval},
+    zend::Function,
 };
 use std::ops::Deref;
 use wp_html_api::tag_processor::{
@@ -386,14 +387,35 @@ pub struct WP_HTML_Processor {
 
 #[php_impl(rename_methods = "none")]
 impl WP_HTML_Processor {
+    pub fn __construct(
+        html: BinarySlice<u8>,
+        _use_the_static_create_methods_instead: Option<BinarySlice<u8>>,
+    ) -> Result<Self, PhpException> {
+        if let Some(_doing_it_wrong) = Function::try_from_function("_doing_it_wrong") {
+            println!("doing it wrong");
+            _doing_it_wrong.try_call(
+                vec![
+                    &"WP_HTML_Processor::__construct",
+                    &"Call <code>WP_HTML_Processor::create_fragment()</code> to create an HTML Processor instead of calling the constructor directly.",
+                ],
+            )?;
+        }
+        if let Some(processor) = Self::create_fragment(html, None, None) {
+            Ok(processor)
+        } else {
+            Err(PhpException::from("Could not create HTML Processor"))
+        }
+    }
+
     pub fn create_fragment(
-        html: &str,
+        html: BinarySlice<u8>,
         context: Option<&str>,
         encoding: Option<&str>,
     ) -> Option<Self> {
         let context = context.unwrap_or("<body>");
         let encoding = encoding.unwrap_or("UTF-8");
-        HtmlProcessor::create_fragment(html, context, encoding).map(|processor| Self { processor })
+        HtmlProcessor::create_fragment(html.clone(), context, encoding)
+            .map(|processor| Self { processor })
     }
 
     pub fn create_full_parser(
