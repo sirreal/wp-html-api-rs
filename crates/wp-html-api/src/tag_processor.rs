@@ -2009,7 +2009,7 @@ impl TagProcessor {
      *
      * @return bool Whether the text node was subdivided.
      */
-    pub(crate) fn subdivide_text_appropriately(&mut self) -> bool {
+    pub fn subdivide_text_appropriately(&mut self) -> bool {
         if self.parser_state != ParserState::TextNode {
             return false;
         }

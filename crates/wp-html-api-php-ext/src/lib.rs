@@ -168,6 +168,10 @@ impl WP_HTML_Tag_Processor {
             .map(|value| value.to_vec().into())
     }
 
+    pub fn subdivide_text_appropriately(#[this] this: &mut ZendClassObject<Self>) -> bool {
+        this.processor.subdivide_text_appropriately()
+    }
+
     #[getter]
     #[protected]
     fn parser_state(&self) -> Binary<u8> {
