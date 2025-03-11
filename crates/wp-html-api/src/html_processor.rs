@@ -4738,13 +4738,10 @@ impl HtmlProcessor {
                         // See ::pop_until
                         while let Some(token) = self.pop() {
                             let token_node_name = token.node_name.tag();
-                            match token_node_name {
-                                Some(token_tag_name) => {
-                                    if &tag_name == token_tag_name {
-                                        return true;
-                                    }
+                            if let Some(token_tag_name) = token_node_name {
+                                if &tag_name == token_tag_name {
+                                    return true;
                                 }
-                                None => {}
                             }
                         }
                         unreachable!("Must have returned before reaching this point.");
