@@ -850,10 +850,10 @@ impl TagProcessor {
                         self.token_length.unwrap() - 4,
                     );
                     let mut pi_target_length =
-                        strspn!( comment_text, b'a'..=b'z'|b'A'..b'Z'|b':'|b'_', 0 );
+                        strspn!( comment_text, b'a'..=b'z'|b'A'..=b'Z'|b':'|b'_', 0 );
 
                     if 0 < pi_target_length {
-                        pi_target_length += strspn!( comment_text, b'a'..=b'z'|b'A'..b'Z'|b':'|b'_'|b'-'|b'.', pi_target_length );
+                        pi_target_length += strspn!( comment_text, b'a'..=b'z'|b'A'..=b'Z'|b':'|b'_'|b'-'|b'.', pi_target_length );
 
                         self.comment_type = Some(CommentType::PiNodeLookalike);
                         self.tag_name_starts_at = Some(self.token_starts_at.unwrap() + 2);
