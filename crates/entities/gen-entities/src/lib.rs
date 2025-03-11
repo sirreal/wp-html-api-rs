@@ -11,8 +11,8 @@ struct DeserializedJSONEntity {
 
 fn process_file(file_path: &str) -> BTreeMap<[u8; 2], Vec<(Vec<u8>, Vec<u8>)>> {
     // Read the JSON file
-    let json_content =
-        fs::read_to_string(file_path).expect(&format!("Failed to read file: {}", file_path));
+    let json_content = fs::read_to_string(file_path)
+        .unwrap_or_else(|_| panic!("Failed to read file: {}", file_path));
 
     // Parse the JSON file
     let entities: BTreeMap<String, DeserializedJSONEntity> =
