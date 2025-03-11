@@ -1877,10 +1877,7 @@ impl TagProcessor {
             return Some(self.get_modifiable_text());
         }
 
-        let comment_type = match self.get_comment_type() {
-            Some(ct) => ct,
-            None => return None,
-        };
+        let comment_type = self.get_comment_type()?;
 
         Some(match comment_type {
             CommentType::HtmlComment | CommentType::AbruptlyClosedComment => {
