@@ -9,11 +9,11 @@ use ext_php_rs::{
     types::{ZendClassObject, Zval},
 };
 use std::ops::Deref;
-use wp_html_api::html_processor::HtmlProcessor;
 use wp_html_api::tag_processor::{
     AttributeValue, NextTagQuery, NodeName, ParserState, ParsingNamespace, TagClosers, TagProcessor,
 };
 use wp_html_api::{doctype::HtmlDoctypeInfo, tag_name::TagName};
+use wp_html_api::{html_processor::HtmlProcessor, tag_processor::CommentType};
 
 extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
     0
@@ -162,6 +162,21 @@ impl WP_HTML_Tag_Processor {
         this.processor.paused_at_incomplete_token()
     }
 
+    pub fn get_comment_type(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
+        this.processor.get_comment_type().map(|comment_type| {
+            match comment_type {
+                CommentType::AbruptlyClosedComment => COMMENT_AS_ABRUPTLY_CLOSED_COMMENT,
+                CommentType::CdataLookalike => COMMENT_AS_CDATA_LOOKALIKE,
+                CommentType::HtmlComment => COMMENT_AS_HTML_COMMENT,
+                CommentType::PiNodeLookalike => COMMENT_AS_PI_NODE_LOOKALIKE,
+                CommentType::InvalidHtml => COMMENT_AS_INVALID_HTML,
+            }
+            .bytes()
+            .collect::<Vec<_>>()
+            .into()
+        })
+    }
+
     pub fn get_full_comment_text(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
         this.processor
             .get_full_comment_text()
@@ -212,6 +227,17 @@ impl WP_HTML_Tag_Processor {
     pub const STATE_PRESUMPTUOUS_TAG: &str = STATE_PRESUMPTUOUS_TAG;
     #[php_const]
     pub const STATE_FUNKY_COMMENT: &str = STATE_FUNKY_COMMENT;
+
+    #[php_const]
+    pub const COMMENT_AS_ABRUPTLY_CLOSED_COMMENT: &str = COMMENT_AS_ABRUPTLY_CLOSED_COMMENT;
+    #[php_const]
+    pub const COMMENT_AS_CDATA_LOOKALIKE: &str = COMMENT_AS_CDATA_LOOKALIKE;
+    #[php_const]
+    pub const COMMENT_AS_HTML_COMMENT: &str = COMMENT_AS_HTML_COMMENT;
+    #[php_const]
+    pub const COMMENT_AS_PI_NODE_LOOKALIKE: &str = COMMENT_AS_PI_NODE_LOOKALIKE;
+    #[php_const]
+    pub const COMMENT_AS_INVALID_HTML: &str = COMMENT_AS_INVALID_HTML;
 }
 
 const STATE_READY: &str = "STATE_READY";
@@ -224,6 +250,12 @@ const STATE_COMMENT: &str = "STATE_COMMENT";
 const STATE_DOCTYPE: &str = "STATE_DOCTYPE";
 const STATE_PRESUMPTUOUS_TAG: &str = "STATE_PRESUMPTUOUS_TAG";
 const STATE_FUNKY_COMMENT: &str = "STATE_WP_FUNKY";
+
+const COMMENT_AS_ABRUPTLY_CLOSED_COMMENT: &str = "COMMENT_AS_ABRUPTLY_CLOSED_COMMENT";
+const COMMENT_AS_CDATA_LOOKALIKE: &str = "COMMENT_AS_CDATA_LOOKALIKE";
+const COMMENT_AS_HTML_COMMENT: &str = "COMMENT_AS_HTML_COMMENT";
+const COMMENT_AS_PI_NODE_LOOKALIKE: &str = "COMMENT_AS_PI_NODE_LOOKALIKE";
+const COMMENT_AS_INVALID_HTML: &str = "COMMENT_AS_INVALID_HTML";
 
 struct AttributeValueWrapper(AttributeValue);
 impl IntoZval for AttributeValueWrapper {
@@ -479,6 +511,39 @@ impl WP_HTML_Processor {
     pub fn set_bookmark(#[this] this: &mut ZendClassObject<Self>, name: &str) -> bool {
         this.processor.set_bookmark(name).is_ok()
     }
+
+    #[php_const]
+    pub const STATE_READY: &str = STATE_READY;
+    #[php_const]
+    pub const STATE_COMPLETE: &str = STATE_COMPLETE;
+    #[php_const]
+    pub const STATE_INCOMPLETE_INPUT: &str = STATE_INCOMPLETE_INPUT;
+    #[php_const]
+    pub const STATE_MATCHED_TAG: &str = STATE_MATCHED_TAG;
+    #[php_const]
+    pub const STATE_TEXT_NODE: &str = STATE_TEXT_NODE;
+    #[php_const]
+    pub const STATE_CDATA_NODE: &str = STATE_CDATA_NODE;
+    #[php_const]
+    pub const STATE_COMMENT: &str = STATE_COMMENT;
+    #[php_const]
+    pub const STATE_DOCTYPE: &str = STATE_DOCTYPE;
+    #[php_const]
+    pub const STATE_PRESUMPTUOUS_TAG: &str = STATE_PRESUMPTUOUS_TAG;
+    #[php_const]
+    pub const STATE_FUNKY_COMMENT: &str = STATE_FUNKY_COMMENT;
+
+    #[php_const]
+    pub const COMMENT_AS_ABRUPTLY_CLOSED_COMMENT: &str = COMMENT_AS_ABRUPTLY_CLOSED_COMMENT;
+    #[php_const]
+    pub const COMMENT_AS_CDATA_LOOKALIKE: &str = COMMENT_AS_CDATA_LOOKALIKE;
+    #[php_const]
+    pub const COMMENT_AS_HTML_COMMENT: &str = COMMENT_AS_HTML_COMMENT;
+    #[php_const]
+    pub const COMMENT_AS_PI_NODE_LOOKALIKE: &str = COMMENT_AS_PI_NODE_LOOKALIKE;
+    #[php_const]
+    pub const COMMENT_AS_INVALID_HTML: &str = COMMENT_AS_INVALID_HTML;
+}
 }
 
 #[php_class]
