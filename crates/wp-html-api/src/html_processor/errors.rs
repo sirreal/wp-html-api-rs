@@ -13,17 +13,17 @@ impl std::fmt::Display for HtmlProcessorError {
         f.write_str(self.into())
     }
 }
-impl Into<&str> for HtmlProcessorError {
-    fn into(self) -> &'static str {
-        match self {
+impl From<HtmlProcessorError> for &str {
+    fn from(val: HtmlProcessorError) -> Self {
+        match val {
             HtmlProcessorError::ExceededMaxBookmarks => "exceeded-max-bookmarks",
             HtmlProcessorError::UnsupportedException(_) => "unsupported",
         }
     }
 }
-impl Into<&str> for &HtmlProcessorError {
-    fn into(self) -> &'static str {
-        Into::<&str>::into(*self)
+impl From<&HtmlProcessorError> for &str {
+    fn from(val: &HtmlProcessorError) -> Self {
+        Into::<&str>::into(*val)
     }
 }
 
@@ -52,10 +52,10 @@ impl std::fmt::Display for UnsupportedException {
     }
 }
 
-impl Into<&str> for UnsupportedException {
-    fn into(self) -> &'static str {
+impl From<UnsupportedException> for &str {
+    fn from(val: UnsupportedException) -> Self {
         use super::UnsupportedException as E;
-        match self {
+        match val {
             E::MetaTagCharsetDetermineEncoding => {
                         "Cannot yet process META tags with charset to determine encoding."
                     }
@@ -81,8 +81,8 @@ impl Into<&str> for UnsupportedException {
         }
     }
 }
-impl Into<&str> for &UnsupportedException {
-    fn into(self) -> &'static str {
-        Into::<&str>::into(*self)
+impl From<&UnsupportedException> for &str {
+    fn from(val: &UnsupportedException) -> Self {
+        Into::<&str>::into(*val)
     }
 }

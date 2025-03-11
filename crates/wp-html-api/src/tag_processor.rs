@@ -88,14 +88,14 @@ pub enum ParsingNamespace {
     Svg,
     MathML,
 }
-impl Into<String> for ParsingNamespace {
-    fn into(self) -> String {
-        (&self).into()
+impl From<ParsingNamespace> for String {
+    fn from(val: ParsingNamespace) -> Self {
+        (&val).into()
     }
 }
-impl Into<String> for &ParsingNamespace {
-    fn into(self) -> String {
-        match self {
+impl From<&ParsingNamespace> for String {
+    fn from(val: &ParsingNamespace) -> Self {
+        match val {
             ParsingNamespace::Html => "html",
             ParsingNamespace::Svg => "svg",
             ParsingNamespace::MathML => "math",
@@ -2242,22 +2242,22 @@ pub enum TokenType {
     FunkyComment,
 }
 
-impl Into<String> for &TokenType {
-    fn into(self) -> String {
-        let s: &str = self.into();
+impl From<&TokenType> for String {
+    fn from(val: &TokenType) -> Self {
+        let s: &str = val.into();
         s.into()
     }
 }
-impl Into<String> for TokenType {
-    fn into(self) -> String {
-        let s: &str = (&self).into();
+impl From<TokenType> for String {
+    fn from(val: TokenType) -> Self {
+        let s: &str = (&val).into();
         s.into()
     }
 }
 
-impl Into<&str> for &TokenType {
-    fn into(self) -> &'static str {
-        match self {
+impl From<&TokenType> for &str {
+    fn from(val: &TokenType) -> Self {
+        match val {
             TokenType::Tag => "#tag",
             TokenType::Text => "#text",
             TokenType::CdataSection => "#cdata-section",
@@ -2357,14 +2357,14 @@ impl NodeName {
         }
     }
 }
-impl Into<NodeName> for TagName {
-    fn into(self) -> NodeName {
-        NodeName::Tag(self)
+impl From<TagName> for NodeName {
+    fn from(val: TagName) -> Self {
+        NodeName::Tag(val)
     }
 }
-impl Into<NodeName> for TokenType {
-    fn into(self) -> NodeName {
-        NodeName::Token(self)
+impl From<TokenType> for NodeName {
+    fn from(val: TokenType) -> Self {
+        NodeName::Token(val)
     }
 }
 
