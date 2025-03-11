@@ -702,7 +702,7 @@ impl HtmlProcessor {
     ///     $processor->get_breadcrumbs() === array( 'HTML', 'BODY', 'P', 'STRONG', 'EM', 'IMG' );
     ///
     /// @return string[] Array of tag names representing path to matched node.
-    pub fn get_breadcrumbs() -> () {
+    pub fn get_breadcrumbs() {
         todo!()
     }
 
@@ -5096,7 +5096,7 @@ impl HtmlProcessor {
     ///         echo "{$class_name} ";
     ///     }
     ///     // Outputs: "free <egg> lang-en "
-    pub fn class_list(&self) -> () {
+    pub fn class_list(&self) {
         todo!();
         //if self.is_virtual() {
         //    None
@@ -5304,7 +5304,7 @@ impl HtmlProcessor {
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#close-a-p-element
-    fn close_a_p_element(&mut self) -> () {
+    fn close_a_p_element(&mut self) {
         self.generate_implied_end_tags(Some(&TagName::P));
         self.pop_until(&TagName::P);
     }
@@ -5319,7 +5319,7 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#generate-implied-end-tags
     ///
     /// @param string|null $except_for_this_element Perform as if this element doesn't exist in the stack of open elements.
-    fn generate_implied_end_tags(&mut self, except_for_this_element: Option<&TagName>) -> () {
+    fn generate_implied_end_tags(&mut self, except_for_this_element: Option<&TagName>) {
         while let Some(token) = self.state.stack_of_open_elements.current_node() {
             if token.namespace != ParsingNamespace::Html {
                 return;
@@ -5353,7 +5353,7 @@ impl HtmlProcessor {
     ///
     /// @see WP_HTML_Processor::generate_implied_end_tags
     /// @see https://html.spec.whatwg.org/#generate-implied-end-tags
-    fn generate_implied_end_tags_thoroughly(&mut self) -> () {
+    fn generate_implied_end_tags_thoroughly(&mut self) {
         while let Some(token) = self.state.stack_of_open_elements.current_node() {
             if token.namespace != ParsingNamespace::Html {
                 return;
@@ -5460,7 +5460,7 @@ impl HtmlProcessor {
     /// Runs the reset the insertion mode appropriately algorithm.
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#reset-the-insertion-mode-appropriately
-    fn reset_insertion_mode_appropriately(&mut self) -> () {
+    fn reset_insertion_mode_appropriately(&mut self) {
         // Set the first node.
         let first_node = self
             .state
@@ -5693,7 +5693,7 @@ impl HtmlProcessor {
     /// @throws WP_HTML_Unsupported_Exception When encountering unsupported HTML input.
     ///
     /// @see https://html.spec.whatwg.org/#adoption-agency-algorithm
-    fn run_adoption_agency_algorithm(&mut self) -> () {
+    fn run_adoption_agency_algorithm(&mut self) {
         let mut budget: u16 = 1_000;
         let subject = &self.get_tag().unwrap();
         let current_node = self.state.stack_of_open_elements.current_node();
@@ -5840,7 +5840,7 @@ impl HtmlProcessor {
     /// >   5. Switch the insertion mode to "in row".
     ///
     /// @see https://html.spec.whatwg.org/multipage/parsing.html#close-the-cell
-    fn close_cell(&mut self) -> () {
+    fn close_cell(&mut self) {
         self.generate_implied_end_tags(None);
 
         // @todo Parse error if the current node is a "td" or "th" element.
@@ -5868,7 +5868,7 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#insert-a-foreign-element
     ///
     /// @param WP_HTML_Token $token Name of bookmark pointing to element in original input HTML.
-    fn insert_html_element(&mut self, token: HTMLToken) -> () {
+    fn insert_html_element(&mut self, token: HTMLToken) {
         self.push(token);
     }
 
@@ -5880,7 +5880,7 @@ impl HtmlProcessor {
     ///                                                 insertion point will be updated correctly.
     /// @param bool          $only_add_to_element_stack Whether to skip the "insert an element at the adjusted
     ///                                                 insertion location" algorithm when adding this element.
-    fn insert_foreign_element_from_current_token(&mut self, only_add_to_element_stack: bool) -> () {
+    fn insert_foreign_element_from_current_token(&mut self, only_add_to_element_stack: bool) {
         let adjusted_namespace = self
             .get_adjusted_current_node()
             .map_or(ParsingNamespace::Html, |tok| tok.namespace.clone());
@@ -6201,7 +6201,7 @@ impl HtmlProcessor {
         }
     }
 
-    fn push(&mut self, token: HTMLToken) -> () {
+    fn push(&mut self, token: HTMLToken) {
         self.state.stack_of_open_elements._push(token.clone());
 
         let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
