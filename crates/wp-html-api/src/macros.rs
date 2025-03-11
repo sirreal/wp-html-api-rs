@@ -78,11 +78,11 @@ mod test {
         #[test]
         fn strspn_with_guard() {
             assert_eq!(
-                strspn!(b"123456", b @ b'0'..=b'9' if b >= b'1' && b <= b'5'),
+                strspn!(b"123456", b @ b'0'..=b'9' if (b'1'..=b'5').contains(&b)),
                 5
             );
             assert_eq!(
-                strspn!(b"123a56", b @ b'0'..=b'9' if b >= b'1' && b <= b'5'),
+                strspn!(b"123a56", b @ b'0'..=b'9' if (b'1'..=b'5').contains(&b)),
                 3
             );
         }
