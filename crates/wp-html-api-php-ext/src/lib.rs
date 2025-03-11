@@ -574,6 +574,13 @@ impl WP_HTML_Processor {
 }
 
 #[php_class]
+struct WP_HTML_Text_Replacement {
+    start: usize,
+    length: usize,
+    text: Binary<u8>,
+}
+
+#[php_class]
 pub struct WP_HTML_Doctype_Info {
     internal: HtmlDoctypeInfo,
 }
