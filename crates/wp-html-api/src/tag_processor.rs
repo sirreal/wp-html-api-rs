@@ -2338,7 +2338,7 @@ mod test {
         assert!(processor.base_class_next_token());
         assert_eq!(processor.get_token_type().unwrap(), &TokenType::Tag);
         assert_eq!(processor.get_token_name().unwrap(), TagName::P.into());
-        assert_eq!(processor.is_tag_closer(), true);
+        assert!(processor.is_tag_closer());
     }
 }
 #[derive(PartialEq, Clone, Debug)]
