@@ -545,7 +545,6 @@ impl WP_HTML_Processor {
     pub const COMMENT_AS_PI_NODE_LOOKALIKE: &str = COMMENT_AS_PI_NODE_LOOKALIKE;
     pub const COMMENT_AS_INVALID_HTML: &str = COMMENT_AS_INVALID_HTML;
 }
-}
 
 #[php_class]
 pub struct WP_HTML_Doctype_Info {
