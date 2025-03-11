@@ -6214,7 +6214,7 @@ impl HtmlProcessor {
         });
 
         self.tag_processor
-            .change_parsing_namespace(if let Some(_) = token.integration_node_type {
+            .change_parsing_namespace(if token.integration_node_type.is_some() {
                 ParsingNamespace::Html
             } else {
                 token.namespace
@@ -6246,7 +6246,7 @@ impl HtmlProcessor {
 
         if let Some(adjusted_current_node) = self.get_adjusted_current_node() {
             self.tag_processor.change_parsing_namespace(
-                if let Some(_) = adjusted_current_node.integration_node_type {
+                if adjusted_current_node.integration_node_type.is_some() {
                     ParsingNamespace::Html
                 } else {
                     adjusted_current_node.namespace.clone()
