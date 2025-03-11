@@ -725,7 +725,6 @@ impl HtmlProcessor {
     ///     3 === $processor->get_current_depth();
     ///
     /// @return int Nesting-depth of current location in the document.
-
     pub fn get_current_depth() -> usize {
         todo!()
     }
@@ -764,7 +763,6 @@ impl HtmlProcessor {
     /// @param string $html Input HTML to normalize.
     ///
     /// @return string|null Normalized output, or `null` if unable to normalize.
-
     pub fn normalize(html: &[u8]) -> Result<String, ()> {
         let processor = Self::create_fragment(html, "<body>", "UTF-8")
             .expect("Fragment creation fails when not UTF-8. Statically set here.");
