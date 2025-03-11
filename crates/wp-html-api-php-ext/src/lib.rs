@@ -10,7 +10,8 @@ use ext_php_rs::{
 };
 use std::ops::Deref;
 use wp_html_api::tag_processor::{
-    AttributeValue, NextTagQuery, NodeName, ParserState, ParsingNamespace, TagClosers, TagProcessor,
+    AttributeValue, NextTagQuery, NodeName, ParserState, ParsingNamespace, TagClosers,
+    TagProcessor, TokenType,
 };
 use wp_html_api::{doctype::HtmlDoctypeInfo, tag_name::TagName};
 use wp_html_api::{html_processor::HtmlProcessor, tag_processor::CommentType};
@@ -112,15 +113,18 @@ impl WP_HTML_Tag_Processor {
     }
 
     pub fn get_token_name(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
-        let get_token_name = this.processor.get_token_name()?;
-        Some(match get_token_name {
+        this.processor.get_token_name().map(|name| match name {
             NodeName::Tag(tag_name) => {
                 let tag_name: Box<[u8]> = tag_name.into();
                 tag_name.to_vec().into()
             }
             NodeName::Token(token_name) => {
-                let token_name: String = token_name.into();
-                token_name.as_bytes().to_vec().into()
+                if token_name == TokenType::Doctype {
+                    b"html".to_vec().into()
+                } else {
+                    let token_name: String = token_name.into();
+                    token_name.as_bytes().to_vec().into()
+                }
             }
         })
     }
@@ -425,10 +429,7 @@ impl WP_HTML_Processor {
     ) -> Option<Binary<u8>> {
         this.processor
             .get_qualified_attribute_name(&attribute_name)
-            .map(|tag_name| {
-                let tag_name: Box<[u8]> = tag_name.into();
-                tag_name.to_vec().into()
-            })
+            .map(|name| name.to_vec().into())
     }
 
     pub fn get_token_type(#[this] this: &mut ZendClassObject<Self>) -> Option<String> {
@@ -436,15 +437,18 @@ impl WP_HTML_Processor {
     }
 
     pub fn get_token_name(#[this] this: &mut ZendClassObject<Self>) -> Option<Binary<u8>> {
-        let get_token_name = this.processor.get_token_name()?;
-        Some(match get_token_name {
+        this.processor.get_token_name().map(|name| match name {
             NodeName::Tag(tag_name) => {
                 let tag_name: Box<[u8]> = tag_name.into();
                 tag_name.to_vec().into()
             }
             NodeName::Token(token_name) => {
-                let token_name: String = token_name.into();
-                token_name.as_bytes().to_vec().into()
+                if token_name == TokenType::Doctype {
+                    b"html".to_vec().into()
+                } else {
+                    let token_name: String = token_name.into();
+                    token_name.as_bytes().to_vec().into()
+                }
             }
         })
     }
