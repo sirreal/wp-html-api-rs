@@ -274,6 +274,9 @@ const COMMENT_AS_HTML_COMMENT: &str = "COMMENT_AS_HTML_COMMENT";
 const COMMENT_AS_PI_NODE_LOOKALIKE: &str = "COMMENT_AS_PI_NODE_LOOKALIKE";
 const COMMENT_AS_INVALID_HTML: &str = "COMMENT_AS_INVALID_HTML";
 
+const NO_QUIRKS_MODE: &str = "no-quirks-mode";
+const QUIRKS_MODE: &str = "quirks-mode";
+
 struct AttributeValueWrapper(AttributeValue);
 impl IntoZval for AttributeValueWrapper {
     const TYPE: ext_php_rs::flags::DataType = ext_php_rs::flags::DataType::Mixed;
@@ -566,6 +569,8 @@ impl WP_HTML_Processor {
     pub const COMMENT_AS_HTML_COMMENT: &str = COMMENT_AS_HTML_COMMENT;
     pub const COMMENT_AS_PI_NODE_LOOKALIKE: &str = COMMENT_AS_PI_NODE_LOOKALIKE;
     pub const COMMENT_AS_INVALID_HTML: &str = COMMENT_AS_INVALID_HTML;
+
+    pub const CONSTRUCTOR_UNLOCK_CODE: &str = "Use WP_HTML_Processor::create_fragment() instead of calling the class constructor directly.";
 }
 
 #[php_class]
