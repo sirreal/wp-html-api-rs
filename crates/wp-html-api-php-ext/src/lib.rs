@@ -231,39 +231,27 @@ impl WP_HTML_Tag_Processor {
         .into()
     }
 
-    #[php_const]
     pub const STATE_READY: &str = STATE_READY;
-    #[php_const]
     pub const STATE_COMPLETE: &str = STATE_COMPLETE;
-    #[php_const]
     pub const STATE_INCOMPLETE_INPUT: &str = STATE_INCOMPLETE_INPUT;
-    #[php_const]
     pub const STATE_MATCHED_TAG: &str = STATE_MATCHED_TAG;
-    #[php_const]
     pub const STATE_TEXT_NODE: &str = STATE_TEXT_NODE;
-    #[php_const]
     pub const STATE_CDATA_NODE: &str = STATE_CDATA_NODE;
-    #[php_const]
     pub const STATE_COMMENT: &str = STATE_COMMENT;
-    #[php_const]
     pub const STATE_DOCTYPE: &str = STATE_DOCTYPE;
-    #[php_const]
     pub const STATE_PRESUMPTUOUS_TAG: &str = STATE_PRESUMPTUOUS_TAG;
-    #[php_const]
     pub const STATE_FUNKY_COMMENT: &str = STATE_FUNKY_COMMENT;
 
-    #[php_const]
     pub const COMMENT_AS_ABRUPTLY_CLOSED_COMMENT: &str = COMMENT_AS_ABRUPTLY_CLOSED_COMMENT;
-    #[php_const]
     pub const COMMENT_AS_CDATA_LOOKALIKE: &str = COMMENT_AS_CDATA_LOOKALIKE;
-    #[php_const]
     pub const COMMENT_AS_HTML_COMMENT: &str = COMMENT_AS_HTML_COMMENT;
-    #[php_const]
     pub const COMMENT_AS_PI_NODE_LOOKALIKE: &str = COMMENT_AS_PI_NODE_LOOKALIKE;
-    #[php_const]
     pub const COMMENT_AS_INVALID_HTML: &str = COMMENT_AS_INVALID_HTML;
 }
 
+/*
+ * Constants from PHP classes.
+ */
 const STATE_READY: &str = "STATE_READY";
 const STATE_COMPLETE: &str = "STATE_COMPLETE";
 const STATE_INCOMPLETE_INPUT: &str = "STATE_INCOMPLETE_INPUT";
@@ -536,36 +524,21 @@ impl WP_HTML_Processor {
         this.processor.set_bookmark(name).is_ok()
     }
 
-    #[php_const]
     pub const STATE_READY: &str = STATE_READY;
-    #[php_const]
     pub const STATE_COMPLETE: &str = STATE_COMPLETE;
-    #[php_const]
     pub const STATE_INCOMPLETE_INPUT: &str = STATE_INCOMPLETE_INPUT;
-    #[php_const]
     pub const STATE_MATCHED_TAG: &str = STATE_MATCHED_TAG;
-    #[php_const]
     pub const STATE_TEXT_NODE: &str = STATE_TEXT_NODE;
-    #[php_const]
     pub const STATE_CDATA_NODE: &str = STATE_CDATA_NODE;
-    #[php_const]
     pub const STATE_COMMENT: &str = STATE_COMMENT;
-    #[php_const]
     pub const STATE_DOCTYPE: &str = STATE_DOCTYPE;
-    #[php_const]
     pub const STATE_PRESUMPTUOUS_TAG: &str = STATE_PRESUMPTUOUS_TAG;
-    #[php_const]
     pub const STATE_FUNKY_COMMENT: &str = STATE_FUNKY_COMMENT;
 
-    #[php_const]
     pub const COMMENT_AS_ABRUPTLY_CLOSED_COMMENT: &str = COMMENT_AS_ABRUPTLY_CLOSED_COMMENT;
-    #[php_const]
     pub const COMMENT_AS_CDATA_LOOKALIKE: &str = COMMENT_AS_CDATA_LOOKALIKE;
-    #[php_const]
     pub const COMMENT_AS_HTML_COMMENT: &str = COMMENT_AS_HTML_COMMENT;
-    #[php_const]
     pub const COMMENT_AS_PI_NODE_LOOKALIKE: &str = COMMENT_AS_PI_NODE_LOOKALIKE;
-    #[php_const]
     pub const COMMENT_AS_INVALID_HTML: &str = COMMENT_AS_INVALID_HTML;
 }
 }
