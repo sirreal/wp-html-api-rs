@@ -25,7 +25,7 @@ pub fn decode(ctx: &HtmlContext, input: &[u8]) -> Box<[u8]> {
             };
 
         if let Some((character_reference, token_len)) =
-            decode_html_ref(&ctx, input, next_character_reference_at)
+            decode_html_ref(ctx, input, next_character_reference_at)
         {
             // Do ambiguous checking for attributes.
             if *ctx == HtmlContext::Attribute {
