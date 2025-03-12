@@ -11,6 +11,7 @@ struct TestCase {
     pub line_number: usize, // Line number where this test case starts
     pub script_flag: bool,
 }
+
 impl Default for TestCase {
     fn default() -> Self {
         TestCase {
