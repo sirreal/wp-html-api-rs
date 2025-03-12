@@ -5878,21 +5878,18 @@ impl HtmlProcessor {
             .get_adjusted_current_node()
             .map_or(ParsingNamespace::Html, |tok| tok.namespace.clone());
 
-        self.state
-            .current_token
-            .as_mut()
-            .map(|token| token.namespace = adjusted_namespace);
+        if let Some(token) = self.state.current_token.as_mut() {
+            token.namespace = adjusted_namespace;
+        }
 
         if self.is_mathml_integration_point() {
-            self.state
-                .current_token
-                .as_mut()
-                .map(|token| token.integration_node_type = Some(IntegrationNodeType::MathML));
+            if let Some(token) = self.state.current_token.as_mut() {
+                token.integration_node_type = Some(IntegrationNodeType::MathML);
+            }
         } else if self.is_html_integration_point() {
-            self.state
-                .current_token
-                .as_mut()
-                .map(|token| token.integration_node_type = Some(IntegrationNodeType::HTML));
+            if let Some(token) = self.state.current_token.as_mut() {
+                token.integration_node_type = Some(IntegrationNodeType::HTML);
+            }
         }
 
         if !only_add_to_element_stack {
