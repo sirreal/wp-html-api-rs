@@ -16,7 +16,7 @@
 		"extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'"
 	},
 	"background": {
-		"service_worker": "service-worker.js",
+		"service_worker": "htmlapi-sw.js",
 		"type": "module"
 	}
 }

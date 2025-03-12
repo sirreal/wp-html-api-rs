@@ -1,15 +1,14 @@
 // Import the WASM module
 import initWasm, { WP_HTML_Processor } from "./wp_html_api_wasm.js";
 
-let fmt;
 
 // Handle service worker installation
 self.addEventListener("install", async (event) => {
-	await initWasm();
-
-	fmt = Intl.NumberFormat("en-US");
-	self.skipWaiting();
+	event.waitUntil( initWasm() );
 });
+
+
+const fmt = Intl.NumberFormat("en-US");
 
 // Process message from popup
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
