@@ -253,11 +253,11 @@ fn decode_html5_numeric_character_reference(
         }
     }
 
-    if code_point >= 0x80 && code_point <= 0x9F {
+    if (0x80..=0x9F).contains(&code_point) {
         code_point = CP1252_REPLACEMENTS[(code_point - 0x80) as usize];
     }
 
-    if code_point >= 0xD800 && code_point <= 0xDFFF {
+    if (0xD800..=0xDFFF).contains(&code_point) {
         return Some((UNICODE_REPLACEMENT_CHAR.into(), matched_byte_length));
     }
 
