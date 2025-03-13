@@ -6227,6 +6227,10 @@ impl HtmlProcessor {
     }
 
     fn after_pop(&mut self, token: &HTMLToken) {
+        if let Some(bookmark_name) = token.bookmark_name.as_ref() {
+            let _ = self.tag_processor.bookmarks.remove(bookmark_name);
+        }
+
         let is_virtual = self.state.current_token.is_none() || !self.is_tag_closer();
         let same_node = self
             .state
@@ -6340,8 +6344,8 @@ impl HtmlProcessor {
             .position(|item| item == token)
         {
             let idx = self.state.stack_of_open_elements.stack.len() - 1 - idx;
-            self.state.stack_of_open_elements.stack.remove(idx);
-            self.after_pop(token);
+            let token = self.state.stack_of_open_elements.stack.remove(idx);
+            self.after_pop(&token);
             true
         } else {
             false
