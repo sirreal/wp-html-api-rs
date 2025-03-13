@@ -1847,7 +1847,7 @@ impl TagProcessor {
     /// @param bookmark_name Name to identify a bookmark that potentially exists.
     /// @return Whether that bookmark exists.
     pub fn has_bookmark(&self, bookmark_name: &str) -> bool {
-        todo!()
+        self.bookmarks.contains_key(bookmark_name)
     }
 
     /// Move the internal cursor in the Tag Processor to a given bookmark's location.

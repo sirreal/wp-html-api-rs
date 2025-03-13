@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub enum CompatMode {
     /// No-quirks mode document compatability mode.
     ///

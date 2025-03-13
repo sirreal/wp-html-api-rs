@@ -99,12 +99,37 @@ impl HtmlProcessor {
     /// @param string $context  Context element for the fragment, must be default of `<body>`.
     /// @param string $encoding Text encoding of the document; must be default of 'UTF-8'.
     /// @return static|null The created processor if successful, otherwise null.
-    pub fn create_fragment(
-        html: &[u8],
-        context: &str,
-        known_definite_encoding: &str,
-    ) -> Option<Self> {
-        todo!()
+    pub fn create_fragment(html: &[u8], context: &str, encoding: &str) -> Option<Self> {
+        if "<body>" != context {
+            return None;
+        }
+
+        if "UTF-8" != encoding {
+            return None;
+        }
+
+        let processor = {
+            let mut context_processor = {
+                let prepared_context = format!("<!DOCTYPE html>{}", context).into_bytes();
+                Self::create_full_parser(&prepared_context, encoding)
+            }?;
+
+            while context_processor.next_tag(None) {
+                if !context_processor.is_virtual() {
+                    context_processor.set_bookmark("final_node").ok()?;
+                }
+            }
+
+            if !context_processor.has_bookmark("final_node")
+                || !context_processor.seek("final_node")
+            {
+                // @todo: _doing_it_wrong( __METHOD__, __( 'No valid context element was detected.' ), '6.8.0' );
+                return None;
+            }
+
+            context_processor.create_fragment_at_current_node(html)
+        };
+        processor
     }
 
     /// Creates an HTML processor in the full parsing mode.
@@ -187,8 +212,124 @@ impl HtmlProcessor {
     ///
     /// @param string $html Input HTML fragment to process.
     /// @return static|null The created processor if successful, otherwise null.
-    fn create_fragment_at_current_node(html: &str) -> Self {
-        todo!()
+    fn create_fragment_at_current_node(&self, html: &[u8]) -> Option<Self> {
+        if self.get_token_type() != Some(&TokenType::Tag) || self.is_tag_closer() {
+            // @todo _doing_it_wrong( __METHOD__, __( 'The context element must be a start tag.' ), '6.8.0');
+            return None;
+        }
+
+        let (tag_name, namespace) = {
+            let ce = &self.current_element.as_ref().unwrap().token;
+            let tag = ce.node_name.tag()?;
+            (tag.clone(), ce.namespace.clone())
+        };
+
+        if namespace == ParsingNamespace::Html && Self::is_void(&tag_name) {
+            // @todo _doing_it_wrong( __METHOD__, __( 'The context element cannot be a void element, found "%s".' ), tag_name );
+            return None;
+        }
+
+        /*
+         * Prevent creating fragments at nodes that require a special tokenizer state.
+         * This is unsupported by the HTML Processor.
+         */
+        if namespace == ParsingNamespace::Html
+            && matches!(
+                tag_name,
+                TagName::IFRAME
+                    | TagName::NOEMBED
+                    | TagName::NOFRAMES
+                    | TagName::SCRIPT
+                    | TagName::STYLE
+                    | TagName::TEXTAREA
+                    | TagName::TITLE
+                    | TagName::XMP
+                    | TagName::PLAINTEXT
+            )
+        {
+            // @todo _doing_it_wrong( __METHOD__, __( 'The context element "%s" is not supported.' ), tag_name );
+            return None;
+        }
+
+        let mut fragment_processor = Self::new(html);
+
+        fragment_processor.tag_processor.compat_mode = self.tag_processor.compat_mode.clone();
+
+        // @todo Create "fake" bookmarks for non-existent but implied nodes.
+        fragment_processor
+            .tag_processor
+            .bookmarks
+            .insert("root-node".into(), HtmlSpan::new(0, 0));
+        let root_node = HTMLToken::new("root-node".into(), NodeName::Tag(TagName::HTML), false);
+        fragment_processor.push(root_node);
+
+        fragment_processor
+            .tag_processor
+            .bookmarks
+            .insert("context-node".into(), HtmlSpan::new(0, 0));
+
+        fragment_processor.context_node =
+            Some(self.current_element.as_ref().unwrap().token.clone());
+        fragment_processor
+            .context_node
+            .as_mut()
+            .unwrap()
+            .bookmark_name = Some("context-node".into());
+
+        if tag_name == TagName::TEMPLATE {
+            fragment_processor
+                .state
+                .stack_of_template_insertion_modes
+                .push(InsertionMode::IN_TEMPLATE);
+        }
+
+        fragment_processor.breadcrumbs =
+            vec![NodeName::Tag(TagName::HTML), NodeName::Tag(tag_name)];
+
+        fragment_processor.reset_insertion_mode_appropriately();
+
+        /*
+         * > Set the parser's form element pointer to the nearest node to the context element that
+         * > is a form element (going straight up the ancestor chain, and including the element
+         * > itself, if it is a form element), if any. (If there is no such form element, the
+         * > form element pointer keeps its initial value, null.)
+         */
+        for element in self.state.stack_of_open_elements.walk_up() {
+            if element.node_name == NodeName::Tag(TagName::FORM) {
+                fragment_processor.state.form_element = Some(element.clone());
+                fragment_processor
+                    .state
+                    .form_element
+                    .as_mut()
+                    .unwrap()
+                    .bookmark_name = None;
+                break;
+            }
+        }
+
+        fragment_processor.state.encoding_confidence = EncodingConfidence::Irrelevant;
+
+        /*
+         * Update the parsing namespace near the end of the process.
+         * This is important so that any push/pop from the stack of open
+         * elements does not change the parsing namespace.
+         */
+        fragment_processor.tag_processor.change_parsing_namespace(
+            if self
+                .current_element
+                .as_ref()
+                .unwrap()
+                .token
+                .integration_node_type
+                .is_some()
+            {
+                ParsingNamespace::Html
+            } else {
+                namespace
+            },
+        );
+
+        Some(fragment_processor)
     }
 
     /// Stops the parser and terminates its execution when encountering unsupported markup.
@@ -5284,8 +5425,8 @@ impl HtmlProcessor {
     /// @param string $bookmark_name Name to identify a bookmark that potentially exists.
     /// @return bool Whether that bookmark exists.
     pub fn has_bookmark(&self, bookmark_name: &str) -> bool {
-        todo!()
-        // self.tag_processor.has_bookmark( "_{$bookmark_name}" )
+        let bookmark_name = format!("_{}", bookmark_name);
+        self.tag_processor.has_bookmark(&bookmark_name)
     }
 
     /*
