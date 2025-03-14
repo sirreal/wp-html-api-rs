@@ -1,12 +1,10 @@
 // Import the WASM module
 import initWasm, { WP_HTML_Processor } from "./wp_html_api_wasm.js";
 
-
 // Handle service worker installation
 self.addEventListener("install", async (event) => {
-	event.waitUntil( initWasm() );
+	event.waitUntil(initWasm());
 });
-
 
 const fmt = Intl.NumberFormat("en-US");
 
@@ -91,6 +89,9 @@ function processHTML(html, tabId) {
 		// Process all tokens
 		start = performance.now();
 		while (processor.next_token()) {
+			if (processor.is_tag_closer()) {
+				continue;
+			}
 			const tokenType = processor.get_token_type();
 			if (tokenType) {
 				let c = tokenCounts.get(tokenType) ?? 0;

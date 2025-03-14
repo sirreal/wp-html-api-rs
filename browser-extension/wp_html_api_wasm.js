@@ -124,6 +124,13 @@ export class WP_HTML_Processor {
     /**
      * @returns {boolean}
      */
+    is_tag_closer() {
+        const ret = wasm.wp_html_processor_is_tag_closer(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * @returns {boolean}
+     */
     next_token() {
         const ret = wasm.wp_html_processor_next_token(this.__wbg_ptr);
         return ret !== 0;
@@ -193,6 +200,13 @@ export class WP_HTML_Tag_Processor {
         this.__wbg_ptr = ret >>> 0;
         WP_HTML_Tag_ProcessorFinalization.register(this, this.__wbg_ptr, this);
         return this;
+    }
+    /**
+     * @returns {boolean}
+     */
+    is_tag_closer() {
+        const ret = wasm.wp_html_tag_processor_is_tag_closer(this.__wbg_ptr);
+        return ret !== 0;
     }
     get_updated_html() {
         wasm.wp_html_tag_processor_get_updated_html(this.__wbg_ptr);
