@@ -1861,6 +1861,7 @@ version = "0.1.0"
 dependencies = [
  "codspeed-divan-compat",
  "entities",
+ "memchr",
  "quickcheck",
  "quickcheck_macros",
  "rustc-hash 2.1.1",
