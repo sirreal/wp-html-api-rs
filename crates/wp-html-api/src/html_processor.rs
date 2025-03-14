@@ -796,39 +796,40 @@ impl HtmlProcessor {
                     && (is_start_tag || token_name == TokenType::Text.into()))
         };
 
+        let op = self.make_op();
         if parse_in_current_insertion_mode {
-            self.step_in_current_insertion_mode()
+            self.step_in_current_insertion_mode(&op)
         } else {
-            self.step_in_foreign_content()
+            self.step_in_foreign_content(&op)
         }
 
         // @todo use Results
     }
 
-    fn step_in_current_insertion_mode(&mut self) -> bool {
+    fn step_in_current_insertion_mode(&mut self, op: &Op) -> bool {
         match self.state.insertion_mode {
-            InsertionMode::INITIAL => self.step_initial(),
-            InsertionMode::BEFORE_HTML => self.step_before_html(),
-            InsertionMode::BEFORE_HEAD => self.step_before_head(),
-            InsertionMode::IN_HEAD => self.step_in_head(),
-            InsertionMode::IN_HEAD_NOSCRIPT => self.step_in_head_noscript(),
-            InsertionMode::AFTER_HEAD => self.step_after_head(),
-            InsertionMode::IN_BODY => self.step_in_body(),
-            InsertionMode::IN_TABLE => self.step_in_table(),
-            InsertionMode::IN_TABLE_TEXT => self.step_in_table_text(),
-            InsertionMode::IN_CAPTION => self.step_in_caption(),
-            InsertionMode::IN_COLUMN_GROUP => self.step_in_column_group(),
-            InsertionMode::IN_TABLE_BODY => self.step_in_table_body(),
-            InsertionMode::IN_ROW => self.step_in_row(),
-            InsertionMode::IN_CELL => self.step_in_cell(),
-            InsertionMode::IN_SELECT => self.step_in_select(),
-            InsertionMode::IN_SELECT_IN_TABLE => self.step_in_select_in_table(),
-            InsertionMode::IN_TEMPLATE => self.step_in_template(),
-            InsertionMode::AFTER_BODY => self.step_after_body(),
-            InsertionMode::IN_FRAMESET => self.step_in_frameset(),
-            InsertionMode::AFTER_FRAMESET => self.step_after_frameset(),
-            InsertionMode::AFTER_AFTER_BODY => self.step_after_after_body(),
-            InsertionMode::AFTER_AFTER_FRAMESET => self.step_after_after_frameset(),
+            InsertionMode::INITIAL => self.step_initial(op),
+            InsertionMode::BEFORE_HTML => self.step_before_html(op),
+            InsertionMode::BEFORE_HEAD => self.step_before_head(op),
+            InsertionMode::IN_HEAD => self.step_in_head(op),
+            InsertionMode::IN_HEAD_NOSCRIPT => self.step_in_head_noscript(op),
+            InsertionMode::AFTER_HEAD => self.step_after_head(op),
+            InsertionMode::IN_BODY => self.step_in_body(op),
+            InsertionMode::IN_TABLE => self.step_in_table(op),
+            InsertionMode::IN_TABLE_TEXT => self.step_in_table_text(op),
+            InsertionMode::IN_CAPTION => self.step_in_caption(op),
+            InsertionMode::IN_COLUMN_GROUP => self.step_in_column_group(op),
+            InsertionMode::IN_TABLE_BODY => self.step_in_table_body(op),
+            InsertionMode::IN_ROW => self.step_in_row(op),
+            InsertionMode::IN_CELL => self.step_in_cell(op),
+            InsertionMode::IN_SELECT => self.step_in_select(op),
+            InsertionMode::IN_SELECT_IN_TABLE => self.step_in_select_in_table(op),
+            InsertionMode::IN_TEMPLATE => self.step_in_template(op),
+            InsertionMode::AFTER_BODY => self.step_after_body(op),
+            InsertionMode::IN_FRAMESET => self.step_in_frameset(op),
+            InsertionMode::AFTER_FRAMESET => self.step_after_frameset(op),
+            InsertionMode::AFTER_AFTER_BODY => self.step_after_after_body(op),
+            InsertionMode::AFTER_AFTER_FRAMESET => self.step_after_after_frameset(op),
         }
     }
 
@@ -978,8 +979,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_initial(&mut self) -> bool {
-        match self.make_op() {
+    fn step_initial(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION,
              * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
@@ -1043,8 +1044,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_before_html(&mut self) -> bool {
-        match self.make_op() {
+    fn step_before_html(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A DOCTYPE token
              */
@@ -1125,8 +1126,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_before_head(&mut self) -> bool {
-        match self.make_op() {
+    fn step_before_head(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION,
              * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
@@ -1160,7 +1161,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > A start tag whose tag name is "head"
@@ -1213,8 +1214,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_head(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_head(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION,
              * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
@@ -1252,7 +1253,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > A start tag whose tag name is one of: "base", "basefont", "bgsound", "link"
@@ -1434,8 +1435,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_head_noscript(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_head_noscript(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION,
              * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
@@ -1447,7 +1448,7 @@ impl HtmlProcessor {
                 if self.tag_processor.text_node_classification
                     == TextNodeClassification::Whitespace =>
             {
-                self.step_in_head()
+                self.step_in_head(op)
             }
 
             /*
@@ -1461,7 +1462,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > An end tag whose tag name is "noscript"
@@ -1488,7 +1489,7 @@ impl HtmlProcessor {
                 | TagName::META
                 | TagName::NOFRAMES
                 | TagName::STYLE,
-            ) => self.step_in_head(),
+            ) => self.step_in_head(op),
 
             /*
              * > An end tag whose tag name is "br"
@@ -1529,8 +1530,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_after_head(&mut self) -> bool {
-        match self.make_op() {
+    fn step_after_head(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION,
              * > U+000A LINE FEED (LF), U+000C FORM FEED (FF),
@@ -1566,7 +1567,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > A start tag whose tag name is "body"
@@ -1616,7 +1617,7 @@ impl HtmlProcessor {
             /*
              * > An end tag whose tag name is "template"
              */
-            Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+            Op::TagPop(TagName::TEMPLATE) => self.step_in_head(op),
 
             /*
              * > An end tag whose tag name is one of: "body", "html", "br"
@@ -1662,8 +1663,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_body(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_body(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is U+0000 NULL
              *
@@ -1759,7 +1760,7 @@ impl HtmlProcessor {
                 | TagName::TEMPLATE
                 | TagName::TITLE,
             )
-            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(op),
 
             /*
              * > A start tag whose tag name is "body"
@@ -2011,7 +2012,7 @@ impl HtmlProcessor {
             Op::TagPush(tag_name @ (TagName::LI | TagName::DD | TagName::DT)) => {
                 self.state.frameset_ok = false;
                 let mut node = self.state.stack_of_open_elements.current_node();
-                let is_li = tag_name == TagName::LI;
+                let is_li = tag_name == &TagName::LI;
 
                 /*
                  * The logic for LI and DT/DD is the same except for one point: LI elements _only_
@@ -2269,7 +2270,7 @@ impl HtmlProcessor {
                  * then this is a parse error; ignore the token.
                  */
                 (
-                        TagName::LI == tag_name &&
+                         tag_name==&TagName::LI  &&
                         !self.state.stack_of_open_elements.has_element_in_list_item_scope(&TagName::LI)
                     ) ||
                     /*
@@ -2279,7 +2280,7 @@ impl HtmlProcessor {
                      * parse error; ignore the token.
                      */
                     (
-                        TagName::LI != tag_name &&
+                         tag_name!=&TagName::LI  &&
                         !self.state.stack_of_open_elements.has_element_in_scope(&tag_name)
                     )
                 {
@@ -2333,7 +2334,7 @@ impl HtmlProcessor {
                     if !self
                         .state
                         .stack_of_open_elements
-                        .current_node_is(&NodeName::Tag(tag_name))
+                        .current_node_is(&NodeName::Tag(tag_name.clone()))
                     {
                         // Parse error: this error doesn't impact parsing.
                     }
@@ -2469,7 +2470,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .has_element_in_scope(&tag_name)
+                    .has_element_in_scope(tag_name)
                 {
                     // Parse error: ignore the token.
                     self.step(NodeToProcess::ProcessNextNode)
@@ -2478,7 +2479,7 @@ impl HtmlProcessor {
                     if !self
                         .state
                         .stack_of_open_elements
-                        .current_node_is(&NodeName::Tag(tag_name))
+                        .current_node_is(&NodeName::Tag(tag_name.clone()))
                     {
                         // This is a parse error.
                     }
@@ -2870,7 +2871,7 @@ impl HtmlProcessor {
 
                         let node_tag_name = node.node_name.tag()?;
 
-                        if *node_tag_name == tag_name {
+                        if node_tag_name == tag_name {
                             return Some(Continuation::FoundMatchingNode);
                         }
 
@@ -2887,10 +2888,10 @@ impl HtmlProcessor {
                         self.step(NodeToProcess::ProcessNextNode)
                     }
                     Some(Continuation::FoundMatchingNode) => {
-                        self.generate_implied_end_tags(Some(&tag_name));
+                        self.generate_implied_end_tags(Some(tag_name));
 
                         // @todo "If node is not the current node, then this is a parse error."
-                        self.pop_until(&tag_name);
+                        self.pop_until(tag_name);
                         true
                     }
                     None => false,
@@ -2915,7 +2916,7 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_table(&mut self) -> bool {
+    fn step_in_table(&mut self, op: &Op) -> bool {
         let HTMLToken {
             node_name: current_node_tag_name,
             ..
@@ -2931,7 +2932,7 @@ impl HtmlProcessor {
             }
         };
 
-        match self.make_op() {
+        match op {
             /*
              * > A character token, if the current node is table,
              * > tbody, template, tfoot, thead, or tr element
@@ -3127,7 +3128,7 @@ impl HtmlProcessor {
              *   > Process the token using the rules for the "in head" insertion mode.
              */
             Op::TagPush(TagName::STYLE | TagName::SCRIPT | TagName::TEMPLATE)
-            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(op),
 
             /*
              * > A start tag whose tag name is "input"
@@ -3195,7 +3196,7 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_table_text(&mut self) -> bool {
+    fn step_in_table_text(&mut self, op: &Op) -> bool {
         todo!()
     }
 
@@ -3210,8 +3211,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_caption(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_caption(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > An end tag whose tag name is "caption"
              * > A start tag whose tag name is one of: "caption", "col", "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"
@@ -3258,7 +3259,7 @@ impl HtmlProcessor {
                 self.state.insertion_mode = InsertionMode::IN_TABLE;
 
                 // If this is not a CAPTION end tag, the token should be reprocessed.
-                if op != Op::TagPop(TagName::CAPTION) {
+                if op != &Op::TagPop(TagName::CAPTION) {
                     self.step(NodeToProcess::ReprocessCurrentNode)
                 } else {
                     true
@@ -3288,7 +3289,7 @@ impl HtmlProcessor {
              * > Anything else
              * >   Process the token using the rules for the "in body" insertion mode.
              */
-            _ => self.step_in_body(),
+            _ => self.step_in_body(op),
         }
     }
 
@@ -3303,8 +3304,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_column_group(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_column_group(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
              * > U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -3339,7 +3340,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > A start tag whose tag name is "col"
@@ -3380,7 +3381,7 @@ impl HtmlProcessor {
              * > A start tag whose tag name is "template"
              * > An end tag whose tag name is "template"
              */
-            Op::TagPush(TagName::TEMPLATE) | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+            Op::TagPush(TagName::TEMPLATE) | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(op),
 
             /*
              * > Anything else
@@ -3413,8 +3414,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_table_body(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_table_body(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A start tag whose tag name is "tr"
              */
@@ -3443,7 +3444,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .has_element_in_table_scope(&tag_name)
+                    .has_element_in_table_scope(tag_name)
                 {
                     // Parse error: ignore the token.
                     self.step(NodeToProcess::ProcessNextNode)
@@ -3512,7 +3513,7 @@ impl HtmlProcessor {
              * > Anything else
              * > Process the token using the rules for the "in table" insertion mode.
              */
-            _ => self.step_in_table(),
+            _ => self.step_in_table(op),
         }
     }
 
@@ -3527,8 +3528,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_row(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_row(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A start tag whose tag name is one of: "th", "td"
              */
@@ -3595,7 +3596,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .has_element_in_table_scope(&tag_name)
+                    .has_element_in_table_scope(tag_name)
                 {
                     // Parse error: ignore the token.
                     return self.step(NodeToProcess::ProcessNextNode);
@@ -3636,7 +3637,7 @@ impl HtmlProcessor {
              * > Anything else
              * >   Process the token using the rules for the "in table" insertion mode.
              */
-            _ => self.step_in_table(),
+            _ => self.step_in_table(op),
         }
     }
 
@@ -3651,8 +3652,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_cell(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_cell(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > An end tag whose tag name is one of: "td", "th"
              */
@@ -3660,7 +3661,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .has_element_in_table_scope(&tag_name)
+                    .has_element_in_table_scope(tag_name)
                 {
                     // Parse error: ignore the token.
                     return self.step(NodeToProcess::ProcessNextNode);
@@ -3682,7 +3683,7 @@ impl HtmlProcessor {
                     // @todo Indicate a parse error once it's possible.
                 }
 
-                self.pop_until(&tag_name);
+                self.pop_until(tag_name);
                 self.state
                     .active_formatting_elements
                     .clear_up_to_last_marker();
@@ -3738,7 +3739,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .has_element_in_table_scope(&tag_name)
+                    .has_element_in_table_scope(tag_name)
                 {
                     // Parse error: ignore the token.
                     return self.step(NodeToProcess::ProcessNextNode);
@@ -3751,7 +3752,7 @@ impl HtmlProcessor {
              * > Anything else
              * >   Process the token using the rules for the "in body" insertion mode.
              */
-            _ => self.step_in_body(),
+            _ => self.step_in_body(op),
         }
     }
 
@@ -3766,8 +3767,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_select(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_select(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is U+0000 NULL
              *
@@ -3811,7 +3812,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > A start tag whose tag name is "option"
@@ -3950,7 +3951,7 @@ impl HtmlProcessor {
              * > An end tag whose tag name is "template"
              */
             Op::TagPush(TagName::SCRIPT | TagName::TEMPLATE) | Op::TagPop(TagName::TEMPLATE) => {
-                self.step_in_head()
+                self.step_in_head(op)
             }
 
             /*
@@ -3972,8 +3973,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_select_in_table(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_select_in_table(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A start tag whose tag name is one of: "caption", "table", "tbody", "tfoot", "thead", "tr", "td", "th"
              */
@@ -4010,7 +4011,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .has_element_in_table_scope(&tag_name)
+                    .has_element_in_table_scope(tag_name)
                 {
                     self.step(NodeToProcess::ProcessNextNode)
                 } else {
@@ -4023,7 +4024,7 @@ impl HtmlProcessor {
             /*
              * > Anything else
              */
-            _ => self.step_in_select(),
+            _ => self.step_in_select(op),
         }
     }
 
@@ -4038,8 +4039,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_template(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_template(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token
              * > A comment token
@@ -4051,7 +4052,7 @@ impl HtmlProcessor {
                 | TokenType::FunkyComment
                 | TokenType::PresumptuousTag
                 | TokenType::Doctype,
-            ) => self.step_in_body(),
+            ) => self.step_in_body(op),
 
             /*
              * > A start tag whose tag name is one of: "base", "basefont", "bgsound", "link",
@@ -4070,7 +4071,7 @@ impl HtmlProcessor {
                 | TagName::TEMPLATE
                 | TagName::TITLE,
             )
-            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(),
+            | Op::TagPop(TagName::TEMPLATE) => self.step_in_head(op),
 
             /*
              * > A start tag whose tag name is one of: "caption", "colgroup", "tbody", "tfoot", "thead"
@@ -4166,8 +4167,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_after_body(&mut self) -> bool {
-        match self.make_op() {
+    fn step_after_body(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
              * >   U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -4178,7 +4179,7 @@ impl HtmlProcessor {
                 if self.tag_processor.text_node_classification
                     == TextNodeClassification::Whitespace =>
             {
-                self.step_in_body()
+                self.step_in_body(op)
             }
 
             /*
@@ -4199,7 +4200,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > An end tag whose tag name is "html"
@@ -4247,8 +4248,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_frameset(&mut self) -> bool {
-        match self.make_op() {
+    fn step_in_frameset(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
              * >   U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -4262,7 +4263,7 @@ impl HtmlProcessor {
                 if self.tag_processor.text_node_classification
                     == TextNodeClassification::Whitespace =>
             {
-                self.step_in_body()
+                self.step_in_body(op)
             }
             Op::Token(TokenType::Text) => {
                 self.bail(UnsupportedException::NonWhitespaceTextInFrameset)
@@ -4289,7 +4290,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > A start tag whose tag name is "frameset"
@@ -4354,7 +4355,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "noframes"
              */
-            Op::TagPush(TagName::NOFRAMES) => self.step_in_head(),
+            Op::TagPush(TagName::NOFRAMES) => self.step_in_head(op),
 
             /*
              * > Anything else
@@ -4377,8 +4378,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_after_frameset(&mut self) -> bool {
-        match self.make_op() {
+    fn step_after_frameset(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
              * >   U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -4392,7 +4393,7 @@ impl HtmlProcessor {
                 if self.tag_processor.text_node_classification
                     == TextNodeClassification::Whitespace =>
             {
-                self.step_in_body()
+                self.step_in_body(op)
             }
             Op::Token(TokenType::Text) => {
                 self.bail(UnsupportedException::NonWhitespaceCharsAfterFrameset)
@@ -4419,7 +4420,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "html"
              */
-            Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > An end tag whose tag name is "html"
@@ -4439,7 +4440,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "noframes"
              */
-            Op::TagPush(TagName::NOFRAMES) => self.step_in_head(),
+            Op::TagPush(TagName::NOFRAMES) => self.step_in_head(op),
 
             /*
              * > Anything else
@@ -4460,8 +4461,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_after_after_body(&mut self) -> bool {
-        match self.make_op() {
+    fn step_after_after_body(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A comment token
              */
@@ -4475,7 +4476,7 @@ impl HtmlProcessor {
              *
              * > Process the token using the rules for the "in body" insertion mode.
              */
-            Op::Token(TokenType::Doctype) | Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::Token(TokenType::Doctype) | Op::TagPush(TagName::HTML) => self.step_in_body(op),
 
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
@@ -4487,7 +4488,7 @@ impl HtmlProcessor {
                 if self.tag_processor.text_node_classification
                     == TextNodeClassification::Whitespace =>
             {
-                self.step_in_body()
+                self.step_in_body(op)
             }
 
             /*
@@ -4512,8 +4513,8 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_after_after_frameset(&mut self) -> bool {
-        match self.make_op() {
+    fn step_after_after_frameset(&mut self, op: &Op) -> bool {
+        match op {
             /*
              * > A comment token
              */
@@ -4527,7 +4528,7 @@ impl HtmlProcessor {
              *
              * > Process the token using the rules for the "in body" insertion mode.
              */
-            Op::Token(TokenType::Doctype) | Op::TagPush(TagName::HTML) => self.step_in_body(),
+            Op::Token(TokenType::Doctype) | Op::TagPush(TagName::HTML) => self.step_in_body(op),
             /*
              * > A character token that is one of U+0009 CHARACTER TABULATION, U+000A LINE FEED (LF),
              * >   U+000C FORM FEED (FF), U+000D CARRIAGE RETURN (CR), or U+0020 SPACE
@@ -4541,7 +4542,7 @@ impl HtmlProcessor {
                 if self.tag_processor.text_node_classification
                     == TextNodeClassification::Whitespace =>
             {
-                self.step_in_body()
+                self.step_in_body(op)
             }
             Op::Token(TokenType::Text) => {
                 self.bail(UnsupportedException::NonWhitespaceCharsAfterAfterFrameset)
@@ -4550,7 +4551,7 @@ impl HtmlProcessor {
             /*
              * > A start tag whose tag name is "noframes"
              */
-            Op::TagPush(TagName::NOFRAMES) => self.step_in_head(),
+            Op::TagPush(TagName::NOFRAMES) => self.step_in_head(op),
 
             /*
              * > Anything else
@@ -4571,9 +4572,7 @@ impl HtmlProcessor {
     /// @see WP_HTML_Processor::step
     ///
     /// @return bool Whether an element was found.
-    fn step_in_foreign_content(&mut self) -> bool {
-        let op = self.make_op();
-
+    fn step_in_foreign_content(&mut self, op: &Op) -> bool {
         // Guards are at the pattern level, which is awkward to use.
         // Calculate this here to allow pattern matching the fond we're interested in.
         let is_font_with_special_attributes = matches!(op, Op::TagPush(TagName::FONT))
@@ -4746,7 +4745,7 @@ impl HtmlProcessor {
                     }
                 }
 
-                self.step_in_current_insertion_mode()
+                self.step_in_current_insertion_mode(op)
             }
 
             /*
@@ -4864,7 +4863,7 @@ impl HtmlProcessor {
                         break;
                     }
 
-                    if node_tag_name == &tag_name {
+                    if node_tag_name == tag_name {
                         continuation = Continuation::PopUntilTagName;
                         break;
                     }
@@ -4879,7 +4878,7 @@ impl HtmlProcessor {
                         while let Some(token) = self.pop() {
                             let token_node_name = token.node_name.tag();
                             if let Some(token_tag_name) = token_node_name {
-                                if &tag_name == token_tag_name {
+                                if tag_name == token_tag_name {
                                     return true;
                                 }
                             }
@@ -4888,7 +4887,7 @@ impl HtmlProcessor {
                     }
                     Continuation::ProcessNextToken => self.step(NodeToProcess::ProcessNextNode),
                     Continuation::StepInCurrentInsertionMode => {
-                        self.step_in_current_insertion_mode()
+                        self.step_in_current_insertion_mode(op)
                     }
                 }
             }
