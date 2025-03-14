@@ -9,6 +9,7 @@ license.workspace = true
 
 [dependencies]
 entities = { path = "../entities" }
+rustc-hash = "2.1.1"
 
 [dev-dependencies]
 divan = { version = "2.8.1", package = "codspeed-divan-compat" }

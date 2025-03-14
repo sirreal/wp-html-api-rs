@@ -1,5 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
+use rustc_hash::FxHashMap;
+
 use crate::{
     attributes::qualified_attribute_name,
     compat_mode::CompatMode,
@@ -79,6 +81,7 @@ pub struct TagProcessor {
     pub(crate) compat_mode: CompatMode,
 
     pub(crate) bookmarks: HashMap<Rc<str>, HtmlSpan>,
+    pub(crate) internal_bookmarks: FxHashMap<u32, HtmlSpan>,
 }
 
 #[derive(Default, PartialEq, Debug, Clone)]
@@ -1533,7 +1536,7 @@ impl TagProcessor {
     /// @param string $name Identifies this particular bookmark.
     /// @return bool Whether the bookmark was successfully created.
     ///
-    pub fn set_bookmark(&mut self, name: &str) -> Result<(), ()> {
+    pub fn set_bookmark<'a, Mark: Into<BookmarkName>>(&mut self, name: Mark) -> Result<(), ()> {
         // It only makes sense to set a bookmark if the parser has paused on a concrete token.
         if matches!(
             self.parser_state,
@@ -1542,12 +1545,27 @@ impl TagProcessor {
             return Err(());
         }
 
-        if !self.bookmarks.contains_key(name) && self.bookmarks.len() >= MAX_BOOKMARKS {
-            return Err(());
-        }
+        let mark: BookmarkName = name.into();
+        let total_marks = self.internal_bookmarks.len() + self.bookmarks.len();
+        let over_size = total_marks >= MAX_BOOKMARKS;
+        match mark {
+            BookmarkName::Internal(i) => {
+                if !self.internal_bookmarks.contains_key(&i) && over_size {
+                    return Err(());
+                }
+                let span = HtmlSpan::new(self.token_starts_at.unwrap(), self.token_length.unwrap());
+                self.internal_bookmarks.insert(i, span);
+            }
+            BookmarkName::String(s) => {
+                if !self.bookmarks.contains_key(s.as_ref()) && over_size {
+                    return Err(());
+                }
 
-        let span = HtmlSpan::new(self.token_starts_at.unwrap(), self.token_length.unwrap());
-        self.bookmarks.insert(name.into(), span);
+                let span = HtmlSpan::new(self.token_starts_at.unwrap(), self.token_length.unwrap());
+                self.bookmarks.insert(s.into(), span);
+            }
+        };
+
         Ok(())
     }
 
@@ -1558,8 +1576,12 @@ impl TagProcessor {
     ///
     /// @param name Name of the bookmark to remove.
     /// @return bool Whether the bookmark already existed before removal.
-    pub fn release_bookmark(&mut self, name: &str) -> bool {
-        todo!()
+    pub fn release_bookmark<'a, Mark: Into<BookmarkName>>(&mut self, name: Mark) -> bool {
+        let name = name.into();
+        match name {
+            BookmarkName::Internal(i) => self.internal_bookmarks.remove(&i).is_some(),
+            BookmarkName::String(s) => self.bookmarks.remove(s.as_ref()).is_some(),
+        }
     }
 
     /// Gets lowercase names of all attributes matching a given prefix in the current tag.
@@ -2137,6 +2159,7 @@ impl Default for TagProcessor {
             token_starts_at: None,
             compat_mode: Default::default(),
             bookmarks: HashMap::new(),
+            internal_bookmarks: FxHashMap::default(),
         }
     }
 }
@@ -2439,5 +2462,17 @@ impl Iterator for ClassList {
             self.seen.insert(value.clone());
             Some(value)
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) enum BookmarkName {
+    Internal(u32),
+    String(Box<str>),
+}
+
+impl From<&str> for BookmarkName {
+    fn from(other: &str) -> Self {
+        BookmarkName::String(other.into())
     }
 }
