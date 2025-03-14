@@ -32,6 +32,10 @@ impl WP_HTML_Tag_Processor {
         Self { processor }
     }
 
+    pub fn is_tag_closer(&self) -> bool {
+        self.processor.is_tag_closer()
+    }
+
     pub fn get_updated_html(&self) -> () {
         todo!()
     }
@@ -71,6 +75,10 @@ impl WP_HTML_Processor {
         let known_definite_encoding = known_definite_encoding.unwrap_or("UTF-8".to_owned());
         HtmlProcessor::create_full_parser(html.as_bytes(), &known_definite_encoding)
             .map(|processor| Self { processor })
+    }
+
+    pub fn is_tag_closer(&self) -> bool {
+        self.processor.is_tag_closer()
     }
 
     pub fn next_token(&mut self) -> bool {
