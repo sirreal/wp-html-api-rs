@@ -16,8 +16,8 @@ use crate::{
     doctype::HtmlDoctypeInfo,
     tag_name::TagName,
     tag_processor::{
-        AttributeValue, CommentType, HtmlSpan, NodeName, ParserState, ParsingNamespace,
-        TagProcessor, TextNodeClassification, TokenType,
+        AttributeValue, BookmarkName, CommentType, HtmlSpan, NodeName, ParserState,
+        ParsingNamespace, TagProcessor, TextNodeClassification, TokenType,
     },
 };
 use active_formatting_elements::*;
@@ -258,23 +258,31 @@ impl HtmlProcessor {
         // @todo Create "fake" bookmarks for non-existent but implied nodes.
         fragment_processor
             .tag_processor
-            .bookmarks
-            .insert("root-node".into(), HtmlSpan::new(0, 0));
-        let root_node = HTMLToken::new("root-node".into(), NodeName::Tag(TagName::HTML), false);
+            .internal_bookmarks
+            .insert(fragment_processor.bookmark_counter, HtmlSpan::new(0, 0));
+
+        let root_node = HTMLToken {
+            is_root_node: true,
+            bookmark_name: Some(fragment_processor.bookmark_counter),
+            node_name: NodeName::Tag(TagName::HTML),
+            ..Default::default()
+        };
+
+        fragment_processor.bookmark_counter += 1;
         fragment_processor.push(root_node);
 
         fragment_processor
             .tag_processor
-            .bookmarks
-            .insert("context-node".into(), HtmlSpan::new(0, 0));
-
+            .internal_bookmarks
+            .insert(fragment_processor.bookmark_counter, HtmlSpan::new(0, 0));
         fragment_processor.context_node =
             Some(self.current_element.as_ref().unwrap().token.clone());
         fragment_processor
             .context_node
             .as_mut()
             .unwrap()
-            .bookmark_name = Some("context-node".into());
+            .bookmark_name = Some(fragment_processor.bookmark_counter);
+        fragment_processor.bookmark_counter += 1;
 
         if tag_name == TagName::TEMPLATE {
             fragment_processor
@@ -548,12 +556,7 @@ impl HtmlProcessor {
         // The root node only exists in the fragment parser, and closing it
         // indicates that the parse is complete. Stop before popping it from
         // the breadcrumbs.
-        if current_element
-            .token
-            .bookmark_name
-            .as_ref()
-            .is_some_and(|name| name.as_ref() == "root-node")
-        {
+        if current_element.token.is_root_node {
             return self.next_visitable_token();
         }
 
@@ -760,7 +763,7 @@ impl HtmlProcessor {
         if node_to_process != NodeToProcess::ReprocessCurrentNode {
             if let Ok(bookmark) = self.bookmark_token() {
                 self.state.current_token = Some(HTMLToken::new(
-                    Some(bookmark.as_ref()),
+                    Some(bookmark),
                     token_name.clone(),
                     self.has_self_closing_flag(),
                 ));
@@ -4614,22 +4617,16 @@ impl HtmlProcessor {
                  * NULL bytes and whitespace do not change the frameset-ok flag.
                  */
 
-                let current_token = self
-                    .tag_processor
-                    .bookmarks
-                    .get(
-                        &self
-                            .state
-                            .current_token
-                            .clone()
-                            .unwrap()
-                            .bookmark_name
-                            .unwrap()
-                            .clone(),
-                    )
+                let current_token_span = self
+                    .state
+                    .current_token
+                    .as_ref()
+                    .and_then(|token| token.bookmark_name)
+                    .and_then(|mark| self.tag_processor.internal_bookmarks.get(&mark))
                     .unwrap();
-                let cdata_content_start = current_token.start + 9;
-                let cdata_content_length = current_token.length - 12;
+
+                let cdata_content_start = current_token_span.start + 9;
+                let cdata_content_length = current_token_span.length - 12;
                 if (strspn!(
                     &self.tag_processor.html_bytes,
                     b'\0' | b' ' | b'\t' | b'\n' | 0xc0 | b'\r',
@@ -4923,13 +4920,12 @@ impl HtmlProcessor {
     /// @throws Exception When unable to allocate requested bookmark.
     ///
     /// @return string|false Name of created bookmark, or false if unable to create.
-    fn bookmark_token(&mut self) -> Result<Rc<str>, HtmlProcessorError> {
-        let bookmark = format!("{}", self.bookmark_counter + 1);
+    fn bookmark_token(&mut self) -> Result<u32, HtmlProcessorError> {
         self.tag_processor
-            .set_bookmark(&bookmark)
+            .set_bookmark(BookmarkName::Internal(self.bookmark_counter + 1))
             .map(|_| {
                 self.bookmark_counter += 1;
-                bookmark.into()
+                self.bookmark_counter
             })
             .map_err(|_| HtmlProcessorError::ExceededMaxBookmarks)
     }
@@ -5417,7 +5413,7 @@ impl HtmlProcessor {
     /// @return bool Whether the bookmark was successfully created.
     pub fn set_bookmark(&mut self, bookmark_name: &str) -> Result<(), ()> {
         let bookmark_name = format!("_{}", bookmark_name);
-        self.tag_processor.set_bookmark(&bookmark_name)
+        self.tag_processor.set_bookmark(bookmark_name.as_str())
     }
 
     /// Checks whether a bookmark with the given name exists.
@@ -6060,22 +6056,20 @@ impl HtmlProcessor {
         token_name: TagName,
         bookmark_name: Option<&str>,
     ) -> HTMLToken {
-        let current_bookmark = self
+        let current_token_start = self
             .state
             .current_token
-            .clone()
-            .unwrap()
-            .bookmark_name
+            .as_ref()
+            .and_then(|token| token.bookmark_name)
+            .and_then(|mark| self.tag_processor.internal_bookmarks.get(&mark))
+            .map(|span| span.start)
             .unwrap();
-        let start = {
-            let here = self.tag_processor.bookmarks.get(&current_bookmark).unwrap();
-            here.start
-        };
+
         let name = self.bookmark_token().unwrap();
         self.tag_processor
-            .bookmarks
-            .insert(name.clone(), HtmlSpan::new(start, 0));
-        let token = HTMLToken::new(Some(name.as_ref()), token_name.into(), false);
+            .internal_bookmarks
+            .insert(name, HtmlSpan::new(current_token_start, 0));
+        let token = HTMLToken::new(Some(name), token_name.into(), false);
         self.insert_html_element(token.clone());
         token
     }
@@ -6369,7 +6363,7 @@ impl HtmlProcessor {
 
     fn after_pop(&mut self, token: &HTMLToken) {
         if let Some(bookmark_name) = token.bookmark_name.as_ref() {
-            let _ = self.tag_processor.bookmarks.remove(bookmark_name);
+            let _ = self.tag_processor.internal_bookmarks.remove(bookmark_name);
         }
 
         let is_virtual = self.state.current_token.is_none() || !self.is_tag_closer();
