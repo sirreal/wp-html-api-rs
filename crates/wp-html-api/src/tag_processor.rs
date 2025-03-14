@@ -6,7 +6,7 @@ use crate::{
     attributes::qualified_attribute_name,
     compat_mode::CompatMode,
     doctype::HtmlDoctypeInfo,
-    str_fns::{stripos, strpos, substr},
+    str_fns::{stripos, strpos, strpos_byte, substr},
 };
 
 use super::tag_name::TagName;
@@ -302,7 +302,7 @@ impl TagProcessor {
             return false;
         }
 
-        let tag_ends_at = strpos(&self.html_bytes, b">", self.bytes_already_parsed);
+        let tag_ends_at = strpos_byte(&self.html_bytes, b'>', self.bytes_already_parsed);
         if tag_ends_at.is_none() {
             self.parser_state = ParserState::IncompleteInput;
             self.bytes_already_parsed = was_at;
@@ -500,7 +500,7 @@ impl TagProcessor {
         let mut at = was_at;
 
         while at < doc_length {
-            let next_at = strpos(&self.html_bytes, b"<", at);
+            let next_at = strpos_byte(&self.html_bytes, b'<', at);
             if next_at.is_none() {
                 break;
             }
@@ -689,7 +689,7 @@ impl TagProcessor {
                     && matches!(&self.html_bytes[at + 7], b'P' | b'p')
                     && matches!(&self.html_bytes[at + 8], b'E' | b'e')
                 {
-                    let closer_at = strpos(&self.html_bytes, b">", at + 9);
+                    let closer_at = strpos_byte(&self.html_bytes, b'>', at + 9);
                     if closer_at.is_none() {
                         self.parser_state = ParserState::IncompleteInput;
                         return false;
@@ -729,7 +729,7 @@ impl TagProcessor {
                  * to the bogus comment state - skip to the nearest >. If no closer is
                  * found then the HTML was truncated inside the markup declaration.
                  */
-                let closer_at = strpos(&self.html_bytes, b">", at + 1);
+                let closer_at = strpos_byte(&self.html_bytes, b'>', at + 1);
                 if closer_at.is_none() {
                     self.parser_state = ParserState::IncompleteInput;
                     return false;
@@ -805,7 +805,7 @@ impl TagProcessor {
              * See https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
              */
             if !self.is_closing_tag.unwrap() && b'?' == self.html_bytes[at + 1] {
-                let closer_at = strpos(&self.html_bytes, b">", at + 2);
+                let closer_at = strpos_byte(&self.html_bytes, b'>', at + 2);
                 if closer_at.is_none() {
                     self.parser_state = ParserState::IncompleteInput;
                     return false;
@@ -885,7 +885,7 @@ impl TagProcessor {
                     return false;
                 }
 
-                let closer_at = strpos(&self.html_bytes, b">", at + 2);
+                let closer_at = strpos_byte(&self.html_bytes, b'>', at + 2);
                 if closer_at.is_none() {
                     self.parser_state = ParserState::IncompleteInput;
                     return false;
@@ -976,7 +976,7 @@ impl TagProcessor {
             match self.html_bytes[self.bytes_already_parsed] {
                 quote @ (b'\'' | b'"') => {
                     let value_start = self.bytes_already_parsed + 1;
-                    let end_quote_at = strpos(&self.html_bytes, &[quote], value_start);
+                    let end_quote_at = strpos_byte(&self.html_bytes, quote, value_start);
                     let end_quote_at = end_quote_at.unwrap_or(doc_length);
                     let value_length = end_quote_at - value_start;
                     let attribute_end = end_quote_at + 1;
@@ -2332,14 +2332,6 @@ enum ScriptState {
 #[cfg(test)]
 mod test {
     use super::*;
-    #[test]
-    fn test_strpos() {
-        assert_eq!(strpos(b"0123456789", b"5", 0), Some(5));
-        assert_eq!(strpos(b"0123456789", b"5", 4), Some(5));
-        assert_eq!(strpos(b"0123456789", b"5", 5), Some(5));
-        assert_eq!(strpos(b"0123456789", b"5", 6), None);
-        assert_eq!(strpos(b"0123456789", b"1", 2), None);
-    }
 
     #[test]
     fn test_base_next_token() {
