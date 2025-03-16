@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  codspeed:
-    name: Run benchmarks
+  benchmark-wp-html-api:
+    name: Rust benchmarks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,3 +33,33 @@ jobs:
         with:
           run: cargo codspeed run -p wp-html-api
           token: ${{ secrets.CODSPEED_TOKEN }}
+
+  benchmark-wp-html-api-wasm:
+    name: WASM benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout submodules
+        run: git submodule update --init --recursive --depth=1 --single-branch
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Setup rust toolchain
+        uses: moonrepo/setup-rust@v0
+        with:
+          channel: stable
+
+      - name: Build the benchmark target(s)
+        run: wasm-pack build --release --no-pack --target=nodejs --out-dir="../../pkg-node"  crates/wp-html-api-wasm --quiet
+
+      - uses: "actions/setup-node@v3"
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./crates/wp-html-api-wasm/benches
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v3
+        with:
+          run: npm exec vitest bench --run
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          working-directory: ./crates/wp-html-api-wasm/benches
