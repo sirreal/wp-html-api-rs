@@ -11,7 +11,7 @@ on:
 
 jobs:
   benchmark-wp-html-api:
-    name: Run benchmarks
+    name: Rust benchmarks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
 
   benchmark-wp-html-api-wasm:
-    name: Run benchmarks
+    name: WASM benchmarks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
