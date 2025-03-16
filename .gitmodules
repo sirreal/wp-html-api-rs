@@ -1,4 +1,0 @@
-[submodule "crates/ext-php-rs"]
-	path = crates/ext-php-rs
-	url = https://github.com/davidcole1340/ext-php-rs.git
-	branch = master
