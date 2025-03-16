@@ -61,3 +61,4 @@ jobs:
         with:
           run: npm exec vitest bench --run
           token: ${{ secrets.CODSPEED_TOKEN }}
+          working-directory: ./crates/wp-html-api-wasm/benches
