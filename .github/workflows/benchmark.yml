@@ -37,7 +37,7 @@ jobs:
   benchmark-wp-html-api-wasm:
     name: WASM benchmarks
     runs-on: codspeed-macro
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
