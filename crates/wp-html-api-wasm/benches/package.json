@@ -1,0 +1,14 @@
+{
+	"$schema": "https://json.schemastore.org/package.json",
+	"name": "wp-html-api-benches",
+	"version": "1.0.0",
+	"license": "GPL-2.0-or-later",
+	"type": "module",
+	"scripts": {
+		"bench": "vitest bench --run"
+	},
+	"dependencies": {
+		"@codspeed/vitest-plugin": "^4.0.0",
+		"vitest": "^3.0.8"
+	}
+}

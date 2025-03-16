@@ -1,2 +1,3 @@
 /target
 /*.stubs.php
+node_modules/
