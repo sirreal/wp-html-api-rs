@@ -2116,24 +2116,6 @@ impl TagProcessor {
     }
 }
 
-//#[derive(Debug, PartialEq, Clone)]
-//pub(crate) struct TagName(pub Rc<[u8]>);
-//impl PartialEq<&str> for TagName {
-//    fn eq(&self, other: &&str) -> bool {
-//        self.0.as_ref() == other.as_bytes()
-//    }
-//}
-//impl PartialEq<str> for TagName {
-//    fn eq(&self, other: &str) -> bool {
-//        self.0.as_ref() == other.as_bytes()
-//    }
-//}
-//impl Into<Rc<[u8]>> for TagName {
-//    fn into(self) -> Rc<[u8]> {
-//        self.0
-//    }
-//}
-
 impl Default for TagProcessor {
     fn default() -> Self {
         Self {
