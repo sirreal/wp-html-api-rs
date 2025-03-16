@@ -10,20 +10,21 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  html5lib-tests:
-    name: HTML5lib tests
+  test:
+    name: Cargo test
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout submodules
-        run: git submodule update --init --recursive --depth=1 --single-branch
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2.7.7
+
+      - name: Setup Rust
+        uses: moonrepo/setup-rust@v1.2.2
         with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-base: main
+
       - name: Build
-        run: cargo build --verbose --tests -p wp-html-api-html5lib-tests
+        run: cargo build --quiet --tests
+
       - name: Run tests
-        run: cargo test --package wp-html-api-html5lib-tests --tests
+        run: cargo test --tests
