@@ -3,8 +3,6 @@ members = [
   "crates/*",
   "crates/wp-html-api-html5lib-tests/gen-tests",
   "crates/entities/gen-entities",
-  "crates/ext-php-rs/crates/*",
-  "crates/ext-php-rs/tests"
 ]
 resolver = "2"
 
