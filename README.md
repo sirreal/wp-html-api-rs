@@ -1,9 +1,4 @@
-Check this out and run the demo. It has a submodule.
-
-```sh
-submodule update --init --recursive
-./build-and-run.sh
-```
+Check this out and run the demo.
 
 To build the wasm build, you'll need [`wasm-pack`][wasm-pack].
 
@@ -13,7 +8,12 @@ To build the wasm build, you'll need [`wasm-pack`][wasm-pack].
 
 ```sh
 cargo build --release --quiet -p wp-html-api-php-ext -p cargo-php
-./target/release/cargo-php stubs --manifest crates/wp-html-api-php-ext/Cargo.toml
+```
+
+With cargo-php (`cargo install cargo-php`), you can generate stubs for the PHP extension:
+
+```sh
+cargo php stubs --manifest crates/wp-html-api-php-ext/Cargo.toml
 ```
 
 ### JavaScript (Node.js)
