@@ -8,7 +8,7 @@ mod insertion_mode;
 mod processor_state;
 mod stack_of_open_elements;
 
-use std::{collections::VecDeque, rc::Rc};
+use std::collections::VecDeque;
 
 use crate::{
     attributes::qualified_attribute_name,
@@ -6051,11 +6051,7 @@ impl HtmlProcessor {
     /// @param string|null $bookmark_name Optional. Name to give bookmark for created virtual node.
     ///                                   Defaults to auto-creating a bookmark name.
     /// @return WP_HTML_Token Newly-created virtual token.
-    fn insert_virtual_node(
-        &mut self,
-        token_name: TagName,
-        bookmark_name: Option<&str>,
-    ) -> HTMLToken {
+    fn insert_virtual_node(&mut self, token_name: TagName, bookmark_name: Option<&str>) {
         let current_token_start = self
             .state
             .current_token
@@ -6070,8 +6066,7 @@ impl HtmlProcessor {
             .internal_bookmarks
             .insert(name, HtmlSpan::new(current_token_start, 0));
         let token = HTMLToken::new(Some(name), token_name.into(), false);
-        self.insert_html_element(token.clone());
-        token
+        self.insert_html_element(token);
     }
 
     /*
@@ -6307,7 +6302,7 @@ impl HtmlProcessor {
     /// @return string|null Known encoding if matched, otherwise null.
     ///
     /// @todo What do wo with this _protected_ function?
-    fn get_encoding(label: &str) -> Option<Rc<str>> {
+    fn get_encoding(label: &str) -> Option<&str> {
         todo!()
     }
 
