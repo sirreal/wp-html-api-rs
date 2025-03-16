@@ -13,10 +13,11 @@ jobs:
   benchmark-wp-html-api:
     name: Rust benchmarks
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup rust toolchain, cache and cargo-codspeed binary
+      - name: Setup Rust
         uses: moonrepo/setup-rust@v0
         with:
           channel: stable
@@ -35,6 +36,7 @@ jobs:
   benchmark-wp-html-api-wasm:
     name: WASM benchmarks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
