@@ -17,11 +17,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Rust
-        uses: moonrepo/setup-rust@v0
+        uses: moonrepo/setup-rust@v1.2.2
         with:
           cache-base: main
+
       - name: Build
         run: cargo build --quiet --tests
+
       - name: Run tests
         run: cargo test --tests

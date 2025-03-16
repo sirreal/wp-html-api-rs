@@ -18,11 +18,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: moonrepo/setup-rust@v0
+        uses: moonrepo/setup-rust@v1.2.2
         with:
-          channel: stable
-          cache-target: release
           bins: cargo-codspeed
+          cache-base: main
+          cache-target: release
+          channel: stable
 
       - name: Build the benchmark target(s)
         run: cargo codspeed build -p wp-html-api
