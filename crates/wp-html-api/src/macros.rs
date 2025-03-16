@@ -1,53 +1,47 @@
 macro_rules! strspn {
-    ($expression:expr, $pattern:pat $(if $guard:expr)?) => {{
-        $expression
-            .iter()
+    ($haystack:expr, $pattern:pat $(if $guard:expr)?) => {
+        $haystack.iter()
             .position(|&b| !matches!(b, $pattern $(if $guard)?))
-            .unwrap_or($expression.len())
-    }};
+            .unwrap_or($haystack.len())
+    };
 
-    ($expression:expr, $pattern:pat $(if $guard:expr)?, $offset:expr) => {{
-        $expression
-            .iter()
+    ($haystack:expr, $pattern:pat $(if $guard:expr)?, $offset:expr) => {
+        $haystack.iter()
             .skip($offset)
             .position(|&b| !matches!(b, $pattern $(if $guard)?))
-            .unwrap_or($expression.len() - $offset)
-    }};
+            .unwrap_or($haystack.len() - $offset)
+    };
 
-    ($expression:expr, $pattern:pat $(if $guard:expr)?, $offset:expr, $length:expr) => {{
-        $expression
-            .iter()
+    ($haystack:expr, $pattern:pat $(if $guard:expr)?, $offset:expr, $length:expr) => {
+        $haystack.iter()
             .skip($offset)
             .take($length)
             .position(|&b| !matches!(b, $pattern $(if $guard)?))
             .unwrap_or($length)
-    }};
+    };
 }
 
 macro_rules! strcspn {
-    ($expression:expr, $pattern:pat $(if $guard:expr)?) => {{
-        $expression
-            .iter()
+    ($haystack:expr, $pattern:pat $(if $guard:expr)?) => {
+        $haystack.iter()
             .position(|&b| matches!(b, $pattern $(if $guard)?))
-            .unwrap_or($expression.len())
-    }};
+            .unwrap_or($haystack.len())
+    };
 
-    ($expression:expr, $pattern:pat $(if $guard:expr)?, $offset:expr) => {{
-        $expression
-            .iter()
+    ($haystack:expr, $pattern:pat $(if $guard:expr)?, $offset:expr) => {
+        $haystack.iter()
             .skip($offset)
             .position(|&b| matches!(b, $pattern $(if $guard)?))
-            .unwrap_or($expression.len() - $offset)
-    }};
+            .unwrap_or($haystack.len() - $offset)
+    };
 
-    ($expression:expr, $pattern:pat $(if $guard:expr)?, $offset:expr, $length:expr) => {{
-        $expression
-            .iter()
+    ($haystack:expr, $pattern:pat $(if $guard:expr)?, $offset:expr, $length:expr) => {
+        $haystack.iter()
             .skip($offset)
             .take($length)
             .position(|&b| matches!(b, $pattern $(if $guard)?))
             .unwrap_or($length)
-    }};
+    };
 }
 
 #[cfg(test)]
