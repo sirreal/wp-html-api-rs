@@ -17,12 +17,11 @@ pub fn decode(ctx: &HtmlContext, input: &[u8]) -> Box<[u8]> {
     let mut was_at = 0;
 
     while at + 3 < end {
-        let next_character_reference_at =
-            if let Some(pos) = input[at..].iter().position(|&c| c == b'&') {
-                at + pos
-            } else {
-                break;
-            };
+        let next_character_reference_at = if let Some(pos) = memchr::memchr(b'&', &input[at..]) {
+            at + pos
+        } else {
+            break;
+        };
 
         if let Some((character_reference, token_len)) =
             decode_html_ref(ctx, input, next_character_reference_at)

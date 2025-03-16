@@ -469,6 +469,7 @@ version = "0.1.0"
 dependencies = [
  "gen-entities",
  "lazy_static",
+ "memchr",
 ]
 
 [[package]]
