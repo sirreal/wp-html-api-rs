@@ -796,7 +796,20 @@ impl HtmlProcessor {
                     && (is_start_tag || token_name == TokenType::Text.into()))
         };
 
-        let op = self.make_op();
+        let op = match self.get_token_type() {
+            Some(TokenType::Tag) if self.is_tag_closer() => Op::TagPop(self.get_tag().unwrap()),
+            Some(TokenType::Tag) => Op::TagPush(self.get_tag().unwrap()),
+            Some(
+                token @ (TokenType::CdataSection
+                | TokenType::Comment
+                | TokenType::Doctype
+                | TokenType::FunkyComment
+                | TokenType::PresumptuousTag
+                | TokenType::Text),
+            ) => Op::Token(token.clone()),
+            None => unreachable!("Op should never be made when no token is available."),
+        };
+
         if parse_in_current_insertion_mode {
             self.step_in_current_insertion_mode(&op)
         } else {
@@ -6308,22 +6321,6 @@ impl HtmlProcessor {
     /// @todo What do wo with this _protected_ function?
     fn get_encoding(label: &str) -> Option<Rc<str>> {
         todo!()
-    }
-
-    fn make_op(&self) -> Op {
-        match self.get_token_type() {
-            Some(TokenType::Tag) if self.is_tag_closer() => Op::TagPop(self.get_tag().unwrap()),
-            Some(TokenType::Tag) => Op::TagPush(self.get_tag().unwrap()),
-            Some(
-                token @ (TokenType::CdataSection
-                | TokenType::Comment
-                | TokenType::Doctype
-                | TokenType::FunkyComment
-                | TokenType::PresumptuousTag
-                | TokenType::Text),
-            ) => Op::Token(token.clone()),
-            None => unreachable!("Op should never be made when no token is available."),
-        }
     }
 
     fn push(&mut self, token: HTMLToken) {
