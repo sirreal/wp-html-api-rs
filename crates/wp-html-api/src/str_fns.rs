@@ -1,3 +1,5 @@
+use memchr::memchr;
+
 /// substr — Return part of a string
 /// See https://www.php.net/manual/en/function.substr.php
 pub fn substr(s: &[u8], offset: usize, length: usize) -> &[u8] {
@@ -32,6 +34,16 @@ pub fn strpos(s: &[u8], pattern: &[u8], offset: usize) -> Option<usize> {
     }
 
     None
+}
+
+/// strpos — Find the position of the first occurrence of a substring in a string
+/// See https://www.php.net/manual/en/function.strpos.php
+pub fn strpos_byte(s: &[u8], pattern: u8, offset: usize) -> Option<usize> {
+    if offset > s.len() {
+        None
+    } else {
+        memchr(pattern, &s[offset..]).map(|pos| pos + offset)
+    }
 }
 
 /// stripos — Find the position of the first occurrence of a case-insensitive substring in a string

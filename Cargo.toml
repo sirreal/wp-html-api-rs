@@ -10,3 +10,6 @@ resolver = "3"
 authors    = ["Jon Surrell <sirreal@users.noreply.github.com>"]
 edition    = "2024"
 license    = "GPL-2.0-or-later"
+
+[workspace.dependencies]
+memchr = "2.7.4"
