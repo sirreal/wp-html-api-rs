@@ -11,10 +11,7 @@ use crate::{
 
 use super::tag_name::TagName;
 
-use std::{
-    collections::{BTreeSet, HashMap},
-    rc::Rc,
-};
+use std::collections::{BTreeSet, HashMap};
 
 const MAX_BOOKMARKS: usize = 1_000_000;
 
@@ -80,7 +77,7 @@ pub struct TagProcessor {
     /// @see self::NO_QUIRKS_MODE
     pub(crate) compat_mode: CompatMode,
 
-    pub(crate) bookmarks: HashMap<Rc<str>, HtmlSpan>,
+    pub(crate) bookmarks: HashMap<Box<str>, HtmlSpan>,
     pub(crate) internal_bookmarks: FxHashMap<u32, HtmlSpan>,
 }
 
@@ -110,7 +107,7 @@ impl From<&ParsingNamespace> for String {
 struct HtmlTextReplacement {
     start: usize,
     length: usize,
-    text: Rc<str>,
+    text: Box<str>,
 }
 
 #[derive(Clone)]
@@ -1562,7 +1559,7 @@ impl TagProcessor {
                 }
 
                 let span = HtmlSpan::new(self.token_starts_at.unwrap(), self.token_length.unwrap());
-                self.bookmarks.insert(s.into(), span);
+                self.bookmarks.insert(s, span);
             }
         };
 
@@ -1975,7 +1972,7 @@ impl TagProcessor {
                     let raw_value = &self.html_bytes[attr_token.value_starts_at
                         ..attr_token.value_starts_at + attr_token.value_length];
                     let decoded = entities::decode(&entities::HtmlContext::Attribute, raw_value);
-                    AttributeValue::String(Rc::from(decoded))
+                    AttributeValue::String(Box::from(decoded))
                 }
             } else {
                 AttributeValue::BooleanFalse
@@ -2378,17 +2375,17 @@ pub enum AttributeValue {
     #[default]
     BooleanFalse,
     BooleanTrue,
-    String(Rc<[u8]>),
+    String(Box<[u8]>),
 }
 
 pub struct ClassList {
-    attribute_value: Rc<[u8]>,
+    attribute_value: Box<[u8]>,
     seen: BTreeSet<Box<[u8]>>,
     at: usize,
 }
 
 impl ClassList {
-    pub fn new(attribute_value: Rc<[u8]>) -> Self {
+    pub fn new(attribute_value: Box<[u8]>) -> Self {
         let mut s = Self {
             attribute_value,
             seen: BTreeSet::new(),
@@ -2403,7 +2400,7 @@ impl ClassList {
 
     pub fn empty() -> Self {
         Self {
-            attribute_value: Rc::new([]),
+            attribute_value: Box::new([]),
             at: 0,
             seen: BTreeSet::new(),
         }

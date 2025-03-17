@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use std::{fmt::Display, rc::Rc};
+use std::fmt::Display;
 
 use crate::tag_processor::ParsingNamespace;
 
@@ -135,7 +135,7 @@ pub enum TagName {
     DESC,
 
     // Arbitrary tag names not listed here, e.g. <custom-tag>
-    Arbitrary(Rc<[u8]>),
+    Arbitrary(Box<[u8]>),
 }
 
 impl TagName {
