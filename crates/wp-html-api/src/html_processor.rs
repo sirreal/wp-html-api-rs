@@ -4639,12 +4639,12 @@ impl HtmlProcessor {
 
                 let cdata_content_start = current_token_span.start + 9;
                 let cdata_content_length = current_token_span.length - 12;
-                if (strspn!(
+                if strspn!(
                     &self.tag_processor.html_bytes,
                     b'\0' | b' ' | b'\t' | b'\n' | 0xc0 | b'\r',
                     cdata_content_start,
                     cdata_content_length
-                ) != cdata_content_length)
+                ) != cdata_content_length
                 {
                     self.state.frameset_ok = false;
                 }
