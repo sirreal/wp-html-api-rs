@@ -4,9 +4,9 @@ members = [
   "crates/wp-html-api-html5lib-tests/gen-tests",
   "crates/entities/gen-entities",
 ]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 authors    = ["Jon Surrell <sirreal@users.noreply.github.com>"]
-edition    = "2021"
+edition    = "2024"
 license    = "GPL-2.0-or-later"
