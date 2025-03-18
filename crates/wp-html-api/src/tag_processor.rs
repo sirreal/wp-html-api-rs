@@ -473,7 +473,7 @@ impl TagProcessor {
         self.text_starts_at = None;
         self.text_length = None;
         self.is_closing_tag = None;
-        self.attributes = vec![];
+        self.attributes.clear();
         self.comment_type = None;
         self.text_node_classification = TextNodeClassification::Generic;
     }
