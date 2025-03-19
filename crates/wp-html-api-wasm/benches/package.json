@@ -4,11 +4,9 @@
 	"version": "1.0.0",
 	"license": "GPL-2.0-or-later",
 	"type": "module",
-	"scripts": {
-		"bench": "vitest bench --run"
-	},
+	"scripts": {},
 	"dependencies": {
-		"@codspeed/vitest-plugin": "^4.0.0",
-		"vitest": "^3.0.8"
+		"@codspeed/tinybench-plugin": "^4.0.0",
+		"tinybench": "^2.9.0"
 	}
 }
