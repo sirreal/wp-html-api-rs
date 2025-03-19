@@ -8,7 +8,7 @@
 		"bench": "vitest bench --run"
 	},
 	"dependencies": {
-		"@codspeed/vitest-plugin": "^4.0.0",
-		"vitest": "^3.0.8"
+		"@codspeed/tinybench-plugin": "^4.0.0",
+		"tinybench": "^2.9.0"
 	}
 }

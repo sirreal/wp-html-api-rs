@@ -1,13 +1,16 @@
 import fs from "node:fs";
+import assert from "node:assert";
+import { WP_HTML_Processor, WP_HTML_Tag_Processor } from "../../../pkg-node/wp_html_api_wasm.js";
+import { Bench } from "tinybench";
+import { withCodSpeed } from "@codspeed/tinybench-plugin";
 const html = fs.readFileSync(
 	new URL("../../../data/html-standard.html", import.meta.url),
 	"utf8",
 );
-import { bench, describe } from "vitest";
-import { assert } from "node:console";
-import { WP_HTML_Processor, WP_HTML_Tag_Processor } from "../../../pkg-node/wp_html_api_wasm.js";
+const bench = withCodSpeed(new Bench({
+}));
 
-bench("WP_HTML_Processor", () => {
+bench.add("WP_HTML_Processor", () => {
 	const processor = WP_HTML_Processor.create_full_parser(html);
 
 	let c = 0;
@@ -17,7 +20,7 @@ bench("WP_HTML_Processor", () => {
 	assert(c === 1_040_654);
 });
 
-bench("WP_HTML_Tag_Processor", () => {
+bench.add("WP_HTML_Tag_Processor", () => {
 	const processor = new WP_HTML_Tag_Processor(html);
 
 	let c = 0;
@@ -26,3 +29,6 @@ bench("WP_HTML_Tag_Processor", () => {
 	}
 	assert(c === 938_062);
 });
+
+await bench.run();
+console.table(bench.table());
