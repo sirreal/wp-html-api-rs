@@ -37,6 +37,7 @@ const byteLength = new TextEncoder().encode(html).byteLength;
 		c++;
 	}
 	const done = performance.now();
+	processor.free();
 
 	const ms = fmt.format(done - start);
 	const mbps = fmt.format(byteLength / 1e6 / ((done - start) / 1e3));
