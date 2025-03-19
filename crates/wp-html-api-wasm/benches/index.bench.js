@@ -1,14 +1,20 @@
 import fs from "node:fs";
 import assert from "node:assert";
-import { WP_HTML_Processor, WP_HTML_Tag_Processor } from "../../../pkg-node/wp_html_api_wasm.js";
+import {
+	WP_HTML_Processor,
+	WP_HTML_Tag_Processor,
+} from "../../../pkg-node/wp_html_api_wasm.js";
 import { Bench } from "tinybench";
 import { withCodSpeed } from "@codspeed/tinybench-plugin";
 const html = fs.readFileSync(
 	new URL("../../../data/html-standard.html", import.meta.url),
 	"utf8",
 );
-const bench = withCodSpeed(new Bench({
-}));
+const bench = withCodSpeed(
+	new Bench({
+		throws: true,
+	}),
+);
 
 bench.add("WP_HTML_Processor", () => {
 	const processor = WP_HTML_Processor.create_full_parser(html);
