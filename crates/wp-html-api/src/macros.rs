@@ -1,4 +1,26 @@
 macro_rules! strspn {
+    ($haystack:expr, $needle:literal) => {{
+        $haystack.iter()
+            .position(|&b| b != $needle)
+            .unwrap_or($haystack.len())
+    }};
+
+    ($haystack:expr, $needle:literal, $offset:expr) => {
+        $haystack.iter()
+            .skip($offset)
+            .position(|&b| b != $needle)
+            .unwrap_or($haystack.len() - $offset)
+    };
+
+    ($haystack:expr, $needle:literal, $offset:expr, $length:expr) => {
+        $haystack.iter()
+            .skip($offset)
+            .take($length)
+            .position(|&b| b != $needle)
+            .unwrap_or($length)
+    };
+
+
     ($haystack:expr, $pattern:pat $(if $guard:expr)?) => {
         $haystack.iter()
             .position(|&b| !matches!(b, $pattern $(if $guard)?))
@@ -22,6 +44,28 @@ macro_rules! strspn {
 }
 
 macro_rules! strcspn {
+    ($haystack:expr, $needle:literal) => {
+        $haystack.iter()
+            .position(|&b| b == $needle)
+            .unwrap_or($haystack.len())
+    };
+
+    ($haystack:expr, $needle:literal, $offset:expr) => {
+        $haystack.iter()
+            .skip($offset)
+            .position(|&b| b == $needle)
+            .unwrap_or($haystack.len() - $offset)
+    };
+
+    ($haystack:expr, $needle:literal, $offset:expr, $length:expr) => {
+        $haystack.iter()
+            .skip($offset)
+            .take($length)
+            .position(|&b| b == $needle)
+            .unwrap_or($length)
+    };
+
+
     ($haystack:expr, $pattern:pat $(if $guard:expr)?) => {
         $haystack.iter()
             .position(|&b| matches!(b, $pattern $(if $guard)?))
