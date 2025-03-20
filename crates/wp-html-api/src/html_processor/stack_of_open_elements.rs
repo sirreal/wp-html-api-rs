@@ -3,6 +3,7 @@ use crate::{
     tag_name::TagName,
     tag_processor::{NodeName, ParsingNamespace},
 };
+use std::rc::Rc;
 
 const ELEMENT_IN_SCOPE_TERMINATION_LIST: [(&TagName, &ParsingNamespace); 18] = [
     (&TagName::APPLET, &ParsingNamespace::Html),
@@ -43,7 +44,7 @@ const ELEMENT_IN_SCOPE_TERMINATION_LIST: [(&TagName, &ParsingNamespace); 18] = [
 /// @see WP_HTML_Processor
 pub(super) struct StackOfOpenElements {
     /// Holds the stack of open element references.
-    pub stack: Vec<HTMLToken>,
+    pub stack: Vec<Rc<HTMLToken>>,
 }
 impl StackOfOpenElements {
     pub fn new() -> Self {
@@ -51,15 +52,15 @@ impl StackOfOpenElements {
     }
 
     pub fn _push(&mut self, element: HTMLToken) {
-        self.stack.push(element.clone());
+        self.stack.push(Rc::new(element));
     }
 
     pub fn _pop(&mut self) -> Option<HTMLToken> {
-        self.stack.pop()
+        self.stack.pop().map(|rc| (*rc).clone())
     }
 
     pub fn current_node(&self) -> Option<&HTMLToken> {
-        self.stack.last()
+        self.stack.last().map(|rc| rc.as_ref())
     }
 
     pub fn count(&self) -> usize {
@@ -71,7 +72,7 @@ impl StackOfOpenElements {
             if let HTMLToken {
                 node_name: NodeName::Tag(tag_on_stack),
                 ..
-            } = t
+            } = t.as_ref()
             {
                 tag_on_stack == tag_name
             } else {
@@ -92,7 +93,7 @@ impl StackOfOpenElements {
     /// @return WP_HTML_Token|null Name of the node on the stack at the given location,
     ///                            or `null` if the location isn't on the stack.
     pub fn at(&self, nth: usize) -> Option<&HTMLToken> {
-        self.stack.get(nth - 1)
+        self.stack.get(nth - 1).map(|rc| rc.as_ref())
     }
 
     /// Returns whether a particular element is in table scope.
@@ -180,8 +181,8 @@ impl StackOfOpenElements {
     /// @param string $identity Check if the current node has this name or type (depending on what is provided).
     /// @return bool Whether there is a current element that matches the given identity, whether a token name or type.
     pub fn current_node_is(&self, identity: &NodeName) -> bool {
-        if let Some(HTMLToken { node_name, .. }) = self.stack.last() {
-            node_name == identity
+        if let Some(token_rc) = self.stack.last() {
+            token_rc.node_name == *identity
         } else {
             false
         }
@@ -232,7 +233,7 @@ impl StackOfOpenElements {
     /// To start with the most-recently added element and walk towards the top,
     /// see WP_HTML_Open_Elements::walk_up().
     pub fn walk_down(&self) -> impl Iterator<Item = &HTMLToken> {
-        self.stack.iter()
+        self.stack.iter().map(|rc| rc.as_ref())
     }
 
     /// Steps through the stack of open elements, starting with the bottom element
@@ -254,7 +255,7 @@ impl StackOfOpenElements {
     /// @param WP_HTML_Token|null $above_this_node Optional. Start traversing above this node,
     ///                                            if provided and if the node exists.
     pub fn walk_up(&self) -> impl Iterator<Item = &HTMLToken> {
-        self.stack.iter().rev()
+        self.stack.iter().rev().map(|rc| rc.as_ref())
     }
 
     /// Returns whether a particular element is in button scope.

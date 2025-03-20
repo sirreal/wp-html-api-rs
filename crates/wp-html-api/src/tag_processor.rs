@@ -12,7 +12,6 @@ use crate::{
 use super::tag_name::TagName;
 
 use std::collections::{BTreeSet, HashMap};
-use std::rc::Weak;
 
 const MAX_BOOKMARKS: usize = 1_000_000;
 
@@ -79,9 +78,8 @@ pub struct TagProcessor {
     pub(crate) compat_mode: CompatMode,
 
     pub(crate) bookmarks: HashMap<Box<str>, HtmlSpan>,
-    // Using Weak references for internal bookmarks to avoid reference cycles
-    // The bookmark will be automatically cleaned up when all HTMLTokens referencing it are dropped
-    pub(crate) internal_bookmarks: FxHashMap<u32, (HtmlSpan, std::rc::Weak<u32>)>,
+    // Stores information about bookmark positions in the HTML document
+    pub(crate) internal_bookmarks: FxHashMap<u32, HtmlSpan>,
 }
 
 #[derive(Default, PartialEq, Debug, Clone)]
@@ -135,10 +133,9 @@ impl HtmlTextReplacement {
 }
 
 impl TagProcessor {
-    /// Cleans up the internal_bookmarks map by removing any entries with dead weak references
+    /// This method can be used in the future to clean up unused bookmarks
     pub fn clean_internal_bookmarks(&mut self) {
-        self.internal_bookmarks
-            .retain(|_, (_, weak_ref)| weak_ref.upgrade().is_some());
+        // Bookmark cleanup will be implemented later
     }
     pub fn new(html: &[u8]) -> Self {
         let html_bytes = html.into();
@@ -1559,9 +1556,7 @@ impl TagProcessor {
                     return Err(());
                 }
                 let span = HtmlSpan::new(self.token_starts_at.unwrap(), self.token_length.unwrap());
-                // Create a weak reference (will be properly initialized when bookmark_token creates the Rc)
-                let weak_ref = Weak::new();
-                self.internal_bookmarks.insert(i, (span, weak_ref));
+                self.internal_bookmarks.insert(i, span);
             }
             BookmarkName::String(s) => {
                 if !self.bookmarks.contains_key(s.as_ref()) && over_size {
