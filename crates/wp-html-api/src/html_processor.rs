@@ -272,7 +272,7 @@ impl HtmlProcessor {
         };
 
         fragment_processor.bookmark_counter += 1;
-        fragment_processor.push(root_node);
+        fragment_processor.push(Rc::new(root_node));
 
         let bookmark_id = fragment_processor.bookmark_counter;
         let span = HtmlSpan::new(0, 0);
@@ -281,8 +281,14 @@ impl HtmlProcessor {
             .internal_bookmarks
             .insert(bookmark_id, span);
 
-        fragment_processor.context_node =
-            Some(self.current_element.as_ref().unwrap().token.clone());
+        fragment_processor.context_node = Some(
+            self.current_element
+                .as_ref()
+                .unwrap()
+                .token
+                .as_ref()
+                .clone(),
+        );
         fragment_processor
             .context_node
             .as_mut()
@@ -6002,11 +6008,12 @@ impl HtmlProcessor {
         self.generate_implied_end_tags(None);
 
         // @todo Parse error if the current node is a "td" or "th" element.
-        while let Some(HTMLToken {
-            node_name: popped_token_node_name,
-            ..
-        }) = self.pop()
-        {
+        while let Some(token) = self.pop() {
+            let HTMLToken {
+                node_name: popped_token_node_name,
+                ..
+            } = token.as_ref();
+
             if matches!(
                 popped_token_node_name,
                 NodeName::Tag(TagName::TD | TagName::TH)
@@ -6027,7 +6034,7 @@ impl HtmlProcessor {
     ///
     /// @param WP_HTML_Token $token Name of bookmark pointing to element in original input HTML.
     fn insert_html_element(&mut self, token: Rc<HTMLToken>) {
-        self.push((*token).clone());
+        self.push(token);
     }
 
     /// Inserts a foreign element on to the stack of open elements.
@@ -6344,7 +6351,7 @@ impl HtmlProcessor {
         todo!()
     }
 
-    fn push(&mut self, token: HTMLToken) {
+    fn push(&mut self, token: Rc<HTMLToken>) {
         self.state.stack_of_open_elements._push(token.clone());
 
         let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
@@ -6364,24 +6371,22 @@ impl HtmlProcessor {
             provenance,
         });
 
-        self.tag_processor
-            .change_parsing_namespace(if token.integration_node_type.is_some() {
+        self.tag_processor.change_parsing_namespace(
+            if token.as_ref().integration_node_type.is_some() {
                 ParsingNamespace::Html
             } else {
-                token.namespace
-            });
+                token.namespace.to_owned()
+            },
+        );
     }
 
-    fn pop(&mut self) -> Option<HTMLToken> {
-        // We get the Rc<HTMLToken> from the stack
-        let token_rc = self.state.stack_of_open_elements.stack.pop()?;
-        // Call after_pop with the Rc reference
-        self.after_pop(&token_rc);
-        // Return a cloned HTMLToken
-        Some((*token_rc).clone())
+    fn pop(&mut self) -> Option<Rc<HTMLToken>> {
+        let token = self.state.stack_of_open_elements.stack.pop()?;
+        self.after_pop(&token);
+        Some(token)
     }
 
-    fn after_pop(&mut self, token_rc: &Rc<HTMLToken>) {
+    fn after_pop(&mut self, token: &Rc<HTMLToken>) {
         // In the future, we might want to add bookmark cleanup here
         // For now, we'll leave bookmarks in the map and clean them up later
 
@@ -6390,14 +6395,14 @@ impl HtmlProcessor {
             .state
             .current_token
             .as_ref()
-            .is_some_and(|current| current.node_name == token_rc.node_name);
+            .is_some_and(|current| current.node_name == token.node_name);
         let provenance = if !same_node || is_virtual {
             StackProvenance::Virtual
         } else {
             StackProvenance::Real
         };
         self.element_queue.push_back(HTMLStackEvent {
-            token: (**token_rc).clone(),
+            token: token.clone(),
             operation: StackOperation::Pop,
             provenance,
         });
@@ -6423,19 +6428,20 @@ impl HtmlProcessor {
     /// @param string $html_tag_name Name of tag that needs to be popped off of the stack of open elements.
     /// @return bool Whether a tag of the given name was found and popped off of the stack of open elements.
     fn pop_until(&mut self, html_tag_name: &TagName) -> bool {
-        while let Some(HTMLToken {
-            node_name: token_node_name,
-            namespace: token_namespace,
-            ..
-        }) = self.pop()
-        {
-            if token_namespace != ParsingNamespace::Html {
+        while let Some(token) = self.pop() {
+            let HTMLToken {
+                node_name: token_node_name,
+                namespace: token_namespace,
+                ..
+            } = token.as_ref();
+
+            if token_namespace != &ParsingNamespace::Html {
                 continue;
             }
 
             match token_node_name {
                 NodeName::Tag(tag_name) => {
-                    if tag_name == *html_tag_name {
+                    if tag_name == html_tag_name {
                         return true;
                     }
                 }
@@ -6456,13 +6462,14 @@ impl HtmlProcessor {
     ///
     /// The
     fn pop_until_any_h1_to_h6(&mut self) -> bool {
-        while let Some(HTMLToken {
-            node_name: token_node_name,
-            namespace: token_namespace,
-            ..
-        }) = self.pop()
-        {
-            if token_namespace != ParsingNamespace::Html {
+        while let Some(token) = self.pop() {
+            let HTMLToken {
+                node_name: token_node_name,
+                namespace: token_namespace,
+                ..
+            } = token.as_ref();
+
+            if token_namespace != &ParsingNamespace::Html {
                 continue;
             }
 

@@ -51,12 +51,12 @@ impl StackOfOpenElements {
         Self { stack: Vec::new() }
     }
 
-    pub fn _push(&mut self, element: HTMLToken) {
-        self.stack.push(Rc::new(element));
+    pub fn _push(&mut self, element: Rc<HTMLToken>) {
+        self.stack.push(element);
     }
 
-    pub fn _pop(&mut self) -> Option<HTMLToken> {
-        self.stack.pop().map(|rc| (*rc).clone())
+    pub(super) fn _pop(&mut self) -> Option<Rc<HTMLToken>> {
+        self.stack.pop()
     }
 
     pub fn current_node(&self) -> Option<&HTMLToken> {

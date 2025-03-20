@@ -125,7 +125,7 @@ impl ActiveFormattingElements {
         let position = self.stack.iter().rev().position(|item| match item {
             ActiveFormattingElement::Token(item_token) => {
                 // Dereference both to compare the actual HTMLToken values
-                *item_token.as_ref() == *token
+                item_token.as_ref() == token
             }
             _ => false,
         });
