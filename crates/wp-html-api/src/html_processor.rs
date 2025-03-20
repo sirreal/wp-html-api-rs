@@ -9,6 +9,7 @@ mod processor_state;
 mod stack_of_open_elements;
 
 use std::collections::VecDeque;
+use std::rc::{Rc, Weak};
 
 use crate::{
     attributes::qualified_attribute_name,
@@ -256,14 +257,21 @@ impl HtmlProcessor {
         fragment_processor.tag_processor.compat_mode = self.tag_processor.compat_mode.clone();
 
         // @todo Create "fake" bookmarks for non-existent but implied nodes.
+        let bookmark_id = fragment_processor.bookmark_counter;
+        let span = HtmlSpan::new(0, 0);
+        // Create a new Weak reference (will be empty until properly initialized)
+        let weak_ref = Weak::new();
         fragment_processor
             .tag_processor
             .internal_bookmarks
-            .insert(fragment_processor.bookmark_counter, HtmlSpan::new(0, 0));
+            .insert(bookmark_id, (span, weak_ref));
+
+        // Create an Rc for the bookmark
+        let rc_bookmark = Rc::new(bookmark_id);
 
         let root_node = HTMLToken {
             is_root_node: true,
-            bookmark_name: Some(fragment_processor.bookmark_counter),
+            bookmark_name: Some(rc_bookmark),
             node_name: NodeName::Tag(TagName::HTML),
             ..Default::default()
         };
@@ -271,17 +279,24 @@ impl HtmlProcessor {
         fragment_processor.bookmark_counter += 1;
         fragment_processor.push(root_node);
 
+        let bookmark_id = fragment_processor.bookmark_counter;
+        let span = HtmlSpan::new(0, 0);
+        let weak_ref = Weak::new();
         fragment_processor
             .tag_processor
             .internal_bookmarks
-            .insert(fragment_processor.bookmark_counter, HtmlSpan::new(0, 0));
+            .insert(bookmark_id, (span, weak_ref));
+
+        // Create an Rc for the bookmark
+        let rc_bookmark = Rc::new(bookmark_id);
+
         fragment_processor.context_node =
             Some(self.current_element.as_ref().unwrap().token.clone());
         fragment_processor
             .context_node
             .as_mut()
             .unwrap()
-            .bookmark_name = Some(fragment_processor.bookmark_counter);
+            .bookmark_name = Some(rc_bookmark);
         fragment_processor.bookmark_counter += 1;
 
         if tag_name == TagName::TEMPLATE {
@@ -4633,8 +4648,13 @@ impl HtmlProcessor {
                     .state
                     .current_token
                     .as_ref()
-                    .and_then(|token| token.bookmark_name)
-                    .and_then(|mark| self.tag_processor.internal_bookmarks.get(&mark))
+                    .and_then(|token| token.bookmark_name.as_ref().map(|rc| **rc))
+                    .and_then(|mark| {
+                        self.tag_processor
+                            .internal_bookmarks
+                            .get(&mark)
+                            .map(|(span, _)| span)
+                    })
                     .unwrap();
 
                 let cdata_content_start = current_token_span.start + 9;
@@ -4931,13 +4951,29 @@ impl HtmlProcessor {
     ///
     /// @throws Exception When unable to allocate requested bookmark.
     ///
-    /// @return string|false Name of created bookmark, or false if unable to create.
-    fn bookmark_token(&mut self) -> Result<u32, HtmlProcessorError> {
+    /// @return Result<Rc<u32>, HtmlProcessorError> Reference-counted bookmark identifier, or error if unable to create.
+    fn bookmark_token(&mut self) -> Result<Rc<u32>, HtmlProcessorError> {
+        // Increment the bookmark counter first
+        self.bookmark_counter += 1;
+        let bookmark_id = self.bookmark_counter;
+
+        // Create the reference-counted bookmark identifier
+        let rc_bookmark = Rc::new(bookmark_id);
+
         self.tag_processor
-            .set_bookmark(BookmarkName::Internal(self.bookmark_counter + 1))
+            .set_bookmark(BookmarkName::Internal(bookmark_id))
             .map(|_| {
-                self.bookmark_counter += 1;
-                self.bookmark_counter
+                // After set_bookmark succeeds, update the Weak reference
+                if let Some((_, weak_ref)) =
+                    self.tag_processor.internal_bookmarks.get_mut(&bookmark_id)
+                {
+                    *weak_ref = Rc::downgrade(&rc_bookmark);
+                }
+
+                // Return the reference-counted bookmark
+                // This will be cloned when HTMLTokens are cloned, ensuring the bookmark
+                // is only released when no more references exist
+                rc_bookmark
             })
             .map_err(|_| HtmlProcessorError::ExceededMaxBookmarks)
     }
@@ -5322,7 +5358,13 @@ impl HtmlProcessor {
     /// @param string $bookmark_name Name of the bookmark to remove.
     /// @return bool Whether the bookmark already existed before removal.
     pub fn release_bookmark(&mut self, bookmark_name: &str) -> bool {
-        todo!()
+        self.tag_processor.bookmarks.remove(bookmark_name).is_some()
+    }
+
+    /// Cleans up the internal_bookmarks map by removing any entries with dead weak references
+    /// This is called periodically to keep the map size reasonable
+    pub fn clean_bookmarks(&mut self) {
+        self.tag_processor.clean_internal_bookmarks();
     }
 
     /// Moves the internal cursor in the HTML Processor to a given bookmark's location.
@@ -6068,15 +6110,23 @@ impl HtmlProcessor {
             .state
             .current_token
             .as_ref()
-            .and_then(|token| token.bookmark_name)
-            .and_then(|mark| self.tag_processor.internal_bookmarks.get(&mark))
-            .map(|span| span.start)
+            .and_then(|token| token.bookmark_name.as_ref().map(|rc| **rc))
+            .and_then(|mark| {
+                self.tag_processor
+                    .internal_bookmarks
+                    .get(&mark)
+                    .map(|(span, _)| span.start)
+            })
             .unwrap();
 
         let name = self.bookmark_token().unwrap();
+        // name is already an Rc<u32>, so we need to get its value
+        let bookmark_id = *name;
+        let span = HtmlSpan::new(current_token_start, 0);
+        let weak_ref = Rc::downgrade(&name);
         self.tag_processor
             .internal_bookmarks
-            .insert(name, HtmlSpan::new(current_token_start, 0));
+            .insert(bookmark_id, (span, weak_ref));
         let token = HTMLToken::new(Some(name), token_name.into(), false);
         self.insert_html_element(token);
     }
@@ -6353,8 +6403,18 @@ impl HtmlProcessor {
     }
 
     fn after_pop(&mut self, token: &HTMLToken) {
-        if let Some(bookmark_name) = token.bookmark_name.as_ref() {
-            let _ = self.tag_processor.internal_bookmarks.remove(bookmark_name);
+        // With Rc<u32> for bookmarks, we don't need to manually remove them
+        // The bookmark will be automatically cleaned up when all tokens referencing it are dropped
+        // This is because we store Weak references in the internal_bookmarks map
+
+        // Periodically clean up dead weak references (once every 100 pops)
+        // This keeps the internal_bookmarks map from growing too large
+        static mut POP_COUNTER: usize = 0;
+        unsafe {
+            POP_COUNTER += 1;
+            if POP_COUNTER % 100 == 0 {
+                self.clean_bookmarks();
+            }
         }
 
         let is_virtual = self.state.current_token.is_none() || !self.is_tag_closer();

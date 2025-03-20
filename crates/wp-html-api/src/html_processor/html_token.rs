@@ -1,4 +1,5 @@
 use crate::tag_processor::{NodeName, ParsingNamespace};
+use std::rc::Rc;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HTMLToken {
@@ -12,11 +13,13 @@ pub struct HTMLToken {
     /// may be that the source token and underlying bookmark was wiped out by
     /// some modification to the source HTML.
     ///
+    /// Using Rc<u32> ensures the bookmark is only released when all references to it are gone.
+    ///
     /// @since 6.4.0
     ///
     /// @var string
     ///
-    pub bookmark_name: Option<u32>,
+    pub bookmark_name: Option<Rc<u32>>,
 
     /**
      * Name of node; lowercase names such as "marker" are not HTML elements.
@@ -73,10 +76,9 @@ impl HTMLToken {
     ///                                             or `null` for markers and nodes without a bookmark.
     /// @param string        $node_name             Name of node token represents; if uppercase, an HTML element; if lowercase, a special value like "marker".
     /// @param bool          $has_self_closing_flag Whether the source token contains the self-closing flag, regardless of whether it's valid.
-    /// @param callable|null $on_destroy            Optional. Function to call when destroying token, useful for releasing the bookmark.
     ///
     pub fn new(
-        bookmark_name: Option<u32>,
+        bookmark_name: Option<Rc<u32>>,
         node_name: NodeName,
         has_self_closing_flag: bool,
     ) -> Self {
