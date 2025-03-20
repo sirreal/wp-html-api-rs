@@ -2794,15 +2794,11 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                // Need to recreate the token with the new namespace since Rc is immutable
-                let old_token = self.state.current_token.as_ref().unwrap();
-                let mut token_clone = (**old_token).clone();
-                token_clone.namespace = ParsingNamespace::MathML;
-                // Replace the current token with the updated one
-                self.state.current_token = Some(Rc::new(token_clone));
-                let token = self.state.current_token.clone().unwrap();
+                let mut token = self.state.current_token.as_mut().unwrap().as_ref().clone();
+                token.namespace = ParsingNamespace::MathML;
                 let has_self_closing_flag = token.has_self_closing_flag;
-                self.insert_html_element(token);
+                self.state.current_token = Some(Rc::new(token));
+                self.insert_html_element(self.state.current_token.clone().unwrap());
                 if has_self_closing_flag {
                     self.pop();
                 }
@@ -2821,15 +2817,11 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                // Need to recreate the token with the new namespace since Rc is immutable
-                let old_token = self.state.current_token.as_ref().unwrap();
-                let mut token_clone = (**old_token).clone();
-                token_clone.namespace = ParsingNamespace::Svg;
-                // Replace the current token with the updated one
-                self.state.current_token = Some(Rc::new(token_clone));
-                let token = self.state.current_token.clone().unwrap();
+                let mut token = self.state.current_token.as_mut().unwrap().as_ref().clone();
+                token.namespace = ParsingNamespace::Svg;
                 let has_self_closing_flag = token.has_self_closing_flag;
-                self.insert_html_element(token);
+                self.state.current_token = Some(Rc::new(token));
+                self.insert_html_element(self.state.current_token.clone().unwrap());
                 if has_self_closing_flag {
                     self.pop();
                 }
