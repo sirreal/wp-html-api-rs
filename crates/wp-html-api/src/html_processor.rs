@@ -1160,7 +1160,6 @@ impl HtmlProcessor {
             Op::Token(
                 TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
             ) => {
-                // Clone the Rc pointer (not the HTMLToken itself)
                 self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
