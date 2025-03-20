@@ -69,7 +69,7 @@ pub struct HtmlProcessor {
     bookmark_counter: u32,
 
     /// Context node if created as a fragment parser.
-    context_node: Option<HTMLToken>,
+    context_node: Option<Rc<HTMLToken>>,
 }
 
 impl HtmlProcessor {
@@ -257,16 +257,14 @@ impl HtmlProcessor {
         fragment_processor.tag_processor.compat_mode = self.tag_processor.compat_mode.clone();
 
         // @todo Create "fake" bookmarks for non-existent but implied nodes.
-        let bookmark_id = fragment_processor.bookmark_counter;
-        let span = HtmlSpan::new(0, 0);
         fragment_processor
             .tag_processor
             .internal_bookmarks
-            .insert(bookmark_id, span);
+            .insert(fragment_processor.bookmark_counter, HtmlSpan::new(0, 0));
 
         let root_node = HTMLToken {
             is_root_node: true,
-            bookmark_name: Some(bookmark_id),
+            bookmark_name: Some(fragment_processor.bookmark_counter),
             node_name: NodeName::Tag(TagName::HTML),
             ..Default::default()
         };
@@ -274,26 +272,19 @@ impl HtmlProcessor {
         fragment_processor.bookmark_counter += 1;
         fragment_processor.push(Rc::new(root_node));
 
-        let bookmark_id = fragment_processor.bookmark_counter;
-        let span = HtmlSpan::new(0, 0);
         fragment_processor
             .tag_processor
             .internal_bookmarks
-            .insert(bookmark_id, span);
-
-        fragment_processor.context_node = Some(
-            self.current_element
-                .as_ref()
-                .unwrap()
-                .token
-                .as_ref()
-                .clone(),
-        );
-        fragment_processor
-            .context_node
-            .as_mut()
+            .insert(fragment_processor.bookmark_counter, HtmlSpan::new(0, 0));
+        let mut ctx_node = self
+            .current_element
+            .as_ref()
             .unwrap()
-            .bookmark_name = Some(bookmark_id);
+            .token
+            .as_ref()
+            .clone();
+        ctx_node.bookmark_name = Some(fragment_processor.bookmark_counter);
+        fragment_processor.context_node = Some(Rc::new(ctx_node));
         fragment_processor.bookmark_counter += 1;
 
         if tag_name == TagName::TEMPLATE {
@@ -316,7 +307,6 @@ impl HtmlProcessor {
          */
         for element in self.state.stack_of_open_elements.walk_up() {
             if element.node_name == NodeName::Tag(TagName::FORM) {
-                // Create a new Rc<HTMLToken> with bookmark_name = None
                 let mut element_clone = element.clone();
                 element_clone.bookmark_name = None;
                 fragment_processor.state.form_element = Some(Rc::new(element_clone));
@@ -5555,7 +5545,7 @@ impl HtmlProcessor {
     /// @return WP_HTML_Token|null The adjusted current node.
     fn get_adjusted_current_node(&self) -> Option<&HTMLToken> {
         if self.context_node.is_some() && self.state.stack_of_open_elements.count() == 1 {
-            self.context_node.as_ref()
+            self.context_node.as_ref().map(|rc| rc.as_ref())
         } else {
             self.state.stack_of_open_elements.current_node()
         }
