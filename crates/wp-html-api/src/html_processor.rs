@@ -6360,9 +6360,6 @@ impl HtmlProcessor {
     }
 
     fn after_pop(&mut self, token: &Rc<HTMLToken>) {
-        // In the future, we might want to add bookmark cleanup here
-        // For now, we'll leave bookmarks in the map and clean them up later
-
         let is_virtual = self.state.current_token.is_none() || !self.is_tag_closer();
         let same_node = self
             .state

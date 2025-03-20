@@ -113,18 +113,11 @@ impl ActiveFormattingElements {
     /// @param WP_HTML_Token $token Remove this node from the stack, if it's there already.
     /// @return bool Whether the node was found and removed from the stack of active formatting elements.
     pub fn remove_node(&mut self, token: &HTMLToken) -> bool {
-        // First find the position without the mutable borrow
-        let position = self.stack.iter().rev().position(|item| match item {
-            ActiveFormattingElement::Token(item_token) => {
-                // Dereference both to compare the actual HTMLToken values
-                item_token.as_ref() == token
-            }
+        if let Some(idx) = self.stack.iter().rev().position(|item| match item {
+            ActiveFormattingElement::Token(item_token) => item_token.as_ref() == token,
             _ => false,
-        });
-
-        // Then remove the element if found
-        if let Some(pos) = position {
-            let idx = self.stack.len() - 1 - pos;
+        }) {
+            let idx = self.stack.len() - 1 - idx;
             self.stack.remove(idx);
             true
         } else {
