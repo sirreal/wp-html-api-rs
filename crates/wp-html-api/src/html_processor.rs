@@ -2373,27 +2373,24 @@ impl HtmlProcessor {
              * > A start tag whose tag name is "a"
              */
             Op::TagPush(TagName::A) => {
-                // Get access to walk_up_elements
-                use crate::html_processor::active_formatting_elements::ActiveFormattingElement;
-
-                let item = self
-                    .state
-                    .active_formatting_elements
-                    .walk_up_elements()
-                    .find(|item| match item {
-                        ActiveFormattingElement::Marker => true,
-                        ActiveFormattingElement::Token(token) => {
-                            matches!(token.node_name, NodeName::Tag(TagName::A))
-                        }
-                    });
+                let item =
+                    self.state
+                        .active_formatting_elements
+                        .walk_up()
+                        .find(|item| match item {
+                            ActiveFormattingElement::Marker => true,
+                            ActiveFormattingElement::Token(token) => {
+                                let HTMLToken { node_name, .. } = token.as_ref();
+                                token.node_name == NodeName::Tag(TagName::A)
+                            }
+                        });
                 if let Some(ActiveFormattingElement::Token(a_token)) = item {
-                    // Create a cloned HTMLToken from the Rc reference for remove_node
-                    let remove_token = (**a_token).clone();
+                    let remove_token = a_token.clone();
                     self.run_adoption_agency_algorithm();
                     self.state
                         .active_formatting_elements
-                        .remove_node(&remove_token);
-                    self.remove_node_from_stack_of_open_elements(&remove_token);
+                        .remove_node(remove_token.as_ref());
+                    self.remove_node_from_stack_of_open_elements(remove_token.as_ref());
                 }
 
                 self.reconstruct_active_formatting_elements();
@@ -4945,15 +4942,14 @@ impl HtmlProcessor {
     ///
     /// @throws Exception When unable to allocate requested bookmark.
     ///
-    /// @return Result<u32, HtmlProcessorError> Bookmark identifier, or error if unable to create.
+    /// @return Bookmark identifier, or error if unable to create.
     fn bookmark_token(&mut self) -> Result<u32, HtmlProcessorError> {
-        // Increment the bookmark counter first
-        self.bookmark_counter += 1;
-        let bookmark_id = self.bookmark_counter;
-
         self.tag_processor
-            .set_bookmark(BookmarkName::Internal(bookmark_id))
-            .map(|_| bookmark_id)
+            .set_bookmark(BookmarkName::Internal(self.bookmark_counter + 1))
+            .map(|_| {
+                self.bookmark_counter += 1;
+                self.bookmark_counter
+            })
             .map_err(|_| HtmlProcessorError::ExceededMaxBookmarks)
     }
 
@@ -5337,7 +5333,7 @@ impl HtmlProcessor {
     /// @param string $bookmark_name Name of the bookmark to remove.
     /// @return bool Whether the bookmark already existed before removal.
     pub fn release_bookmark(&mut self, bookmark_name: &str) -> bool {
-        self.tag_processor.bookmarks.remove(bookmark_name).is_some()
+        todo!()
     }
 
     /// Moves the internal cursor in the HTML Processor to a given bookmark's location.
@@ -5895,7 +5891,7 @@ impl HtmlProcessor {
             use crate::html_processor::active_formatting_elements::ActiveFormattingElement;
 
             let mut formatting_element = None;
-            for item in self.state.active_formatting_elements.walk_up_elements() {
+            for item in self.state.active_formatting_elements.walk_up() {
                 match item {
                     ActiveFormattingElement::Marker => break,
                     ActiveFormattingElement::Token(token) => {
@@ -6088,12 +6084,8 @@ impl HtmlProcessor {
             .current_token
             .as_ref()
             .and_then(|token| token.bookmark_name)
-            .and_then(|mark| {
-                self.tag_processor
-                    .internal_bookmarks
-                    .get(&mark)
-                    .map(|span| span.start)
-            })
+            .and_then(|mark| self.tag_processor.internal_bookmarks.get(&mark))
+            .map(|span| span.start)
             .unwrap();
 
         let bookmark_id = self.bookmark_token().unwrap();
@@ -6362,7 +6354,7 @@ impl HtmlProcessor {
     }
 
     fn pop(&mut self) -> Option<Rc<HTMLToken>> {
-        let token = self.state.stack_of_open_elements.stack.pop()?;
+        let token = self.state.stack_of_open_elements._pop()?;
         self.after_pop(&token);
         Some(token)
     }

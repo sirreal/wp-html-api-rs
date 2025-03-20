@@ -104,15 +104,7 @@ impl ActiveFormattingElements {
     ///
     /// To start with the first added element and walk towards the bottom,
     /// see WP_HTML_Active_Formatting_Elements::walk_down().
-    pub fn walk_up(&self) -> impl Iterator<Item = &HTMLToken> {
-        self.stack.iter().rev().filter_map(|item| match item {
-            ActiveFormattingElement::Token(token) => Some(token.as_ref()),
-            _ => None,
-        })
-    }
-
-    // Internal method that returns the actual ActiveFormattingElement references
-    pub(super) fn walk_up_elements(&self) -> impl Iterator<Item = &ActiveFormattingElement> {
+    pub fn walk_up(&self) -> impl Iterator<Item = &ActiveFormattingElement> {
         self.stack.iter().rev()
     }
 
@@ -145,11 +137,8 @@ impl ActiveFormattingElements {
     /// @param WP_HTML_Token $token Check if this node exists in the stack.
     /// @return bool Whether the node exists in the stack of active formatting elements.
     pub fn contains_node(&self, token: &HTMLToken) -> bool {
-        self.walk_up_elements().any(|item| match item {
-            ActiveFormattingElement::Token(item_token) => {
-                // Dereference both to compare the actual HTMLToken values
-                item_token.as_ref() == token
-            }
+        self.walk_up().any(|item| match item {
+            ActiveFormattingElement::Token(item_token) => item_token.as_ref() == token,
             _ => false,
         })
     }
