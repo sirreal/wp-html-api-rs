@@ -2182,7 +2182,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .has_element_in_scope(&tag_name)
+                    .has_element_in_scope(tag_name)
                 {
                     // Parse error: ignore the token.
                     self.step(NodeToProcess::ProcessNextNode)
@@ -2195,7 +2195,7 @@ impl HtmlProcessor {
                     {
                         // Parse error: this error doesn't impact parsing.
                     }
-                    self.pop_until(&tag_name);
+                    self.pop_until(tag_name);
                     true
                 }
             }
@@ -2306,7 +2306,7 @@ impl HtmlProcessor {
                      */
                     (
                          tag_name!=&TagName::LI  &&
-                        !self.state.stack_of_open_elements.has_element_in_scope(&tag_name)
+                        !self.state.stack_of_open_elements.has_element_in_scope(tag_name)
                     )
                 {
                     /*
@@ -2317,7 +2317,7 @@ impl HtmlProcessor {
                     return self.step(NodeToProcess::ProcessNextNode);
                 }
 
-                self.generate_implied_end_tags(Some(&tag_name));
+                self.generate_implied_end_tags(Some(tag_name));
 
                 if !self
                     .state
@@ -2327,7 +2327,7 @@ impl HtmlProcessor {
                     // @todo Indicate a parse error once it's possible. This error does not impact the logic here.
                 }
 
-                self.pop_until(&tag_name);
+                self.pop_until(tag_name);
                 true
             }
 
@@ -4648,12 +4648,7 @@ impl HtmlProcessor {
                     .current_token
                     .as_ref()
                     .and_then(|token| token.bookmark_name)
-                    .and_then(|mark| {
-                        self.tag_processor
-                            .internal_bookmarks
-                            .get(&mark)
-                            .map(|span| span)
-                    })
+                    .and_then(|mark| self.tag_processor.internal_bookmarks.get(&mark))
                     .unwrap();
 
                 let cdata_content_start = current_token_span.start + 9;
