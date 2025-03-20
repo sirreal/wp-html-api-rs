@@ -182,7 +182,7 @@ impl StackOfOpenElements {
     /// @return bool Whether there is a current element that matches the given identity, whether a token name or type.
     pub fn current_node_is(&self, identity: &NodeName) -> bool {
         if let Some(token_rc) = self.stack.last() {
-            token_rc.node_name == *identity
+            token_rc.as_ref().node_name == *identity
         } else {
             false
         }
@@ -336,7 +336,8 @@ impl StackOfOpenElements {
     /// @param WP_HTML_Token $token Look for this node in the stack.
     /// @return bool Whether the referenced node is in the stack of open elements.
     pub fn contains_node(&self, last_entry: &HTMLToken) -> bool {
-        self.walk_up().any(|node| node == last_entry)
+        // Compare each element's contents to the provided token
+        self.walk_up().any(|node| *node == *last_entry)
     }
 
     /// Returns whether a particular element is in select scope.

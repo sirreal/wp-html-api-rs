@@ -2367,22 +2367,22 @@ impl HtmlProcessor {
              * > A start tag whose tag name is "a"
              */
             Op::TagPush(TagName::A) => {
+                // Get access to walk_up_elements
+                use crate::html_processor::active_formatting_elements::ActiveFormattingElement;
+
                 let item = self
                     .state
                     .active_formatting_elements
-                    .walk_up()
-                    .find(|item| {
-                        matches!(
-                            item,
-                            ActiveFormattingElement::Marker
-                                | ActiveFormattingElement::Token(HTMLToken {
-                                    node_name: NodeName::Tag(TagName::A),
-                                    ..
-                                })
-                        )
+                    .walk_up_elements()
+                    .find(|item| match item {
+                        ActiveFormattingElement::Marker => true,
+                        ActiveFormattingElement::Token(token) => {
+                            matches!(token.node_name, NodeName::Tag(TagName::A))
+                        }
                     });
                 if let Some(ActiveFormattingElement::Token(a_token)) = item {
-                    let remove_token = a_token.clone();
+                    // Create a cloned HTMLToken from the Rc reference for remove_node
+                    let remove_token = (**a_token).clone();
                     self.run_adoption_agency_algorithm();
                     self.state
                         .active_formatting_elements
@@ -5888,8 +5888,11 @@ impl HtmlProcessor {
              *
              * // @todo this looks like a find?
              */
+            // Get access to walk_up_elements
+            use crate::html_processor::active_formatting_elements::ActiveFormattingElement;
+
             let mut formatting_element = None;
-            for item in self.state.active_formatting_elements.walk_up() {
+            for item in self.state.active_formatting_elements.walk_up_elements() {
                 match item {
                     ActiveFormattingElement::Marker => break,
                     ActiveFormattingElement::Token(token) => {
@@ -5966,7 +5969,8 @@ impl HtmlProcessor {
              */
             if furthest_block.is_none() {
                 while let Some(x) = self.pop() {
-                    if x == formatting_element {
+                    if x.node_name == formatting_element.node_name {
+                        // Comparing node names is sufficient since we're looking for the same element
                         break;
                     }
                 }

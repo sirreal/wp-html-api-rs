@@ -1,4 +1,5 @@
 use super::html_token::HTMLToken;
+use std::rc::Rc;
 
 /// Core class used by the HTML processor during HTML parsing
 /// for managing the stack of active formatting elements.
@@ -77,7 +78,8 @@ impl ActiveFormattingElements {
     ///
     /// @param WP_HTML_Token $token Push this node onto the stack.
     pub fn push(&mut self, token: HTMLToken) {
-        self.stack.push(ActiveFormattingElement::Token(token))
+        self.stack
+            .push(ActiveFormattingElement::Token(Rc::new(token)))
     }
 
     /// Returns the node at the end of the stack of active formatting elements,
@@ -103,7 +105,15 @@ impl ActiveFormattingElements {
     ///
     /// To start with the first added element and walk towards the bottom,
     /// see WP_HTML_Active_Formatting_Elements::walk_down().
-    pub fn walk_up(&self) -> impl Iterator<Item = &ActiveFormattingElement> {
+    pub fn walk_up(&self) -> impl Iterator<Item = &HTMLToken> {
+        self.stack.iter().rev().filter_map(|item| match item {
+            ActiveFormattingElement::Token(token) => Some(token.as_ref()),
+            _ => None,
+        })
+    }
+
+    // Internal method that returns the actual ActiveFormattingElement references
+    pub(super) fn walk_up_elements(&self) -> impl Iterator<Item = &ActiveFormattingElement> {
         self.stack.iter().rev()
     }
 
@@ -112,11 +122,18 @@ impl ActiveFormattingElements {
     /// @param WP_HTML_Token $token Remove this node from the stack, if it's there already.
     /// @return bool Whether the node was found and removed from the stack of active formatting elements.
     pub fn remove_node(&mut self, token: &HTMLToken) -> bool {
-        if let Some(idx) = self.stack.iter().rev().position(|item| match item {
-            ActiveFormattingElement::Token(item_token) => item_token == token,
+        // First find the position without the mutable borrow
+        let position = self.stack.iter().rev().position(|item| match item {
+            ActiveFormattingElement::Token(item_token) => {
+                // Dereference both to compare the actual HTMLToken values
+                *item_token.as_ref() == *token
+            }
             _ => false,
-        }) {
-            let idx = self.stack.len() - 1 - idx;
+        });
+
+        // Then remove the element if found
+        if let Some(pos) = position {
+            let idx = self.stack.len() - 1 - pos;
             self.stack.remove(idx);
             true
         } else {
@@ -129,8 +146,11 @@ impl ActiveFormattingElements {
     /// @param WP_HTML_Token $token Check if this node exists in the stack.
     /// @return bool Whether the node exists in the stack of active formatting elements.
     pub fn contains_node(&self, token: &HTMLToken) -> bool {
-        self.walk_up().any(|item| match item {
-            ActiveFormattingElement::Token(item_token) => item_token == token,
+        self.walk_up_elements().any(|item| match item {
+            ActiveFormattingElement::Token(item_token) => {
+                // Dereference both to compare the actual HTMLToken values
+                *item_token.as_ref() == *token
+            }
             _ => false,
         })
     }
@@ -138,6 +158,6 @@ impl ActiveFormattingElements {
 
 #[derive(Debug, PartialEq)]
 pub(super) enum ActiveFormattingElement {
-    Token(HTMLToken),
+    Token(Rc<HTMLToken>),
     Marker,
 }
