@@ -2800,11 +2800,12 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                let mut token = self.state.current_token.as_mut().unwrap().as_ref().clone();
+                let mut token = self.state.current_token.as_ref().unwrap().as_ref().clone();
                 token.namespace = ParsingNamespace::MathML;
                 let has_self_closing_flag = token.has_self_closing_flag;
-                self.state.current_token = Some(Rc::new(token));
-                self.insert_html_element(self.state.current_token.clone().unwrap());
+                let token = Rc::new(token);
+                self.state.current_token = Some(token.clone());
+                self.insert_html_element(token);
                 if has_self_closing_flag {
                     self.pop();
                 }
@@ -2823,11 +2824,12 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                let mut token = self.state.current_token.as_mut().unwrap().as_ref().clone();
+                let mut token = self.state.current_token.as_ref().unwrap().as_ref().clone();
                 token.namespace = ParsingNamespace::Svg;
                 let has_self_closing_flag = token.has_self_closing_flag;
-                self.state.current_token = Some(Rc::new(token));
-                self.insert_html_element(self.state.current_token.clone().unwrap());
+                let token = Rc::new(token);
+                self.state.current_token = Some(token.clone());
+                self.insert_html_element(token);
                 if has_self_closing_flag {
                     self.pop();
                 }
@@ -6050,24 +6052,18 @@ impl HtmlProcessor {
             .get_adjusted_current_node()
             .map_or(ParsingNamespace::Html, |tok| tok.namespace.clone());
 
-        // Since we can't mutate the token directly with Rc, we need to create a new token
-        if let Some(token_rc) = self.state.current_token.as_ref() {
-            // Create a clone of the current token
-            let mut token_clone = (**token_rc).clone();
+        let mut token = self.state.current_token.as_ref().unwrap().as_ref().clone();
+        token.namespace = adjusted_namespace;
 
-            // Update the namespace
-            token_clone.namespace = adjusted_namespace;
-
-            // Set integration_node_type if needed
-            if self.is_mathml_integration_point() {
-                token_clone.integration_node_type = Some(IntegrationNodeType::MathML);
-            } else if self.is_html_integration_point() {
-                token_clone.integration_node_type = Some(IntegrationNodeType::HTML);
-            }
-
-            // Replace the current token with the updated clone
-            self.state.current_token = Some(Rc::new(token_clone));
+        // Set integration_node_type if needed
+        if self.is_mathml_integration_point(&token) {
+            token.integration_node_type = Some(IntegrationNodeType::MathML);
+        } else if self.is_html_integration_point(&token) {
+            token.integration_node_type = Some(IntegrationNodeType::HTML);
         }
+
+        let token = Rc::new(token);
+        self.state.current_token = Some(token.clone());
 
         if !only_add_to_element_stack {
             /*
@@ -6082,7 +6078,7 @@ impl HtmlProcessor {
              */
         }
 
-        self.insert_html_element(self.state.current_token.as_ref().unwrap().clone());
+        self.insert_html_element(token);
     }
 
     /// Inserts a virtual element on the stack of open elements.
@@ -6125,17 +6121,12 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#mathml-text-integration-point
     ///
     /// @return bool Whether the current token is a MathML integration point.
-    fn is_mathml_integration_point(&self) -> bool {
-        let current_token = match &self.state.current_token {
-            Some(token) => token,
-            None => return false,
-        };
-
-        if current_token.namespace != ParsingNamespace::MathML {
+    fn is_mathml_integration_point(&self, token: &HTMLToken) -> bool {
+        if token.namespace != ParsingNamespace::MathML {
             return false;
         }
 
-        let tag_name = match &current_token.node_name {
+        let tag_name = match &token.node_name {
             NodeName::Tag(tag_name) => tag_name,
             NodeName::Token(_) => return false,
         };
@@ -6157,18 +6148,13 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#html-integration-point
     ///
     /// @return bool Whether the current token is an HTML integration point.
-    fn is_html_integration_point(&self) -> bool {
-        let current_token = match &self.state.current_token {
-            Some(token) => token,
-            None => return false,
-        };
-
-        let tag_name = match &current_token.node_name {
+    fn is_html_integration_point(&self, token: &HTMLToken) -> bool {
+        let tag_name = match &token.node_name {
             NodeName::Tag(tag_name) => tag_name,
             NodeName::Token(_) => return false,
         };
 
-        match current_token.namespace {
+        match token.namespace {
             ParsingNamespace::Html => false,
             ParsingNamespace::MathML => {
                 tag_name == &TagName::ANNOTATION_XML
