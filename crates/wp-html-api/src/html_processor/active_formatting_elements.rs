@@ -1,4 +1,5 @@
 use super::html_token::HTMLToken;
+use std::rc::Rc;
 
 /// Core class used by the HTML processor during HTML parsing
 /// for managing the stack of active formatting elements.
@@ -76,7 +77,7 @@ impl ActiveFormattingElements {
     /// @see https://html.spec.whatwg.org/#push-onto-the-list-of-active-formatting-elements
     ///
     /// @param WP_HTML_Token $token Push this node onto the stack.
-    pub fn push(&mut self, token: HTMLToken) {
+    pub fn push(&mut self, token: Rc<HTMLToken>) {
         self.stack.push(ActiveFormattingElement::Token(token))
     }
 
@@ -113,7 +114,7 @@ impl ActiveFormattingElements {
     /// @return bool Whether the node was found and removed from the stack of active formatting elements.
     pub fn remove_node(&mut self, token: &HTMLToken) -> bool {
         if let Some(idx) = self.stack.iter().rev().position(|item| match item {
-            ActiveFormattingElement::Token(item_token) => item_token == token,
+            ActiveFormattingElement::Token(item_token) => item_token.as_ref() == token,
             _ => false,
         }) {
             let idx = self.stack.len() - 1 - idx;
@@ -130,7 +131,7 @@ impl ActiveFormattingElements {
     /// @return bool Whether the node exists in the stack of active formatting elements.
     pub fn contains_node(&self, token: &HTMLToken) -> bool {
         self.walk_up().any(|item| match item {
-            ActiveFormattingElement::Token(item_token) => item_token == token,
+            ActiveFormattingElement::Token(item_token) => item_token.as_ref() == token,
             _ => false,
         })
     }
@@ -138,6 +139,6 @@ impl ActiveFormattingElements {
 
 #[derive(Debug, PartialEq)]
 pub(super) enum ActiveFormattingElement {
-    Token(HTMLToken),
+    Token(Rc<HTMLToken>),
     Marker,
 }
