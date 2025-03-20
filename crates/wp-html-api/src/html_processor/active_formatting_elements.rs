@@ -77,9 +77,8 @@ impl ActiveFormattingElements {
     /// @see https://html.spec.whatwg.org/#push-onto-the-list-of-active-formatting-elements
     ///
     /// @param WP_HTML_Token $token Push this node onto the stack.
-    pub fn push(&mut self, token: HTMLToken) {
-        self.stack
-            .push(ActiveFormattingElement::Token(Rc::new(token)))
+    pub fn push(&mut self, token: Rc<HTMLToken>) {
+        self.stack.push(ActiveFormattingElement::Token(token))
     }
 
     /// Returns the node at the end of the stack of active formatting elements,

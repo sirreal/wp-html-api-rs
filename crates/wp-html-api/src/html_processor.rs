@@ -310,13 +310,10 @@ impl HtmlProcessor {
          */
         for element in self.state.stack_of_open_elements.walk_up() {
             if element.node_name == NodeName::Tag(TagName::FORM) {
-                fragment_processor.state.form_element = Some(element.clone());
-                fragment_processor
-                    .state
-                    .form_element
-                    .as_mut()
-                    .unwrap()
-                    .bookmark_name = None;
+                // Create a new Rc<HTMLToken> with bookmark_name = None
+                let mut element_clone = element.clone();
+                element_clone.bookmark_name = None;
+                fragment_processor.state.form_element = Some(Rc::new(element_clone));
                 break;
             }
         }
@@ -768,11 +765,11 @@ impl HtmlProcessor {
         let token_name = self.get_token_name().unwrap();
         if node_to_process != NodeToProcess::ReprocessCurrentNode {
             if let Ok(bookmark_id) = self.bookmark_token() {
-                self.state.current_token = Some(HTMLToken::new(
+                self.state.current_token = Some(Rc::new(HTMLToken::new(
                     Some(bookmark_id),
                     token_name.clone(),
                     self.has_self_closing_flag(),
-                ));
+                )));
             } else {
                 self.last_error = Some(HtmlProcessorError::ExceededMaxBookmarks);
                 return false;
@@ -1167,8 +1164,8 @@ impl HtmlProcessor {
             Op::Token(
                 TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
             ) => {
-                let token: HTMLToken = self.state.current_token.clone().unwrap();
-                self.insert_html_element(token);
+                // Clone the Rc pointer (not the HTMLToken itself)
+                self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
 
@@ -1186,7 +1183,8 @@ impl HtmlProcessor {
              * > A start tag whose tag name is "head"
              */
             Op::TagPush(TagName::HEAD) => {
-                let token: HTMLToken = self.state.current_token.clone().unwrap();
+                // Clone the Rc pointer for both the insert_html_element and head_element
+                let token = self.state.current_token.clone().unwrap();
                 self.insert_html_element(token.clone());
                 self.state.head_element = Some(token);
                 self.state.insertion_mode = InsertionMode::IN_HEAD;
@@ -1247,8 +1245,8 @@ impl HtmlProcessor {
                     == TextNodeClassification::Whitespace =>
             {
                 // Insert the character.
-                let token: HTMLToken = self.state.current_token.clone().unwrap();
-                self.insert_html_element(token.clone());
+                // Pass the Rc directly
+                self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
 
@@ -2227,7 +2225,9 @@ impl HtmlProcessor {
                     let node = node.unwrap();
 
                     self.generate_implied_end_tags(None);
-                    if node != *self.state.stack_of_open_elements.current_node().unwrap() {
+                    let current_rc = self.state.stack_of_open_elements.stack.last().unwrap();
+                    // Both node and current_rc are Rc<HTMLToken>, so compare them directly
+                    if node != *current_rc {
                         // @todo Indicate a parse error once it's possible. This error does not impact the logic here.
                         return self
                             .bail(UnsupportedException::CannotCloseFormWithOtherElementsOpen);
@@ -2794,9 +2794,13 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                let token = self.state.current_token.as_mut().unwrap();
-                token.namespace = ParsingNamespace::MathML;
-                let token = token.clone();
+                // Need to recreate the token with the new namespace since Rc is immutable
+                let old_token = self.state.current_token.as_ref().unwrap();
+                let mut token_clone = (**old_token).clone();
+                token_clone.namespace = ParsingNamespace::MathML;
+                // Replace the current token with the updated one
+                self.state.current_token = Some(Rc::new(token_clone));
+                let token = self.state.current_token.clone().unwrap();
                 let has_self_closing_flag = token.has_self_closing_flag;
                 self.insert_html_element(token);
                 if has_self_closing_flag {
@@ -2817,9 +2821,13 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                let token = self.state.current_token.as_mut().unwrap();
-                token.namespace = ParsingNamespace::Svg;
-                let token = token.clone();
+                // Need to recreate the token with the new namespace since Rc is immutable
+                let old_token = self.state.current_token.as_ref().unwrap();
+                let mut token_clone = (**old_token).clone();
+                token_clone.namespace = ParsingNamespace::Svg;
+                // Replace the current token with the updated one
+                self.state.current_token = Some(Rc::new(token_clone));
+                let token = self.state.current_token.clone().unwrap();
                 let has_self_closing_flag = token.has_self_closing_flag;
                 self.insert_html_element(token);
                 if has_self_closing_flag {
@@ -6026,8 +6034,8 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#insert-a-foreign-element
     ///
     /// @param WP_HTML_Token $token Name of bookmark pointing to element in original input HTML.
-    fn insert_html_element(&mut self, token: HTMLToken) {
-        self.push(token);
+    fn insert_html_element(&mut self, token: Rc<HTMLToken>) {
+        self.push((*token).clone());
     }
 
     /// Inserts a foreign element on to the stack of open elements.
@@ -6043,18 +6051,23 @@ impl HtmlProcessor {
             .get_adjusted_current_node()
             .map_or(ParsingNamespace::Html, |tok| tok.namespace.clone());
 
-        if let Some(token) = self.state.current_token.as_mut() {
-            token.namespace = adjusted_namespace;
-        }
+        // Since we can't mutate the token directly with Rc, we need to create a new token
+        if let Some(token_rc) = self.state.current_token.as_ref() {
+            // Create a clone of the current token
+            let mut token_clone = (**token_rc).clone();
 
-        if self.is_mathml_integration_point() {
-            if let Some(token) = self.state.current_token.as_mut() {
-                token.integration_node_type = Some(IntegrationNodeType::MathML);
+            // Update the namespace
+            token_clone.namespace = adjusted_namespace;
+
+            // Set integration_node_type if needed
+            if self.is_mathml_integration_point() {
+                token_clone.integration_node_type = Some(IntegrationNodeType::MathML);
+            } else if self.is_html_integration_point() {
+                token_clone.integration_node_type = Some(IntegrationNodeType::HTML);
             }
-        } else if self.is_html_integration_point() {
-            if let Some(token) = self.state.current_token.as_mut() {
-                token.integration_node_type = Some(IntegrationNodeType::HTML);
-            }
+
+            // Replace the current token with the updated clone
+            self.state.current_token = Some(Rc::new(token_clone));
         }
 
         if !only_add_to_element_stack {
@@ -6099,7 +6112,7 @@ impl HtmlProcessor {
             .internal_bookmarks
             .insert(bookmark_id, span);
         let token = HTMLToken::new(Some(bookmark_id), token_name.into(), false);
-        self.insert_html_element(token);
+        self.insert_html_element(Rc::new(token));
     }
 
     /*
