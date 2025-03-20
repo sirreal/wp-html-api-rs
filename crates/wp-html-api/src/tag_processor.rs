@@ -133,10 +133,6 @@ impl HtmlTextReplacement {
 }
 
 impl TagProcessor {
-    /// This method can be used in the future to clean up unused bookmarks
-    pub fn clean_internal_bookmarks(&mut self) {
-        // Bookmark cleanup will be implemented later
-    }
     pub fn new(html: &[u8]) -> Self {
         let html_bytes = html.into();
         Self {

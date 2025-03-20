@@ -5337,13 +5337,6 @@ impl HtmlProcessor {
         self.tag_processor.bookmarks.remove(bookmark_name).is_some()
     }
 
-    /// Cleans up the internal_bookmarks map by removing any entries with dead weak references
-    /// This is called periodically to keep the map size reasonable
-    pub fn clean_bookmarks(&mut self) {
-        // Bookmark cleanup will be implemented in the future
-        self.tag_processor.clean_internal_bookmarks();
-    }
-
     /// Moves the internal cursor in the HTML Processor to a given bookmark's location.
     ///
     /// Be careful! Seeking backwards to a previous location resets the parser to the
