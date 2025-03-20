@@ -2,7 +2,7 @@ use glob::glob;
 use proc_macro::TokenStream;
 use quote::quote;
 use std::fs;
-use syn::{parse_macro_input, LitStr};
+use syn::{LitStr, parse_macro_input};
 
 struct TestCase {
     pub input: Vec<u8>,

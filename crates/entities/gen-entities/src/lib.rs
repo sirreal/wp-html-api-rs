@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use serde::Deserialize;
 use std::{collections::BTreeMap, fs};
-use syn::{parse_macro_input, LitStr};
+use syn::{LitStr, parse_macro_input};
 
 #[derive(Deserialize)]
 struct DeserializedJSONEntity {

@@ -1,6 +1,6 @@
 use super::{
-    html_token::HTMLToken, ActiveFormattingElements, EncodingConfidence, InsertionMode,
-    StackOfOpenElements,
+    ActiveFormattingElements, EncodingConfidence, InsertionMode, StackOfOpenElements,
+    html_token::HTMLToken,
 };
 
 pub(super) struct ProcessorState {
