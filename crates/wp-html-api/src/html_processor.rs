@@ -6614,3 +6614,131 @@ enum Op {
     TagPop(TagName),
     Token(TokenType),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::rc::{Rc, Weak};
+
+    #[test]
+    fn test_bookmark_reference_counting_basic_functionality() {
+        // Create a new HTML processor
+        let html = "<div><p>Test content</p></div>";
+        let mut processor = HtmlProcessor::new(html.as_bytes());
+
+        // Find the p tag
+        processor.next_tag(None); // This will find the div
+        processor.next_tag(None); // This will find the p
+
+        // Get the current token and its bookmark
+        let token = processor.state.current_token.clone().unwrap();
+        let bookmark_rc = token.bookmark_name.clone().unwrap();
+        let bookmark_id = *bookmark_rc;
+
+        // Verify the bookmark exists
+        assert!(
+            processor
+                .tag_processor
+                .internal_bookmarks
+                .contains_key(&bookmark_id)
+        );
+
+        // Pop the element from the stack - which would previously release the bookmark
+        processor.pop();
+
+        // Now verify that we can still access the bookmark through our token reference
+        assert!(
+            processor
+                .tag_processor
+                .internal_bookmarks
+                .contains_key(&bookmark_id)
+        );
+
+        // The bookmark's weak reference should still point to our Rc
+        let weak_ref = &processor
+            .tag_processor
+            .internal_bookmarks
+            .get(&bookmark_id)
+            .unwrap()
+            .1;
+        assert!(weak_ref.upgrade().is_some());
+
+        // This test verifies that the bookmark is preserved as long as there are
+        // references to it, even when the token is removed from the stack
+    }
+
+    #[test]
+    fn test_multiple_clones_share_same_bookmark() {
+        // Create a new HTML processor
+        let html = "<div><span>Text</span></div>";
+        let mut processor = HtmlProcessor::new(html.as_bytes());
+
+        // Find the span tag
+        processor.next_tag(None); // div
+        processor.next_tag(None); // span
+
+        // Get the current token and make multiple clones of it
+        let token = processor.state.current_token.clone().unwrap();
+        let token_clone1 = token.clone();
+        let token_clone2 = token.clone();
+
+        // All clones share the same bookmark ID, even if they have different Rc instances
+        let bookmark_id1 = **token.bookmark_name.as_ref().unwrap();
+        let bookmark_id2 = **token_clone1.bookmark_name.as_ref().unwrap();
+        let bookmark_id3 = **token_clone2.bookmark_name.as_ref().unwrap();
+
+        assert_eq!(bookmark_id1, bookmark_id2);
+        assert_eq!(bookmark_id1, bookmark_id3);
+
+        // Verify that when one clone is dropped, the bookmark still exists
+        std::mem::drop(token);
+        std::mem::drop(token_clone1);
+
+        // Get the bookmark ID
+        let bookmark_id = **token_clone2.bookmark_name.as_ref().unwrap();
+
+        // Bookmark should still exist because token_clone2 is still alive
+        assert!(
+            processor
+                .tag_processor
+                .internal_bookmarks
+                .contains_key(&bookmark_id)
+        );
+
+        // This test verifies that clones share the same bookmark,
+        // ensuring they all point to the same data
+    }
+
+    #[test]
+    fn test_after_pop_with_reference_counting() {
+        // Create a new HTML processor
+        let html = "<div><span>Text</span></div>";
+        let mut processor = HtmlProcessor::new(html.as_bytes());
+
+        // Find the span tag
+        processor.next_tag(None); // div
+        processor.next_tag(None); // span
+
+        // Get the token and its bookmark
+        let token = processor.state.current_token.clone().unwrap();
+        let bookmark_rc = token.bookmark_name.clone().unwrap();
+        let bookmark_id = *bookmark_rc;
+
+        // Create another reference by cloning
+        let token_clone = token.clone();
+
+        // Call after_pop which would previously release the bookmark
+        processor.after_pop(&token);
+
+        // Bookmark should still exist because of the clone
+        assert!(
+            processor
+                .tag_processor
+                .internal_bookmarks
+                .contains_key(&bookmark_id)
+        );
+
+        // This test verifies that after_pop doesn't release the bookmark
+        // when there are still references to it
+    }
+}
