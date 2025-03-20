@@ -760,9 +760,21 @@ impl HtmlProcessor {
 
         let token_name = self.get_token_name().unwrap();
         if node_to_process != NodeToProcess::ReprocessCurrentNode {
-            if let Ok(bookmark_id) = self.bookmark_token() {
+            if let Ok(bookmark) = self.bookmark_token() {
+                if let Some(previous_current_token_bookmark) = self
+                    .state
+                    .current_token
+                    .take()
+                    .and_then(Rc::into_inner)
+                    .and_then(|token| token.bookmark_name)
+                {
+                    self.tag_processor
+                        .internal_bookmarks
+                        .remove(&previous_current_token_bookmark);
+                }
+
                 self.state.current_token = Some(Rc::new(HTMLToken::new(
-                    Some(bookmark_id),
+                    Some(bookmark),
                     token_name.clone(),
                     self.has_self_closing_flag(),
                 )));
