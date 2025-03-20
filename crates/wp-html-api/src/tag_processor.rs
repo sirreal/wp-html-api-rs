@@ -78,7 +78,6 @@ pub struct TagProcessor {
     pub(crate) compat_mode: CompatMode,
 
     pub(crate) bookmarks: HashMap<Box<str>, HtmlSpan>,
-    // Stores information about bookmark positions in the HTML document
     pub(crate) internal_bookmarks: FxHashMap<u32, HtmlSpan>,
 }
 
