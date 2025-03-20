@@ -10,7 +10,7 @@ To build the wasm build, you'll need [`wasm-pack`][wasm-pack].
 cargo build --release --quiet -p wp-html-api-php-ext -p cargo-php
 ```
 
-With cargo-php (`cargo install cargo-php`), you can generate stubs for the PHP extension:
+With [cargo-php](https://crates.io/crates/cargo-php) (`cargo install cargo-php`), you can generate stubs for the PHP extension:
 
 ```sh
 cargo php stubs --manifest crates/wp-html-api-php-ext/Cargo.toml
