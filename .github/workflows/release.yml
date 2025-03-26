@@ -28,3 +28,9 @@ jobs:
 
       - name: List files
         run: ls -lah target/release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wp-html-api-php-ext
+          path: target/release/libwp_html_api_php_ext.so
+          if-no-files-found: error
