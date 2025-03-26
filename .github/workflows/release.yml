@@ -1,0 +1,30 @@
+name: Compile PHP extension
+
+on:
+  push:
+  #  branches: [ "main" ]
+  pull_request:
+  #  branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Cargo test
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: moonrepo/setup-rust@v1.2.2
+        with:
+          cache-base: main
+
+      - name: Build
+        run: cargo build --release --quiet -p wp-html-api-php-ext
+
+      - name: List files
+        run: ls -lah target/release
