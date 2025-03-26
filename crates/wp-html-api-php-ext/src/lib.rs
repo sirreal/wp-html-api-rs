@@ -553,6 +553,11 @@ impl WP_HTML_Processor {
         this.processor.set_bookmark(name).is_ok()
     }
 
+    pub fn is_void(name: BinarySlice<u8>) -> bool {
+        let name = TagName::from((name.into(), &ParsingNamespace::Html));
+        HtmlProcessor::is_void(&name)
+    }
+
     pub const STATE_READY: &str = STATE_READY;
     pub const STATE_COMPLETE: &str = STATE_COMPLETE;
     pub const STATE_INCOMPLETE_INPUT: &str = STATE_INCOMPLETE_INPUT;
