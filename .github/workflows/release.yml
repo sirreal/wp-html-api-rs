@@ -2,7 +2,7 @@ name: Compile PHP extension
 
 on:
   push:
-    branches: [ "main" ]
+  #  branches: [ "main" ]
   #pull_request:
   #  branches: [ "main" ]
 
@@ -17,6 +17,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
+        with:
+          php-version: '8.2'
+          coverage: none
 
       - name: Setup Rust
         uses: moonrepo/setup-rust@v1.2.2
