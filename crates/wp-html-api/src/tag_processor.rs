@@ -1948,6 +1948,17 @@ impl TagProcessor {
         })
     }
 
+    /// Updates or creates a new attribute on the currently matched tag with the passed value.
+    ///
+    /// For boolean attributes special handling is provided:
+    ///  - When `true` is passed as the value, then only the attribute name is added to the tag.
+    ///  - When `false` is passed, the attribute gets removed if it existed before.
+    ///
+    /// For string attributes, the value is escaped using the `esc_attr` function.
+    ///
+    /// @param string      $name  The attribute name to target.
+    /// @param string|bool $value The new attribute value.
+    /// @return bool Whether an attribute value was set.
     pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {
         todo!()
     }
