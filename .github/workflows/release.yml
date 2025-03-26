@@ -1,0 +1,40 @@
+name: Compile PHP extension
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Compile
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Setup Rust
+        uses: moonrepo/setup-rust@v1.2.2
+        with:
+          cache-base: main
+
+      - name: Build
+        run: cargo build --release --quiet -p wp-html-api-php-ext
+
+      - name: List files
+        run: ls -lah target/release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wp-html-api-php-ext
+          path: target/release/libwp_html_api_php_ext.so
+          if-no-files-found: error
