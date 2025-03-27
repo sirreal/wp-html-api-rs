@@ -2,15 +2,16 @@ use super::{
     ActiveFormattingElements, EncodingConfidence, InsertionMode, StackOfOpenElements,
     html_token::HTMLToken,
 };
+use std::rc::Rc;
 
 pub(super) struct ProcessorState {
     pub(super) active_formatting_elements: ActiveFormattingElements,
-    pub(super) current_token: Option<HTMLToken>,
+    pub(super) current_token: Option<Rc<HTMLToken>>,
     pub(super) encoding: Box<str>,
     pub(super) encoding_confidence: EncodingConfidence,
-    pub(super) form_element: Option<HTMLToken>,
+    pub(super) form_element: Option<Rc<HTMLToken>>,
     pub(super) frameset_ok: bool,
-    pub(super) head_element: Option<HTMLToken>,
+    pub(super) head_element: Option<Rc<HTMLToken>>,
     pub(super) insertion_mode: InsertionMode,
     pub(super) stack_of_open_elements: StackOfOpenElements,
     pub(super) stack_of_template_insertion_modes: Vec<InsertionMode>,
