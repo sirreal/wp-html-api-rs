@@ -39,6 +39,16 @@ impl Default for NextTagQuery {
     }
 }
 
+/// Enum for specifying whether a class name should be added or removed
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClassAction {
+    /// Add a class to the tag's class attribute
+    Add,
+
+    /// Remove a class from the tag's class attribute
+    Remove,
+}
+
 pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
     pub bytes_already_parsed: usize,
@@ -79,6 +89,17 @@ pub struct TagProcessor {
 
     pub(crate) bookmarks: HashMap<Box<str>, HtmlSpan>,
     pub(crate) internal_bookmarks: FxHashMap<u32, HtmlSpan>,
+
+    /// Which class names to add or remove from a tag.
+    ///
+    /// These are tracked separately from attribute updates because they are
+    /// semantically distinct, whereas this interface exists for the common
+    /// case of adding and removing class names while other attributes are
+    /// generally modified as with DOM `setAttribute` calls.
+    ///
+    /// When modifying an HTML document these will eventually be collapsed
+    /// into a single `set_attribute("class", value)` call.
+    classname_updates: HashMap<String, ClassAction>,
 }
 
 #[derive(Default, PartialEq, Debug, Clone)]
@@ -478,8 +499,58 @@ impl TagProcessor {
         self.text_node_classification = TextNodeClassification::Generic;
     }
 
-    fn class_name_updates_to_attributes_updates(&self) {
-        // Implement me!
+    /// Converts class name updates to attribute updates.
+    ///
+    /// This method is called before parsing the next token to ensure
+    /// that any pending class name updates are applied as attribute updates.
+    fn class_name_updates_to_attributes_updates(&mut self) {
+        // If there are no classname updates, there's nothing to do
+        if self.classname_updates.is_empty() {
+            return;
+        }
+
+        // Get the current value of the class attribute, if any
+        let mut classes = BTreeSet::new();
+        let case_insensitive = self.compat_mode == CompatMode::Quirks;
+
+        // Fill the set with existing classes
+        if let Some(class_attr) = self.get_attribute(b"class") {
+            if let AttributeValue::String(class_value) = class_attr {
+                for class_name in self.parse_class_attribute(&class_value) {
+                    classes.insert(String::from_utf8_lossy(&class_name).to_string());
+                }
+            }
+        }
+
+        // Apply class updates
+        for (class_name, action) in &self.classname_updates {
+            match action {
+                ClassAction::Add => {
+                    classes.insert(class_name.clone());
+                }
+                ClassAction::Remove => {
+                    // In quirks mode, we need to compare case-insensitively
+                    if case_insensitive {
+                        let class_name_lower = class_name.to_lowercase();
+                        classes.retain(|c| c.to_lowercase() != class_name_lower);
+                    } else {
+                        classes.remove(class_name);
+                    }
+                }
+            }
+        }
+
+        // Convert back to a space-separated string
+        if !classes.is_empty() {
+            let new_class_value = classes.into_iter().collect::<Vec<_>>().join(" ");
+            let _ = self.set_attribute("class", &new_class_value);
+        } else {
+            // If no classes remain, remove the class attribute
+            let _ = self.remove_attribute("class");
+        }
+
+        // Clear class updates as they've been applied
+        self.classname_updates.clear();
     }
 
     /// Returns the string representation of the HTML Tag Processor.
@@ -487,6 +558,20 @@ impl TagProcessor {
     /// @return string The processed HTML.
     pub fn get_updated_html(&self) -> Box<[u8]> {
         self.html_bytes.clone()
+    }
+
+    /// Parse a class attribute value into individual class names
+    ///
+    /// @param class_value The value of the class attribute
+    /// @return Iterator over individual class names
+    fn parse_class_attribute<'a>(
+        &self,
+        class_value: &'a [u8],
+    ) -> impl Iterator<Item = Box<[u8]>> + 'a {
+        class_value
+            .split(|&c| c == b' ' || c == b'\t' || c == b'\n' || c == b'\r' || c == b'\x0C')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_vec().into_boxed_slice())
     }
 
     fn parse_next_tag(&mut self) -> bool {
@@ -1963,6 +2048,76 @@ impl TagProcessor {
         todo!()
     }
 
+    /// Adds a new class name to the currently matched tag.
+    ///
+    /// @param class_name The class name to add.
+    /// @return bool Whether the class was set to be added.
+    pub fn add_class(&mut self, class_name: &str) -> bool {
+        if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(true) {
+            return false;
+        }
+
+        if self.compat_mode != CompatMode::Quirks {
+            // In standard mode, just add the class name
+            self.classname_updates
+                .insert(class_name.to_string(), ClassAction::Add);
+            return true;
+        }
+
+        // In quirks mode, we need to check for case variants
+        for (updated_name, _) in self.classname_updates.iter_mut() {
+            if updated_name.len() == class_name.len()
+                && updated_name.eq_ignore_ascii_case(class_name)
+            {
+                // In quirks mode, class names are matched ASCII-case-insensitively
+                // Update the existing entry if we find a case variant
+                self.classname_updates
+                    .insert(updated_name.clone(), ClassAction::Add);
+                return true;
+            }
+        }
+
+        // No case variant found, add a new entry
+        self.classname_updates
+            .insert(class_name.to_string(), ClassAction::Add);
+        true
+    }
+
+    /// Removes a class name from the currently matched tag.
+    ///
+    /// @param class_name The class name to remove.
+    /// @return bool Whether the class was set to be removed.
+    pub fn remove_class(&mut self, class_name: &str) -> bool {
+        if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(true) {
+            return false;
+        }
+
+        if self.compat_mode != CompatMode::Quirks {
+            // In standard mode, just remove the class name
+            self.classname_updates
+                .insert(class_name.to_string(), ClassAction::Remove);
+            return true;
+        }
+
+        // In quirks mode, we need to check for case variants
+        let class_name_len = class_name.len();
+        for (updated_name, _) in self.classname_updates.iter_mut() {
+            if updated_name.len() == class_name_len && updated_name.eq_ignore_ascii_case(class_name)
+            {
+                // In quirks mode, class names are matched ASCII-case-insensitively
+                // Update the existing entry if we find a case variant
+                self.classname_updates
+                    .insert(updated_name.clone(), ClassAction::Remove);
+                return true;
+            }
+        }
+
+        // No case variant found, add a new entry
+        self.classname_updates
+            .insert(class_name.to_string(), ClassAction::Remove);
+        true
+    }
+
     pub fn get_attribute(&self, name: &[u8]) -> Option<AttributeValue> {
         if self.parser_state != ParserState::MatchedTag {
             return None;
@@ -2168,6 +2323,7 @@ impl Default for TagProcessor {
             compat_mode: Default::default(),
             bookmarks: HashMap::new(),
             internal_bookmarks: FxHashMap::default(),
+            classname_updates: HashMap::new(),
         }
     }
 }
