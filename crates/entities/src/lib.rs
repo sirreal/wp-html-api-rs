@@ -70,8 +70,6 @@ pub fn decode_html_ref(
     input: &[u8],
     offset: usize,
 ) -> Option<(Box<[u8]>, usize)> {
-    //gen_entities::entities_map!("crates/entities/data/entities.json");
-
     if input.len() < offset + 3 {
         return None;
     }
@@ -490,7 +488,7 @@ mod tests {
         );
 
         // Just "&#" without digits
-        assert_eq!(decode_html_ref(&&HtmlContext::BodyText, b"&#;", 0), None);
+        assert_eq!(decode_html_ref(&HtmlContext::BodyText, b"&#;", 0), None);
 
         // "&#" with only zeros
         assert_eq!(
