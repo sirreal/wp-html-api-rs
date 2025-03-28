@@ -141,6 +141,14 @@ impl WP_HTML_Tag_Processor {
         this.processor.set_modifiable_text(updated_text.as_str())
     }
 
+    pub fn set_attribute(
+        #[this] this: &mut ZendClassObject<Self>,
+        name: BinarySlice<u8>,
+        value: BinarySlice<u8>,
+    ) -> bool {
+        this.processor.set_attribute(name, value)
+    }
+
     pub fn get_attribute(
         #[this] this: &mut ZendClassObject<Self>,
         prefix: BinarySlice<u8>,
