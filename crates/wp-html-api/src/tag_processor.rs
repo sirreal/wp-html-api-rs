@@ -1983,7 +1983,7 @@ impl TagProcessor {
                     let raw_value = &self.html_bytes[attr_token.value_starts_at
                         ..attr_token.value_starts_at + attr_token.value_length];
                     let decoded = entities::decode(&entities::HtmlContext::Attribute, raw_value);
-                    AttributeValue::String(Box::from(decoded))
+                    AttributeValue::String(decoded)
                 }
             } else {
                 AttributeValue::BooleanFalse
