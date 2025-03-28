@@ -499,72 +499,163 @@ impl TagProcessor {
         self.text_node_classification = TextNodeClassification::Generic;
     }
 
-    /// Converts class name updates to attribute updates.
+    /// Converts class name updates into tag attributes updates
+    /// (they are accumulated in different data formats for performance).
     ///
-    /// This method is called before parsing the next token to ensure
-    /// that any pending class name updates are applied as attribute updates.
+    /// @see TagProcessor::lexical_updates
+    /// @see TagProcessor::classname_updates
     fn class_name_updates_to_attributes_updates(&mut self) {
-        // If there are no classname updates, there's nothing to do
         if self.classname_updates.is_empty() {
             return;
         }
 
-        // Get the current value of the class attribute, if any
-        let mut classes = BTreeSet::new();
-        let case_insensitive = self.compat_mode == CompatMode::Quirks;
+        // Get the existing class attribute value
+        let existing_class = match self.get_attribute(b"class") {
+            Some(AttributeValue::String(value)) => String::from_utf8_lossy(&value).to_string(),
+            Some(AttributeValue::BooleanTrue) | None => String::new(),
+            Some(AttributeValue::BooleanFalse) => {
+                // Check if the attribute exists in the raw HTML
+                if let Some(pos) = self.find_attribute_position(b"class") {
+                    let attr = &self.attributes[pos];
+                    String::from_utf8_lossy(
+                        &self.html_bytes
+                            [attr.value_starts_at..attr.value_starts_at + attr.value_length],
+                    )
+                    .to_string()
+                } else {
+                    String::new()
+                }
+            }
+        };
 
-        // Fill the set with existing classes
-        if let Some(class_attr) = self.get_attribute(b"class") {
-            if let AttributeValue::String(class_value) = class_attr {
-                for class_name in self.parse_class_attribute(&class_value) {
-                    classes.insert(String::from_utf8_lossy(&class_name).to_string());
+        // Output class value that will be built incrementally
+        let mut class = String::new();
+        // Tracks if we need to modify the class attribute
+        let mut modified = false;
+
+        // Keep track of seen classes to avoid duplicates
+        let mut seen = Vec::new();
+        // Classes to remove
+        let mut to_remove = Vec::new();
+
+        let is_quirks = self.compat_mode == CompatMode::Quirks;
+
+        // Build list of classes to remove with correct case sensitivity
+        for (name, action) in &self.classname_updates {
+            if *action == ClassAction::Remove {
+                if is_quirks {
+                    to_remove.push(name.to_lowercase());
+                } else {
+                    to_remove.push(name.clone());
                 }
             }
         }
 
-        // Apply class updates
-        for (class_name, action) in &self.classname_updates {
-            match action {
-                ClassAction::Add => {
-                    classes.insert(class_name.clone());
-                }
-                ClassAction::Remove => {
-                    // In quirks mode, we need to compare case-insensitively
-                    if case_insensitive {
-                        let class_name_lower = class_name.to_lowercase();
-                        classes.retain(|c| c.to_lowercase() != class_name_lower);
-                    } else {
-                        classes.remove(class_name);
-                    }
+        // Process existing classes
+        let mut at = 0;
+        let existing_class_len = existing_class.len();
+
+        while at < existing_class_len {
+            // Skip to the first non-whitespace character
+            let ws_at = at;
+            let mut ws_length = 0;
+            while at < existing_class_len {
+                let c = existing_class.as_bytes()[at];
+                if c == b' ' || c == b'\t' || c == 0x0C /* form feed */ || c == b'\r' || c == b'\n'
+                {
+                    ws_length += 1;
+                    at += 1;
+                } else {
+                    break;
                 }
             }
-        }
 
-        // Convert back to a space-separated string
-        if !classes.is_empty() {
-            let new_class_value = classes.into_iter().collect::<Vec<_>>().join(" ");
-            // Use update_attribute instead, as set_attribute is not fully implemented yet
-            let attribute_name = b"class";
-            if let Some(pos) = self.find_attribute_position(attribute_name) {
-                // Update the attribute if it exists
-                // In a real implementation, this would update the attribute value
-                // For now we just print a message
-                println!("Would update class attribute at position {}", pos);
+            // Capture the class name - everything until the next whitespace
+            let name_start = at;
+            let mut name_length = 0;
+            while at < existing_class_len {
+                let c = existing_class.as_bytes()[at];
+                if c != b' ' && c != b'\t' && c != 0x0C /* form feed */ && c != b'\r' && c != b'\n'
+                {
+                    name_length += 1;
+                    at += 1;
+                } else {
+                    break;
+                }
+            }
+
+            if name_length == 0 {
+                // No more class names
+                break;
+            }
+
+            // Extract the class name
+            let name = &existing_class[name_start..name_start + name_length];
+            let comparable_name = if is_quirks {
+                name.to_lowercase()
             } else {
-                // Add the attribute if it doesn't exist
-                // In a real implementation, this would add the attribute
-                // For now we just print a message
-                println!("Would add class attribute with value: {}", new_class_value);
+                name.to_string()
+            };
+
+            // Skip classes marked for removal
+            if to_remove.contains(&comparable_name) {
+                modified = true;
+                continue;
             }
+
+            // Skip classes already seen (avoid duplicates)
+            if seen.contains(&comparable_name) {
+                continue;
+            }
+
+            seen.push(comparable_name);
+
+            // Append to the new class value, preserving whitespace
+            if !class.is_empty() {
+                class.push_str(&existing_class[ws_at..ws_at + ws_length]);
+            }
+            class.push_str(name);
+        }
+
+        // Add new classes that weren't already seen
+        for (name, action) in &self.classname_updates {
+            let comparable_name = if is_quirks {
+                name.to_lowercase()
+            } else {
+                name.clone()
+            };
+            if *action == ClassAction::Add && !seen.contains(&comparable_name) {
+                modified = true;
+
+                if !class.is_empty() {
+                    class.push(' ');
+                }
+                class.push_str(name);
+            }
+        }
+
+        // Clear the updates as they've been processed
+        self.classname_updates.clear();
+
+        // Only update the attribute if necessary
+        if !modified {
+            return;
+        }
+
+        // Set or remove the class attribute
+        if !class.is_empty() {
+            // Note: set_attribute is not implemented yet, so this is a placeholder
+            // In the actual implementation, you would call:
+            // let _ = self.set_attribute("class", &class);
+            // For now, just log what would happen
+            println!("Would set class attribute to: {}", class);
         } else {
-            // If no classes remain, remove the class attribute
-            // In a real implementation, this would remove the attribute
-            // For now we just print a message
+            // Note: remove_attribute is not implemented yet, so this is a placeholder
+            // In the actual implementation, you would call:
+            // let _ = self.remove_attribute("class");
+            // For now, just log what would happen
             println!("Would remove class attribute");
         }
-
-        // Clear class updates as they've been applied
-        self.classname_updates.clear();
     }
 
     /// Returns the string representation of the HTML Tag Processor.
