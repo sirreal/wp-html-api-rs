@@ -49,6 +49,30 @@ pub enum ClassAction {
     Remove,
 }
 
+/// Escape HTML attribute values
+///
+/// This is a simplified version of WordPress's esc_attr function
+fn escape_attr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// Escape URLs in HTML attributes
+///
+/// This is a simplified version of WordPress's esc_url function
+fn escape_url(s: &str) -> String {
+    // Basic URL validation and escaping
+    // In a real implementation, this would be more thorough
+    if s.contains("javascript:") || s.contains("data:") {
+        // Potentially unsafe URL schemes
+        return String::new();
+    }
+
+    escape_attr(s)
+}
+
 pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
     pub bytes_already_parsed: usize,
@@ -159,6 +183,34 @@ impl TagProcessor {
             html_bytes,
             ..Default::default()
         }
+    }
+
+    /// Checks if an attribute is a URL attribute
+    ///
+    /// @param name The attribute name to check
+    /// @return Whether the attribute is a URL attribute
+    fn is_url_attribute(&self, name: &str) -> bool {
+        // This list is based on wp_kses_uri_attributes() in WordPress
+        matches!(
+            name,
+            "action"
+                | "archive"
+                | "background"
+                | "cite"
+                | "classid"
+                | "codebase"
+                | "data"
+                | "formaction"
+                | "href"
+                | "icon"
+                | "longdesc"
+                | "manifest"
+                | "poster"
+                | "profile"
+                | "src"
+                | "usemap"
+                | "xmlns"
+        )
     }
 
     /// Finds the next token in the HTML document.
@@ -2241,8 +2293,85 @@ impl TagProcessor {
     /// @param string      $name  The attribute name to target.
     /// @param string|bool $value The new attribute value.
     /// @return bool Whether an attribute value was set.
-    pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {
-        todo!()
+    pub fn set_attribute(&mut self, name: &str, value: impl Into<AttributeValue> + Clone) -> bool {
+        if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(true) {
+            return false;
+        }
+
+        // Validate attribute name
+        // HTML5 doesn't allow certain characters in attribute names
+        // We're being a bit more restrictive than HTML5 for security reasons
+        let forbidden_chars = ['"', '\'', '>', '&', '<', '/', ' ', '='];
+        if name
+            .chars()
+            .any(|c| forbidden_chars.contains(&c) || c.is_control())
+        {
+            // Invalid attribute name
+            println!("Invalid attribute name: {}", name);
+            return false;
+        }
+
+        let value = value.into();
+
+        // Handle false value (remove attribute)
+        if let AttributeValue::BooleanFalse = value {
+            return self.remove_attribute(name);
+        }
+
+        // Create the attribute string
+        let updated_attribute = match value {
+            AttributeValue::BooleanTrue => name.to_string(),
+            AttributeValue::String(value_bytes) => {
+                let comparable_name = name.to_lowercase();
+                let value_string = String::from_utf8_lossy(&value_bytes).to_string();
+
+                // Escape URL attributes if necessary
+                // Note: Rust doesn't have an exact equivalent of esc_url and esc_attr
+                // This is a simplified version and would need to be expanded
+                let escaped_value = if self.is_url_attribute(&comparable_name) {
+                    // Simple URL escaping (would need more thorough implementation)
+                    escape_url(&value_string)
+                } else {
+                    // Simple attribute escaping
+                    escape_attr(&value_string)
+                };
+
+                // If escaping wiped out the value, reject it
+                if escaped_value.is_empty() && !value_string.is_empty() {
+                    return false;
+                }
+
+                format!("{}=\"{}\"", name, escaped_value)
+            }
+            AttributeValue::BooleanFalse => unreachable!(), // We handled this case earlier
+        };
+
+        // Check if attribute already exists (case-insensitive)
+        let comparable_name = name.to_lowercase();
+
+        if let Some(pos) = self.find_attribute_position(comparable_name.as_bytes()) {
+            // Update existing attribute
+            let existing_attribute = &self.attributes[pos];
+            self.lexical_updates.push(HtmlTextReplacement::new(
+                existing_attribute.start,
+                existing_attribute.length,
+                &updated_attribute,
+            ));
+        } else {
+            // Create a new attribute
+            self.lexical_updates.push(HtmlTextReplacement::new(
+                self.tag_name_starts_at.unwrap() + self.tag_name_length.unwrap(),
+                0,
+                &format!(" {}", updated_attribute),
+            ));
+        }
+
+        // Clear class updates if we're setting class directly
+        if comparable_name == "class" && !self.classname_updates.is_empty() {
+            self.classname_updates.clear();
+        }
+
+        true
     }
 
     pub fn get_attribute(&self, name: &[u8]) -> Option<AttributeValue> {
@@ -2670,6 +2799,28 @@ pub enum AttributeValue {
     BooleanFalse,
     BooleanTrue,
     String(Box<[u8]>),
+}
+
+impl From<bool> for AttributeValue {
+    fn from(value: bool) -> Self {
+        if value {
+            AttributeValue::BooleanTrue
+        } else {
+            AttributeValue::BooleanFalse
+        }
+    }
+}
+
+impl From<&str> for AttributeValue {
+    fn from(value: &str) -> Self {
+        AttributeValue::String(value.as_bytes().to_vec().into_boxed_slice())
+    }
+}
+
+impl From<String> for AttributeValue {
+    fn from(value: String) -> Self {
+        AttributeValue::String(value.into_bytes().into_boxed_slice())
+    }
 }
 
 pub struct ClassList {
