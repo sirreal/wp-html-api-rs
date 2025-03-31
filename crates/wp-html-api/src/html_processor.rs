@@ -5138,11 +5138,11 @@ impl HtmlProcessor {
     /// @param string      $name  The attribute name to target.
     /// @param string|bool $value The new attribute value.
     /// @return bool Whether an attribute value was set.
-    pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {
+    pub fn set_attribute(&mut self, name: &[u8], value: impl Into<AttributeValue>) -> bool {
         if self.is_virtual() {
             false
         } else {
-            self.tag_processor.set_attribute(name.as_bytes(), value)
+            self.tag_processor.set_attribute(name, value)
         }
     }
 
