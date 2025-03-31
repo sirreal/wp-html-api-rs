@@ -5142,7 +5142,7 @@ impl HtmlProcessor {
         if self.is_virtual() {
             false
         } else {
-            self.tag_processor.set_attribute(name, value)
+            self.tag_processor.set_attribute(name.as_bytes(), value)
         }
     }
 
@@ -5154,7 +5154,7 @@ impl HtmlProcessor {
         if self.is_virtual() {
             false
         } else {
-            self.tag_processor.remove_attribute(name)
+            self.tag_processor.remove_attribute(name.as_bytes())
         }
     }
 

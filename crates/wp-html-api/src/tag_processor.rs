@@ -213,6 +213,19 @@ impl TagProcessor {
         )
     }
 
+    /// Checks if an attribute is a URL attribute using a byte slice
+    ///
+    /// @param name The attribute name to check as bytes
+    /// @return Whether the attribute is a URL attribute
+    fn is_url_attribute_bytes(&self, name: &[u8]) -> bool {
+        // Convert to string since we have a predefined list of URL attributes
+        if let Ok(name_str) = std::str::from_utf8(name) {
+            self.is_url_attribute(name_str)
+        } else {
+            false
+        }
+    }
+
     /// Finds the next token in the HTML document.
     ///
     /// An HTML document can be viewed as a stream of tokens,
@@ -1786,7 +1799,7 @@ impl TagProcessor {
     ///
     /// @param name The attribute name to remove.
     /// @return bool Whether the attribute was set to be removed.
-    pub fn remove_attribute(&mut self, name: &str) -> bool {
+    pub fn remove_attribute(&mut self, name: &[u8]) -> bool {
         todo!()
     }
 
@@ -2293,7 +2306,7 @@ impl TagProcessor {
     /// @param string      $name  The attribute name to target.
     /// @param string|bool $value The new attribute value.
     /// @return bool Whether an attribute value was set.
-    pub fn set_attribute(&mut self, name: &str, value: impl Into<AttributeValue> + Clone) -> bool {
+    pub fn set_attribute(&mut self, name: &[u8], value: impl Into<AttributeValue>) -> bool {
         if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(true) {
             return false;
         }
@@ -2301,13 +2314,18 @@ impl TagProcessor {
         // Validate attribute name
         // HTML5 doesn't allow certain characters in attribute names
         // We're being a bit more restrictive than HTML5 for security reasons
-        let forbidden_chars = ['"', '\'', '>', '&', '<', '/', ' ', '='];
-        if name
-            .chars()
-            .any(|c| forbidden_chars.contains(&c) || c.is_control())
-        {
+        if name.iter().any(|&b| {
+            matches!(
+                b,
+                b'"' | b'\'' | b'>' | b'&' | b'<' | b'/' | b' ' | b'=' | 0..=31
+            )
+        }) {
             // Invalid attribute name
-            println!("Invalid attribute name: {}", name);
+            if let Ok(name_str) = std::str::from_utf8(name) {
+                println!("Invalid attribute name: {}", name_str);
+            } else {
+                println!("Invalid attribute name (invalid UTF-8)");
+            }
             return false;
         }
 
@@ -2320,15 +2338,15 @@ impl TagProcessor {
 
         // Create the attribute string
         let updated_attribute = match value {
-            AttributeValue::BooleanTrue => name.to_string(),
+            AttributeValue::BooleanTrue => String::from_utf8_lossy(name).to_string(),
             AttributeValue::String(value_bytes) => {
-                let comparable_name = name.to_lowercase();
+                let name_str = String::from_utf8_lossy(name).to_string();
                 let value_string = String::from_utf8_lossy(&value_bytes).to_string();
 
                 // Escape URL attributes if necessary
                 // Note: Rust doesn't have an exact equivalent of esc_url and esc_attr
                 // This is a simplified version and would need to be expanded
-                let escaped_value = if self.is_url_attribute(&comparable_name) {
+                let escaped_value = if self.is_url_attribute_bytes(name) {
                     // Simple URL escaping (would need more thorough implementation)
                     escape_url(&value_string)
                 } else {
@@ -2341,15 +2359,15 @@ impl TagProcessor {
                     return false;
                 }
 
-                format!("{}=\"{}\"", name, escaped_value)
+                format!("{}=\"{}\"", name_str, escaped_value)
             }
             AttributeValue::BooleanFalse => unreachable!(), // We handled this case earlier
         };
 
         // Check if attribute already exists (case-insensitive)
-        let comparable_name = name.to_lowercase();
+        let comparable_name_bytes = name.to_ascii_lowercase();
 
-        if let Some(pos) = self.find_attribute_position(comparable_name.as_bytes()) {
+        if let Some(pos) = self.find_attribute_position(&comparable_name_bytes) {
             // Update existing attribute
             let existing_attribute = &self.attributes[pos];
             self.lexical_updates.push(HtmlTextReplacement::new(
@@ -2367,7 +2385,7 @@ impl TagProcessor {
         }
 
         // Clear class updates if we're setting class directly
-        if comparable_name == "class" && !self.classname_updates.is_empty() {
+        if comparable_name_bytes == b"class" && !self.classname_updates.is_empty() {
             self.classname_updates.clear();
         }
 
@@ -2811,15 +2829,15 @@ impl From<bool> for AttributeValue {
     }
 }
 
-impl From<&str> for AttributeValue {
-    fn from(value: &str) -> Self {
-        AttributeValue::String(value.as_bytes().to_vec().into_boxed_slice())
+impl From<&[u8]> for AttributeValue {
+    fn from(value: &[u8]) -> Self {
+        AttributeValue::String(Box::from(value))
     }
 }
 
-impl From<String> for AttributeValue {
-    fn from(value: String) -> Self {
-        AttributeValue::String(value.into_bytes().into_boxed_slice())
+impl From<&str> for AttributeValue {
+    fn from(value: &str) -> Self {
+        AttributeValue::String(Box::from(value.as_bytes()))
     }
 }
 

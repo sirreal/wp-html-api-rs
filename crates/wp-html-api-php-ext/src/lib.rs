@@ -146,6 +146,8 @@ impl WP_HTML_Tag_Processor {
         name: BinarySlice<u8>,
         value: BinarySlice<u8>,
     ) -> bool {
+        let name: &[u8] = name.into();
+        let value: &[u8] = value.into();
         this.processor.set_attribute(name, value)
     }
 
