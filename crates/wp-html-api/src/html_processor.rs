@@ -5150,11 +5150,11 @@ impl HtmlProcessor {
     ///
     /// @param string $name The attribute name to remove.
     /// @return bool Whether an attribute was removed.
-    pub fn remove_attribute(&mut self, name: &str) -> bool {
+    pub fn remove_attribute(&mut self, name: &[u8]) -> bool {
         if self.is_virtual() {
             false
         } else {
-            self.tag_processor.remove_attribute(name.as_bytes())
+            self.tag_processor.remove_attribute(name)
         }
     }
 
