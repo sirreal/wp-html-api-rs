@@ -1,3 +1,4 @@
-/target
+/target/
 /*.stubs.php
 node_modules/
+/js-packages/*/dist/
