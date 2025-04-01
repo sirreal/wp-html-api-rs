@@ -1,8 +1,9 @@
 #![allow(non_camel_case_types, unused_macros)]
 
 extern crate wasm_bindgen;
+use wasm_bindgen::convert::VectorIntoWasmAbi;
 use wp_html_api::html_processor::HtmlProcessor;
-use wp_html_api::tag_processor::TagProcessor;
+use wp_html_api::tag_processor::{AttributeValue, NodeName, TagProcessor, TokenType};
 
 use wasm_bindgen::prelude::*;
 
@@ -56,8 +57,8 @@ impl WP_HTML_Tag_Processor {
         todo!();
     }
 
-    pub fn get_modifiable_text(&self) -> () {
-        todo!()
+    pub fn get_modifiable_text(&self) -> Box<[u8]> {
+        self.processor.get_modifiable_text()
     }
 }
 
@@ -89,11 +90,49 @@ impl WP_HTML_Processor {
         self.processor.get_tag().map(Into::into)
     }
 
-    pub fn get_token_type(&self) -> Option<String> {
-        self.processor.get_token_type().map(|t| t.into())
+    pub fn get_token_type(&self) -> Option<Box<[u8]>> {
+        self.processor.get_token_name().map(|name| match name {
+            NodeName::Tag(tag_name) => tag_name.into(),
+            NodeName::Token(token_name) => {
+                if token_name == TokenType::Doctype {
+                    b"html".as_ref().into()
+                } else {
+                    let token_name: &str = (&token_name).into();
+                    token_name.as_bytes().into()
+                }
+            }
+        })
     }
 
-    pub fn get_token_name(&self) -> Option<Box<[u8]>> {
-        todo!();
+    pub fn get_attribute(&self, prefix: String) -> JsValue {
+        self.processor.get_attribute(prefix.as_bytes()).map_or_else(
+            || JsValue::null(),
+            |val| match val {
+                AttributeValue::BooleanFalse => JsValue::null(),
+                AttributeValue::BooleanTrue => JsValue::TRUE,
+                AttributeValue::String(s) => s.into(),
+            },
+        )
+    }
+
+    pub fn class_list(&self) -> Box<[String]> {
+        let vec: Vec<String> = self
+            .processor
+            .class_list()
+            .into_iter()
+            .map(|s| -> String { String::from_utf8_lossy(&s.to_vec()).into() })
+            .collect();
+        vec.into_boxed_slice()
+    }
+
+    pub fn get_modifiable_text(&self) -> Box<[u8]> {
+        self.processor.get_modifiable_text()
+    }
+
+    pub fn get_last_error(&self) -> Option<String> {
+        self.processor.get_last_error().map(|value| {
+            let s: &str = value.into();
+            s.to_owned()
+        })
     }
 }
