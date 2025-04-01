@@ -858,8 +858,8 @@ impl HtmlProcessor {
     ///     $processor->get_breadcrumbs() === array( 'HTML', 'BODY', 'P', 'STRONG', 'EM', 'IMG' );
     ///
     /// @return string[] Array of tag names representing path to matched node.
-    pub fn get_breadcrumbs() {
-        todo!()
+    pub fn get_breadcrumbs(&self) -> &[NodeName] {
+        self.breadcrumbs.as_slice()
     }
 
     /// Returns the nesting depth of the current location in the document.
