@@ -1,7 +1,6 @@
 #![allow(non_camel_case_types, unused_macros)]
 
 extern crate wasm_bindgen;
-use wasm_bindgen::convert::VectorIntoWasmAbi;
 use wp_html_api::html_processor::HtmlProcessor;
 use wp_html_api::tag_processor::{AttributeValue, NodeName, TagProcessor, TokenType};
 
@@ -134,5 +133,27 @@ impl WP_HTML_Processor {
             let s: &str = value.into();
             s.to_owned()
         })
+    }
+
+    pub fn get_breadcrumbs(&self) -> Box<[String]> {
+        self.processor
+            .get_breadcrumbs()
+            .into_iter()
+            .map(|name| match name {
+                NodeName::Tag(tag_name) => {
+                    let s: Box<[u8]> = tag_name.into();
+                    String::from_utf8_lossy(&s.to_vec()).into()
+                }
+                NodeName::Token(token_name) => {
+                    if token_name == &TokenType::Doctype {
+                        "html".to_owned()
+                    } else {
+                        let token_name: &str = token_name.into();
+                        token_name.to_owned()
+                    }
+                }
+            })
+            .collect::<Vec<_>>()
+            .into_boxed_slice()
     }
 }
