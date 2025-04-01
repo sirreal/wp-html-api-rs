@@ -53,7 +53,17 @@ impl WP_HTML_Tag_Processor {
     }
 
     pub fn get_token_name(&self) -> Option<Box<[u8]>> {
-        todo!();
+        self.processor.get_token_name().map(|name| match name {
+            NodeName::Tag(tag_name) => tag_name.into(),
+            NodeName::Token(token_name) => {
+                if token_name == TokenType::Doctype {
+                    b"html".as_ref().into()
+                } else {
+                    let token_name: &str = (&token_name).into();
+                    token_name.as_bytes().into()
+                }
+            }
+        })
     }
 
     pub fn get_modifiable_text(&self) -> Box<[u8]> {
@@ -89,7 +99,11 @@ impl WP_HTML_Processor {
         self.processor.get_tag().map(Into::into)
     }
 
-    pub fn get_token_type(&self) -> Option<Box<[u8]>> {
+    pub fn get_token_type(&self) -> Option<String> {
+        self.processor.get_token_type().map(Into::into)
+    }
+
+    pub fn get_token_name(&self) -> Option<Box<[u8]>> {
         self.processor.get_token_name().map(|name| match name {
             NodeName::Tag(tag_name) => tag_name.into(),
             NodeName::Token(token_name) => {
