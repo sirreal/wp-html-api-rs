@@ -16,7 +16,7 @@ use crate::{
     doctype::HtmlDoctypeInfo,
     tag_name::TagName,
     tag_processor::{
-        AttributeValue, BookmarkName, CommentType, HtmlSpan, NodeName, ParserState,
+        AttributeValue, BookmarkName, ClassList, CommentType, HtmlSpan, NodeName, ParserState,
         ParsingNamespace, TagProcessor, TextNodeClassification, TokenType,
     },
 };
@@ -5240,13 +5240,12 @@ impl HtmlProcessor {
     ///         echo "{$class_name} ";
     ///     }
     ///     // Outputs: "free <egg> lang-en "
-    pub fn class_list(&self) {
-        todo!();
-        //if self.is_virtual() {
-        //    None
-        //} else {
-        //    self.tag_processor.class_list()
-        //}
+    pub fn class_list(&self) -> ClassList {
+        if self.is_virtual() {
+            ClassList::empty()
+        } else {
+            self.tag_processor.class_list()
+        }
     }
 
     /// Returns the modifiable text for a matched token, or an empty string.
