@@ -5138,7 +5138,7 @@ impl HtmlProcessor {
     /// @param string      $name  The attribute name to target.
     /// @param string|bool $value The new attribute value.
     /// @return bool Whether an attribute value was set.
-    pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {
+    pub fn set_attribute(&mut self, name: &[u8], value: impl Into<AttributeValue>) -> bool {
         if self.is_virtual() {
             false
         } else {
@@ -5150,7 +5150,7 @@ impl HtmlProcessor {
     ///
     /// @param string $name The attribute name to remove.
     /// @return bool Whether an attribute was removed.
-    pub fn remove_attribute(&mut self, name: &str) -> bool {
+    pub fn remove_attribute(&mut self, name: &[u8]) -> bool {
         if self.is_virtual() {
             false
         } else {

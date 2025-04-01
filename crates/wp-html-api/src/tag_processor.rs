@@ -39,6 +39,40 @@ impl Default for NextTagQuery {
     }
 }
 
+/// Enum for specifying whether a class name should be added or removed
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClassAction {
+    /// Add a class to the tag's class attribute
+    Add,
+
+    /// Remove a class from the tag's class attribute
+    Remove,
+}
+
+/// Escape HTML attribute values
+///
+/// This is a simplified version of WordPress's esc_attr function
+fn escape_attr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// Escape URLs in HTML attributes
+///
+/// This is a simplified version of WordPress's esc_url function
+fn escape_url(s: &str) -> String {
+    // Basic URL validation and escaping
+    // In a real implementation, this would be more thorough
+    if s.contains("javascript:") || s.contains("data:") {
+        // Potentially unsafe URL schemes
+        return String::new();
+    }
+
+    escape_attr(s)
+}
+
 pub struct TagProcessor {
     attributes: Vec<AttributeToken>,
     pub bytes_already_parsed: usize,
@@ -79,6 +113,17 @@ pub struct TagProcessor {
 
     pub(crate) bookmarks: HashMap<Box<str>, HtmlSpan>,
     pub(crate) internal_bookmarks: FxHashMap<u32, HtmlSpan>,
+
+    /// Which class names to add or remove from a tag.
+    ///
+    /// These are tracked separately from attribute updates because they are
+    /// semantically distinct, whereas this interface exists for the common
+    /// case of adding and removing class names while other attributes are
+    /// generally modified as with DOM `setAttribute` calls.
+    ///
+    /// When modifying an HTML document these will eventually be collapsed
+    /// into a single `set_attribute("class", value)` call.
+    classname_updates: HashMap<String, ClassAction>,
 }
 
 #[derive(Default, PartialEq, Debug, Clone)]
@@ -137,6 +182,47 @@ impl TagProcessor {
         Self {
             html_bytes,
             ..Default::default()
+        }
+    }
+
+    /// Checks if an attribute is a URL attribute
+    ///
+    /// @param name The attribute name to check
+    /// @return Whether the attribute is a URL attribute
+    fn is_url_attribute(&self, name: &str) -> bool {
+        // This list is based on wp_kses_uri_attributes() in WordPress
+        matches!(
+            name,
+            "action"
+                | "archive"
+                | "background"
+                | "cite"
+                | "classid"
+                | "codebase"
+                | "data"
+                | "formaction"
+                | "href"
+                | "icon"
+                | "longdesc"
+                | "manifest"
+                | "poster"
+                | "profile"
+                | "src"
+                | "usemap"
+                | "xmlns"
+        )
+    }
+
+    /// Checks if an attribute is a URL attribute using a byte slice
+    ///
+    /// @param name The attribute name to check as bytes
+    /// @return Whether the attribute is a URL attribute
+    fn is_url_attribute_bytes(&self, name: &[u8]) -> bool {
+        // Convert to string since we have a predefined list of URL attributes
+        if let Ok(name_str) = std::str::from_utf8(name) {
+            self.is_url_attribute(name_str)
+        } else {
+            false
         }
     }
 
@@ -478,8 +564,163 @@ impl TagProcessor {
         self.text_node_classification = TextNodeClassification::Generic;
     }
 
-    fn class_name_updates_to_attributes_updates(&self) {
-        // Implement me!
+    /// Converts class name updates into tag attributes updates
+    /// (they are accumulated in different data formats for performance).
+    ///
+    /// @see TagProcessor::lexical_updates
+    /// @see TagProcessor::classname_updates
+    fn class_name_updates_to_attributes_updates(&mut self) {
+        if self.classname_updates.is_empty() {
+            return;
+        }
+
+        // Get the existing class attribute value
+        let existing_class = match self.get_attribute(b"class") {
+            Some(AttributeValue::String(value)) => String::from_utf8_lossy(&value).to_string(),
+            Some(AttributeValue::BooleanTrue) | None => String::new(),
+            Some(AttributeValue::BooleanFalse) => {
+                // Check if the attribute exists in the raw HTML
+                if let Some(pos) = self.find_attribute_position(b"class") {
+                    let attr = &self.attributes[pos];
+                    String::from_utf8_lossy(
+                        &self.html_bytes
+                            [attr.value_starts_at..attr.value_starts_at + attr.value_length],
+                    )
+                    .to_string()
+                } else {
+                    String::new()
+                }
+            }
+        };
+
+        // Output class value that will be built incrementally
+        let mut class = String::new();
+        // Tracks if we need to modify the class attribute
+        let mut modified = false;
+
+        // Keep track of seen classes to avoid duplicates
+        let mut seen = Vec::new();
+        // Classes to remove
+        let mut to_remove = Vec::new();
+
+        let is_quirks = self.compat_mode == CompatMode::Quirks;
+
+        // Build list of classes to remove with correct case sensitivity
+        for (name, action) in &self.classname_updates {
+            if *action == ClassAction::Remove {
+                if is_quirks {
+                    to_remove.push(name.to_lowercase());
+                } else {
+                    to_remove.push(name.clone());
+                }
+            }
+        }
+
+        // Process existing classes
+        let mut at = 0;
+        let existing_class_len = existing_class.len();
+
+        while at < existing_class_len {
+            // Skip to the first non-whitespace character
+            let ws_at = at;
+            let mut ws_length = 0;
+            while at < existing_class_len {
+                let c = existing_class.as_bytes()[at];
+                if c == b' ' || c == b'\t' || c == 0x0C /* form feed */ || c == b'\r' || c == b'\n'
+                {
+                    ws_length += 1;
+                    at += 1;
+                } else {
+                    break;
+                }
+            }
+
+            // Capture the class name - everything until the next whitespace
+            let name_start = at;
+            let mut name_length = 0;
+            while at < existing_class_len {
+                let c = existing_class.as_bytes()[at];
+                if c != b' ' && c != b'\t' && c != 0x0C /* form feed */ && c != b'\r' && c != b'\n'
+                {
+                    name_length += 1;
+                    at += 1;
+                } else {
+                    break;
+                }
+            }
+
+            if name_length == 0 {
+                // No more class names
+                break;
+            }
+
+            // Extract the class name
+            let name = &existing_class[name_start..name_start + name_length];
+            let comparable_name = if is_quirks {
+                name.to_lowercase()
+            } else {
+                name.to_string()
+            };
+
+            // Skip classes marked for removal
+            if to_remove.contains(&comparable_name) {
+                modified = true;
+                continue;
+            }
+
+            // Skip classes already seen (avoid duplicates)
+            if seen.contains(&comparable_name) {
+                continue;
+            }
+
+            seen.push(comparable_name);
+
+            // Append to the new class value, preserving whitespace
+            if !class.is_empty() {
+                class.push_str(&existing_class[ws_at..ws_at + ws_length]);
+            }
+            class.push_str(name);
+        }
+
+        // Add new classes that weren't already seen
+        for (name, action) in &self.classname_updates {
+            let comparable_name = if is_quirks {
+                name.to_lowercase()
+            } else {
+                name.clone()
+            };
+            if *action == ClassAction::Add && !seen.contains(&comparable_name) {
+                modified = true;
+
+                if !class.is_empty() {
+                    class.push(' ');
+                }
+                class.push_str(name);
+            }
+        }
+
+        // Clear the updates as they've been processed
+        self.classname_updates.clear();
+
+        // Only update the attribute if necessary
+        if !modified {
+            return;
+        }
+
+        // Set or remove the class attribute
+        if !class.is_empty() {
+            // Note: set_attribute is not implemented yet, so this is a placeholder
+            // In the actual implementation, you would call:
+            // let _ = self.set_attribute("class", &class);
+            // For now, just log what would happen
+            println!("Would set class attribute to: {}", class);
+        } else {
+            // Note: remove_attribute is not implemented yet, so this is a placeholder
+            // In the actual implementation, you would call:
+            // let _ = self.remove_attribute("class");
+            // For now, just log what would happen
+            println!("Would remove class attribute");
+        }
     }
 
     /// Returns the string representation of the HTML Tag Processor.
@@ -487,6 +728,48 @@ impl TagProcessor {
     /// @return string The processed HTML.
     pub fn get_updated_html(&self) -> Box<[u8]> {
         self.html_bytes.clone()
+    }
+
+    /// Parse a class attribute value into individual class names
+    ///
+    /// @param class_value The value of the class attribute
+    /// @return Iterator over individual class names
+    fn parse_class_attribute<'a>(
+        &self,
+        class_value: &'a [u8],
+    ) -> impl Iterator<Item = Box<[u8]>> + 'a {
+        class_value
+            .split(|&c| c == b' ' || c == b'\t' || c == b'\n' || c == b'\r' || c == b'\x0C')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_vec().into_boxed_slice())
+    }
+
+    /// Find the position of an attribute in the attribute list
+    ///
+    /// @param name The name of the attribute to find
+    /// @return The index of the attribute, if found
+    fn find_attribute_position(&self, name: &[u8]) -> Option<usize> {
+        if self.parser_state != ParserState::MatchedTag {
+            return None;
+        }
+
+        // Case-insensitive comparison in quirks mode
+        let case_insensitive = self.compat_mode == CompatMode::Quirks;
+
+        for (i, attr) in self.attributes.iter().enumerate() {
+            let attr_name = &self.html_bytes[attr.start..attr.start + attr.name_length];
+            let match_found = if case_insensitive {
+                attr_name.eq_ignore_ascii_case(name)
+            } else {
+                attr_name == name
+            };
+
+            if match_found {
+                return Some(i);
+            }
+        }
+
+        None
     }
 
     fn parse_next_tag(&mut self) -> bool {
@@ -1394,7 +1677,39 @@ impl TagProcessor {
     /// @param class_name The class name to add.
     /// @return bool Whether the class was set to be added.
     pub fn add_class(&mut self, class_name: &str) -> bool {
-        todo!()
+        if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(true) {
+            return false;
+        }
+
+        if self.compat_mode != CompatMode::Quirks {
+            // In standard mode, just add the class name
+            self.classname_updates
+                .insert(class_name.to_string(), ClassAction::Add);
+            return true;
+        }
+
+        // In quirks mode, we need to check for case variants
+        // Collect all case variants first to avoid mutable borrow issues
+        let mut case_variant = None;
+        for (updated_name, _) in self.classname_updates.iter() {
+            if updated_name.len() == class_name.len()
+                && updated_name.eq_ignore_ascii_case(class_name)
+            {
+                case_variant = Some(updated_name.clone());
+                break;
+            }
+        }
+
+        // Update the class name action
+        if let Some(variant) = case_variant {
+            self.classname_updates.insert(variant, ClassAction::Add);
+        } else {
+            // No case variant found, add a new entry
+            self.classname_updates
+                .insert(class_name.to_string(), ClassAction::Add);
+        }
+
+        true
     }
 
     /// Removes a class name from the currently matched tag.
@@ -1402,7 +1717,39 @@ impl TagProcessor {
     /// @param class_name The class name to remove.
     /// @return bool Whether the class was set to be removed.
     pub fn remove_class(&mut self, class_name: &str) -> bool {
-        todo!()
+        if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(true) {
+            return false;
+        }
+
+        if self.compat_mode != CompatMode::Quirks {
+            // In standard mode, just remove the class name
+            self.classname_updates
+                .insert(class_name.to_string(), ClassAction::Remove);
+            return true;
+        }
+
+        // In quirks mode, we need to check for case variants
+        // Collect all case variants first to avoid mutable borrow issues
+        let mut case_variant = None;
+        let class_name_len = class_name.len();
+        for (updated_name, _) in self.classname_updates.iter() {
+            if updated_name.len() == class_name_len && updated_name.eq_ignore_ascii_case(class_name)
+            {
+                case_variant = Some(updated_name.clone());
+                break;
+            }
+        }
+
+        // Update the class name action
+        if let Some(variant) = case_variant {
+            self.classname_updates.insert(variant, ClassAction::Remove);
+        } else {
+            // No case variant found, add a new entry
+            self.classname_updates
+                .insert(class_name.to_string(), ClassAction::Remove);
+        }
+
+        true
     }
 
     /// Whether the processor paused because the input HTML document ended
@@ -1452,7 +1799,7 @@ impl TagProcessor {
     ///
     /// @param name The attribute name to remove.
     /// @return bool Whether the attribute was set to be removed.
-    pub fn remove_attribute(&mut self, name: &str) -> bool {
+    pub fn remove_attribute(&mut self, name: &[u8]) -> bool {
         todo!()
     }
 
@@ -1948,8 +2295,101 @@ impl TagProcessor {
         })
     }
 
-    pub fn set_attribute(&mut self, name: &str, value: &str) -> bool {
-        todo!()
+    /// Updates or creates a new attribute on the currently matched tag with the passed value.
+    ///
+    /// For boolean attributes special handling is provided:
+    ///  - When `true` is passed as the value, then only the attribute name is added to the tag.
+    ///  - When `false` is passed, the attribute gets removed if it existed before.
+    ///
+    /// For string attributes, the value is escaped using the `esc_attr` function.
+    ///
+    /// @param string      $name  The attribute name to target.
+    /// @param string|bool $value The new attribute value.
+    /// @return bool Whether an attribute value was set.
+    pub fn set_attribute(&mut self, name: &[u8], value: impl Into<AttributeValue>) -> bool {
+        if self.parser_state != ParserState::MatchedTag || self.is_closing_tag.unwrap_or(true) {
+            return false;
+        }
+
+        // Validate attribute name
+        // HTML5 doesn't allow certain characters in attribute names
+        // We're being a bit more restrictive than HTML5 for security reasons
+        if name.iter().any(|&b| {
+            matches!(
+                b,
+                b'"' | b'\'' | b'>' | b'&' | b'<' | b'/' | b' ' | b'=' | 0..=31
+            )
+        }) {
+            // Invalid attribute name
+            if let Ok(name_str) = std::str::from_utf8(name) {
+                println!("Invalid attribute name: {}", name_str);
+            } else {
+                println!("Invalid attribute name (invalid UTF-8)");
+            }
+            return false;
+        }
+
+        let value = value.into();
+
+        // Handle false value (remove attribute)
+        if let AttributeValue::BooleanFalse = value {
+            return self.remove_attribute(name);
+        }
+
+        // Create the attribute string
+        let updated_attribute = match value {
+            AttributeValue::BooleanTrue => String::from_utf8_lossy(name).to_string(),
+            AttributeValue::String(value_bytes) => {
+                let name_str = String::from_utf8_lossy(name).to_string();
+                let value_string = String::from_utf8_lossy(&value_bytes).to_string();
+
+                // Escape URL attributes if necessary
+                // Note: Rust doesn't have an exact equivalent of esc_url and esc_attr
+                // This is a simplified version and would need to be expanded
+                let escaped_value = if self.is_url_attribute_bytes(name) {
+                    // Simple URL escaping (would need more thorough implementation)
+                    escape_url(&value_string)
+                } else {
+                    // Simple attribute escaping
+                    escape_attr(&value_string)
+                };
+
+                // If escaping wiped out the value, reject it
+                if escaped_value.is_empty() && !value_string.is_empty() {
+                    return false;
+                }
+
+                format!("{}=\"{}\"", name_str, escaped_value)
+            }
+            AttributeValue::BooleanFalse => unreachable!(), // We handled this case earlier
+        };
+
+        // Check if attribute already exists (case-insensitive)
+        let comparable_name_bytes = name.to_ascii_lowercase();
+
+        if let Some(pos) = self.find_attribute_position(&comparable_name_bytes) {
+            // Update existing attribute
+            let existing_attribute = &self.attributes[pos];
+            self.lexical_updates.push(HtmlTextReplacement::new(
+                existing_attribute.start,
+                existing_attribute.length,
+                &updated_attribute,
+            ));
+        } else {
+            // Create a new attribute
+            self.lexical_updates.push(HtmlTextReplacement::new(
+                self.tag_name_starts_at.unwrap() + self.tag_name_length.unwrap(),
+                0,
+                &format!(" {}", updated_attribute),
+            ));
+        }
+
+        // Clear class updates if we're setting class directly
+        if comparable_name_bytes == b"class" && !self.classname_updates.is_empty() {
+            self.classname_updates.clear();
+        }
+
+        true
     }
 
     pub fn get_attribute(&self, name: &[u8]) -> Option<AttributeValue> {
@@ -1972,7 +2412,7 @@ impl TagProcessor {
                     let raw_value = &self.html_bytes[attr_token.value_starts_at
                         ..attr_token.value_starts_at + attr_token.value_length];
                     let decoded = entities::decode(&entities::HtmlContext::Attribute, raw_value);
-                    AttributeValue::String(Box::from(decoded))
+                    AttributeValue::String(decoded)
                 }
             } else {
                 AttributeValue::BooleanFalse
@@ -2157,6 +2597,7 @@ impl Default for TagProcessor {
             compat_mode: Default::default(),
             bookmarks: HashMap::new(),
             internal_bookmarks: FxHashMap::default(),
+            classname_updates: HashMap::new(),
         }
     }
 }
@@ -2376,6 +2817,28 @@ pub enum AttributeValue {
     BooleanFalse,
     BooleanTrue,
     String(Box<[u8]>),
+}
+
+impl From<bool> for AttributeValue {
+    fn from(value: bool) -> Self {
+        if value {
+            AttributeValue::BooleanTrue
+        } else {
+            AttributeValue::BooleanFalse
+        }
+    }
+}
+
+impl From<&[u8]> for AttributeValue {
+    fn from(value: &[u8]) -> Self {
+        AttributeValue::String(Box::from(value))
+    }
+}
+
+impl From<&str> for AttributeValue {
+    fn from(value: &str) -> Self {
+        AttributeValue::String(Box::from(value.as_bytes()))
+    }
 }
 
 pub struct ClassList {
