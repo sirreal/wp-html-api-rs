@@ -17,89 +17,84 @@ use wp_html_api::tag_processor::{
 use wp_html_api::{doctype::HtmlDoctypeInfo, tag_name::TagName};
 use wp_html_api::{html_processor::HtmlProcessor, tag_processor::CommentType};
 
-extern "C" fn request_startup(_ty: i32, _module_number: i32) -> i32 {
-    0
-}
-
-extern "C" fn request_shutdown(_ty: i32, _module_number: i32) -> i32 {
+extern "C" fn startup_function(_ty: i32, _module_number: i32) -> i32 {
     0
 }
 
 #[php_class]
+#[php(change_case = "none")]
 pub struct WP_HTML_Tag_Processor {
     processor: TagProcessor,
 }
 
-#[php_impl(rename_methods = "none")]
+#[php_impl]
+#[php(change_method_case = "none", change_constant_case = "none")]
 impl WP_HTML_Tag_Processor {
     pub fn __construct(html: BinarySlice<u8>) -> Self {
         let processor = TagProcessor::new(html.clone());
         Self { processor }
     }
 
-    pub fn get_updated_html(#[this] this: &ZendClassObject<Self>) -> Binary<u8> {
-        Binary::from(this.processor.get_updated_html().as_ref().to_vec())
+    pub fn get_updated_html(&self) -> Binary<u8> {
+        Binary::from(self.processor.get_updated_html().as_ref().to_vec())
     }
 
-    pub fn next_token(#[this] this: &mut ZendClassObject<Self>) -> bool {
-        this.processor.next_token()
+    pub fn next_token(&mut self) -> bool {
+        self.processor.next_token()
     }
 
-    pub fn set_bookmark(#[this] this: &mut ZendClassObject<Self>, name: &str) -> bool {
-        this.processor.set_bookmark(name).is_ok()
+    pub fn set_bookmark(&mut self, name: &str) -> bool {
+        self.processor.set_bookmark(name).is_ok()
     }
 
-    pub fn next_tag(
-        #[this] this: &mut ZendClassObject<Self>,
-        query: Option<PhpNextTagQuery>,
-    ) -> bool {
-        this.processor.next_tag(query.map(Into::into))
+    pub fn next_tag(&mut self, query: Option<PhpNextTagQuery>) -> bool {
+        self.processor.next_tag(query.map(Into::into))
     }
 
-    pub fn class_list(#[this] this: &ZendClassObject<Self>) -> Vec<Binary<u8>> {
-        this.processor
+    pub fn class_list(&self) -> Vec<Binary<u8>> {
+        self.processor
             .class_list()
             .map(|class_name| class_name.to_vec().into())
             .collect()
     }
 
-    pub fn has_class(#[this] this: &ZendClassObject<Self>, wanted_class: &str) -> Option<bool> {
-        this.processor.has_class(wanted_class)
+    pub fn has_class(&self, wanted_class: &str) -> Option<bool> {
+        self.processor.has_class(wanted_class)
     }
 
-    pub fn is_tag_closer(#[this] this: &ZendClassObject<Self>) -> bool {
-        this.processor.is_tag_closer()
+    pub fn is_tag_closer(&self) -> bool {
+        self.processor.is_tag_closer()
     }
 
-    pub fn has_self_closing_flag(#[this] this: &ZendClassObject<Self>) -> bool {
-        this.processor.has_self_closing_flag()
+    pub fn has_self_closing_flag(&self) -> bool {
+        self.processor.has_self_closing_flag()
     }
 
-    pub fn get_doctype_info(#[this] this: &ZendClassObject<Self>) -> Option<WP_HTML_Doctype_Info> {
-        this.processor
+    pub fn get_doctype_info(&self) -> Option<WP_HTML_Doctype_Info> {
+        self.processor
             .get_doctype_info()
             .map(|internal| WP_HTML_Doctype_Info { internal })
     }
 
-    pub fn get_tag(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor.get_tag().map(|tag_name| {
+    pub fn get_tag(&self) -> Option<Binary<u8>> {
+        self.processor.get_tag().map(|tag_name| {
             let tag_name: Box<[u8]> = tag_name.into();
             tag_name.to_vec().into()
         })
     }
 
-    pub fn get_qualified_tag_name(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor.get_qualified_tag_name().map(|tag_name| {
+    pub fn get_qualified_tag_name(&self) -> Option<Binary<u8>> {
+        self.processor.get_qualified_tag_name().map(|tag_name| {
             let tag_name: Box<[u8]> = tag_name.into();
             tag_name.to_vec().into()
         })
     }
 
     pub fn get_qualified_attribute_name(
-        #[this] this: &ZendClassObject<Self>,
+        &self,
         attribute_name: BinarySlice<u8>,
     ) -> Option<Binary<u8>> {
-        this.processor
+        self.processor
             .get_qualified_attribute_name(&attribute_name)
             .map(|tag_name| {
                 let tag_name: Box<[u8]> = tag_name.into();
@@ -107,12 +102,12 @@ impl WP_HTML_Tag_Processor {
             })
     }
 
-    pub fn get_token_type(#[this] this: &ZendClassObject<Self>) -> Option<String> {
-        this.processor.get_token_type().map(|t| t.into())
+    pub fn get_token_type(&self) -> Option<String> {
+        self.processor.get_token_type().map(|t| t.into())
     }
 
-    pub fn get_token_name(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor.get_token_name().map(|name| match name {
+    pub fn get_token_name(&self) -> Option<Binary<u8>> {
+        self.processor.get_token_name().map(|name| match name {
             NodeName::Tag(tag_name) => {
                 let tag_name: Box<[u8]> = tag_name.into();
                 tag_name.to_vec().into()
@@ -128,31 +123,25 @@ impl WP_HTML_Tag_Processor {
         })
     }
 
-    pub fn get_modifiable_text(#[this] this: &ZendClassObject<Self>) -> Binary<u8> {
-        this.processor.get_modifiable_text().to_vec().into()
+    pub fn get_modifiable_text(&self) -> Binary<u8> {
+        self.processor.get_modifiable_text().to_vec().into()
     }
 
-    pub fn set_modifiable_text(
-        #[this] this: &mut ZendClassObject<Self>,
-        updated_text: String,
-    ) -> bool {
-        this.processor.set_modifiable_text(updated_text.as_str())
+    pub fn set_modifiable_text(&mut self, updated_text: String) -> bool {
+        self.processor.set_modifiable_text(updated_text.as_str())
     }
 
-    pub fn get_attribute(
-        #[this] this: &ZendClassObject<Self>,
-        prefix: BinarySlice<u8>,
-    ) -> Option<AttributeValueWrapper> {
-        this.processor
+    pub fn get_attribute(&self, prefix: BinarySlice<u8>) -> Option<AttributeValueWrapper> {
+        self.processor
             .get_attribute(&prefix)
             .map(|val| AttributeValueWrapper(val))
     }
 
     pub fn get_attribute_names_with_prefix(
-        #[this] this: &ZendClassObject<Self>,
+        &self,
         prefix: BinarySlice<u8>,
     ) -> Option<Vec<Binary<u8>>> {
-        this.processor
+        self.processor
             .get_attribute_names_with_prefix(&prefix)
             .map(|vec| {
                 vec.iter()
@@ -161,12 +150,12 @@ impl WP_HTML_Tag_Processor {
             })
     }
 
-    pub fn paused_at_incomplete_token(#[this] this: &ZendClassObject<Self>) -> bool {
-        this.processor.paused_at_incomplete_token()
+    pub fn paused_at_incomplete_token(&self) -> bool {
+        self.processor.paused_at_incomplete_token()
     }
 
-    pub fn get_comment_type(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor.get_comment_type().map(|comment_type| {
+    pub fn get_comment_type(&self) -> Option<Binary<u8>> {
+        self.processor.get_comment_type().map(|comment_type| {
             match comment_type {
                 CommentType::AbruptlyClosedComment => COMMENT_AS_ABRUPTLY_CLOSED_COMMENT,
                 CommentType::CdataLookalike => COMMENT_AS_CDATA_LOOKALIKE,
@@ -180,33 +169,30 @@ impl WP_HTML_Tag_Processor {
         })
     }
 
-    pub fn get_full_comment_text(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor
+    pub fn get_full_comment_text(&self) -> Option<Binary<u8>> {
+        self.processor
             .get_full_comment_text()
             .map(|value| value.to_vec().into())
     }
 
-    pub fn subdivide_text_appropriately(#[this] this: &mut ZendClassObject<Self>) -> bool {
-        this.processor.subdivide_text_appropriately()
+    pub fn subdivide_text_appropriately(&mut self) -> bool {
+        self.processor.subdivide_text_appropriately()
     }
 
-    pub fn change_parsing_namespace(
-        #[this] this: &mut ZendClassObject<Self>,
-        new_namespace: BinarySlice<u8>,
-    ) -> bool {
+    pub fn change_parsing_namespace(&mut self, new_namespace: BinarySlice<u8>) -> bool {
         match *new_namespace {
             b"html" => {
-                this.processor
+                self.processor
                     .change_parsing_namespace(ParsingNamespace::Html);
                 true
             }
             b"math" => {
-                this.processor
+                self.processor
                     .change_parsing_namespace(ParsingNamespace::MathML);
                 true
             }
             b"svg" => {
-                this.processor
+                self.processor
                     .change_parsing_namespace(ParsingNamespace::Svg);
                 true
             }
@@ -214,8 +200,8 @@ impl WP_HTML_Tag_Processor {
         }
     }
 
-    #[getter]
-    #[protected]
+    #[php(getter)]
+    #[php(vis = "protected")]
     fn parser_state(&self) -> Binary<u8> {
         match self.processor.parser_state() {
             ParserState::Ready => STATE_READY,
@@ -277,6 +263,7 @@ const QUIRKS_MODE: &str = "quirks-mode";
 
 struct AttributeValueWrapper(AttributeValue);
 impl IntoZval for AttributeValueWrapper {
+    const NULLABLE: bool = true;
     const TYPE: ext_php_rs::flags::DataType = ext_php_rs::flags::DataType::Mixed;
 
     fn set_zval(
@@ -382,11 +369,13 @@ impl<'a> FromZval<'a> for PhpNextTagQuery {
 }
 
 #[php_class]
+#[php(change_case = "none")]
 pub struct WP_HTML_Processor {
     processor: HtmlProcessor,
 }
 
-#[php_impl(rename_methods = "none")]
+#[php_impl]
+#[php(change_method_case = "none", change_constant_case = "none")]
 impl WP_HTML_Processor {
     pub fn __construct(
         html: BinarySlice<u8>,
@@ -428,39 +417,39 @@ impl WP_HTML_Processor {
             .map(|processor| Self { processor })
     }
 
-    pub fn next_token(#[this] this: &mut ZendClassObject<Self>) -> bool {
-        this.processor.next_token()
+    pub fn next_token(&mut self) -> bool {
+        self.processor.next_token()
     }
 
-    pub fn get_tag(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor.get_tag().map(|tag_name| {
+    pub fn get_tag(&self) -> Option<Binary<u8>> {
+        self.processor.get_tag().map(|tag_name| {
             let tag_name: Box<[u8]> = tag_name.into();
             tag_name.to_vec().into()
         })
     }
 
-    pub fn get_qualified_tag_name(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor.get_qualified_tag_name().map(|tag_name| {
+    pub fn get_qualified_tag_name(&self) -> Option<Binary<u8>> {
+        self.processor.get_qualified_tag_name().map(|tag_name| {
             let tag_name: Box<[u8]> = tag_name.into();
             tag_name.to_vec().into()
         })
     }
 
     pub fn get_qualified_attribute_name(
-        #[this] this: &ZendClassObject<Self>,
+        &self,
         attribute_name: BinarySlice<u8>,
     ) -> Option<Binary<u8>> {
-        this.processor
+        self.processor
             .get_qualified_attribute_name(&attribute_name)
             .map(|name| name.to_vec().into())
     }
 
-    pub fn get_token_type(#[this] this: &ZendClassObject<Self>) -> Option<String> {
-        this.processor.get_token_type().map(|t| t.into())
+    pub fn get_token_type(&self) -> Option<String> {
+        self.processor.get_token_type().map(|t| t.into())
     }
 
-    pub fn get_token_name(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor.get_token_name().map(|name| match name {
+    pub fn get_token_name(&self) -> Option<Binary<u8>> {
+        self.processor.get_token_name().map(|name| match name {
             NodeName::Tag(tag_name) => {
                 let tag_name: Box<[u8]> = tag_name.into();
                 tag_name.to_vec().into()
@@ -477,10 +466,10 @@ impl WP_HTML_Processor {
     }
 
     pub fn get_attribute_names_with_prefix(
-        #[this] this: &ZendClassObject<Self>,
+        &self,
         prefix: BinarySlice<u8>,
     ) -> Option<Vec<Binary<u8>>> {
-        this.processor
+        self.processor
             .get_attribute_names_with_prefix(&prefix)
             .map(|vec| {
                 vec.iter()
@@ -489,64 +478,61 @@ impl WP_HTML_Processor {
             })
     }
 
-    pub fn get_attribute(
-        #[this] this: &ZendClassObject<Self>,
-        prefix: BinarySlice<u8>,
-    ) -> Option<AttributeValueWrapper> {
-        this.processor
+    pub fn get_attribute(&self, prefix: BinarySlice<u8>) -> Option<AttributeValueWrapper> {
+        self.processor
             .get_attribute(&prefix)
             .map(|val| AttributeValueWrapper(val))
     }
 
-    pub fn get_last_error(#[this] this: &ZendClassObject<Self>) -> Option<String> {
-        this.processor.get_last_error().map(|value| {
+    pub fn get_last_error(&self) -> Option<String> {
+        self.processor.get_last_error().map(|value| {
             let s: &str = value.into();
             s.to_owned()
         })
     }
 
     // Fix this to _return_ a nullable value.
-    pub fn get_unsupported_exception(#[this] this: &ZendClassObject<Self>) -> Result<(), &str> {
-        match this.processor.get_unsupported_exception() {
+    pub fn get_unsupported_exception(&self) -> Result<(), &str> {
+        match self.processor.get_unsupported_exception() {
             Some(e) => Err(e.into()),
             None => Ok(()),
         }
     }
 
-    pub fn is_tag_closer(#[this] this: &ZendClassObject<Self>) -> bool {
-        this.processor.is_tag_closer()
+    pub fn is_tag_closer(&self) -> bool {
+        self.processor.is_tag_closer()
     }
 
-    pub fn get_namespace(#[this] this: &ZendClassObject<Self>) -> String {
-        this.processor.get_namespace().into()
+    pub fn get_namespace(&self) -> String {
+        self.processor.get_namespace().into()
     }
 
-    pub fn expects_closer(#[this] this: &ZendClassObject<Self>) -> Option<bool> {
-        this.processor.expects_closer(None)
+    pub fn expects_closer(&self) -> Option<bool> {
+        self.processor.expects_closer(None)
     }
 
-    pub fn get_modifiable_text(#[this] this: &ZendClassObject<Self>) -> Binary<u8> {
-        this.processor.get_modifiable_text().to_vec().into()
+    pub fn get_modifiable_text(&self) -> Binary<u8> {
+        self.processor.get_modifiable_text().to_vec().into()
     }
 
-    pub fn get_doctype_info(#[this] this: &ZendClassObject<Self>) -> Option<WP_HTML_Doctype_Info> {
-        this.processor
+    pub fn get_doctype_info(&self) -> Option<WP_HTML_Doctype_Info> {
+        self.processor
             .get_doctype_info()
             .map(|internal| WP_HTML_Doctype_Info { internal })
     }
 
-    pub fn paused_at_incomplete_token(#[this] this: &ZendClassObject<Self>) -> bool {
-        this.processor.paused_at_incomplete_token()
+    pub fn paused_at_incomplete_token(&self) -> bool {
+        self.processor.paused_at_incomplete_token()
     }
 
-    pub fn get_full_comment_text(#[this] this: &ZendClassObject<Self>) -> Option<Binary<u8>> {
-        this.processor
+    pub fn get_full_comment_text(&self) -> Option<Binary<u8>> {
+        self.processor
             .get_full_comment_text()
             .map(|value| value.to_vec().into())
     }
 
-    pub fn set_bookmark(#[this] this: &mut ZendClassObject<Self>, name: &str) -> bool {
-        this.processor.set_bookmark(name).is_ok()
+    pub fn set_bookmark(&mut self, name: &str) -> bool {
+        self.processor.set_bookmark(name).is_ok()
     }
 
     pub fn is_void(name: BinarySlice<u8>) -> bool {
@@ -575,6 +561,7 @@ impl WP_HTML_Processor {
 }
 
 #[php_class]
+#[php(change_case = "none")]
 struct WP_HTML_Text_Replacement {
     start: usize,
     length: usize,
@@ -582,23 +569,25 @@ struct WP_HTML_Text_Replacement {
 }
 
 #[php_class]
+#[php(change_case = "none")]
 pub struct WP_HTML_Doctype_Info {
     internal: HtmlDoctypeInfo,
 }
 
-#[php_impl(rename_methods = "none")]
+#[php_impl]
+#[php(change_method_case = "none", change_constant_case = "none")]
 impl WP_HTML_Doctype_Info {
     pub fn from_doctype_token(html: BinarySlice<u8>) -> Option<Self> {
         let html = html.to_vec();
         HtmlDoctypeInfo::from_doctype_token(&html).map(|internal| Self { internal })
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn name(&self) -> Option<Binary<u8>> {
         self.internal.name.as_ref().map(|val| val.to_vec().into())
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn public_identifier(&self) -> Option<Binary<u8>> {
         self.internal
             .public_identifier
@@ -606,7 +595,7 @@ impl WP_HTML_Doctype_Info {
             .map(|val| val.to_vec().into())
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn system_identifier(&self) -> Option<Binary<u8>> {
         self.internal
             .system_identifier
@@ -614,16 +603,18 @@ impl WP_HTML_Doctype_Info {
             .map(|val| val.to_vec().into())
     }
 
-    #[getter]
+    #[php(getter)]
     pub fn indicated_compatability_mode(&self) -> String {
         (&self.internal.indicated_compatability_mode).into()
     }
 }
 
 #[php_module]
+#[php(startup = "startup_function")]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
-    let module = module
-        .request_startup_function(request_startup)
-        .request_shutdown_function(request_shutdown);
     module
+        .class::<WP_HTML_Doctype_Info>()
+        .class::<WP_HTML_Tag_Processor>()
+        .class::<WP_HTML_Processor>()
+        .class::<WP_HTML_Text_Replacement>()
 }
