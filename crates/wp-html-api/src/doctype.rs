@@ -413,26 +413,32 @@ impl HtmlDoctypeInfo {
     /// via the returned WP_HTML_Doctype_Info class instance. The provided input must parse
     /// properly as a DOCTYPE declaration, though it must not represent a valid DOCTYPE.
     ///
-    /// Example:
+    /// # Examples
     ///
-    ///     // Normative HTML DOCTYPE declaration.
-    ///     $doctype = WP_HTML_Doctype_Info::from_doctype_token( '<!DOCTYPE html>' );
-    ///     'no-quirks' === $doctype->indicated_compatability_mode;
+    /// ```
+    /// use wp_html_api::compat_mode::CompatMode;
+    /// use wp_html_api::doctype::HtmlDoctypeInfo;
+    /// // Normative HTML DOCTYPE declaration.
+    /// let doctype = HtmlDoctypeInfo::from_doctype_token( b"<!DOCTYPE html>" ).unwrap();
+    /// assert_eq!( doctype.indicated_compatability_mode, CompatMode::NoQuirks);
     ///
-    ///     // A nonsensical DOCTYPE is still valid, and will indicate "quirks" mode.
-    ///     $doctype = WP_HTML_Doctype_Info::from_doctype_token( '<!doctypeJSON SILLY "nonsense\'>' );
-    ///     'quirks' === $doctype->indicated_compatability_mode;
+    /// // A nonsensical DOCTYPE is still valid, and will indicate "quirks" mode.
+    /// let doctype = HtmlDoctypeInfo::from_doctype_token( b"<!doctypeJSON SILLY \"nonsense'>"
+    /// ).unwrap();
+    /// assert_eq!( doctype.indicated_compatability_mode, CompatMode::Quirks);
     ///
-    ///     // Textual quirks present in raw HTML are handled appropriately.
-    ///     $doctype = WP_HTML_Doctype_Info::from_doctype_token( "<!DOCTYPE\nhtml\n>" );
-    ///     'no-quirks' === $doctype->indicated_compatability_mode;
+    /// // Textual quirks present in raw HTML are handled appropriately.
+    /// let doctype = HtmlDoctypeInfo::from_doctype_token( b"<!DOCTYPE\nhtml\n>" ).unwrap();
+    /// assert_eq!( doctype.indicated_compatability_mode, CompatMode::NoQuirks);
     ///
-    ///     // Anything other than a proper DOCTYPE declaration token fails to parse.
-    ///     null === WP_HTML_Doctype_Info::from_doctype_token( ' <!DOCTYPE>' );
-    ///     null === WP_HTML_Doctype_Info::from_doctype_token( '<!DOCTYPE ><p>' );
-    ///     null === WP_HTML_Doctype_Info::from_doctype_token( '<!TYPEDOC>' );
-    ///     null === WP_HTML_Doctype_Info::from_doctype_token( 'html' );
-    ///     null === WP_HTML_Doctype_Info::from_doctype_token( '<?xml version="1.0" encoding="UTF-8" ?>' );
+    /// // Anything other than a proper DOCTYPE declaration token fails to parse.
+    /// assert!( HtmlDoctypeInfo::from_doctype_token( b" <!DOCTYPE>" ).is_none());
+    /// assert!(  HtmlDoctypeInfo::from_doctype_token( b"<!DOCTYPE ><p>" ).is_none());
+    /// assert!( HtmlDoctypeInfo::from_doctype_token( b"<!TYPEDOC>" ).is_none());
+    /// assert!( HtmlDoctypeInfo::from_doctype_token( b"html" ).is_none());
+    /// assert!( HtmlDoctypeInfo::from_doctype_token( b"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"
+    /// ).is_none());
+    /// ```
     ///
     /// @param string $doctype_html The complete raw DOCTYPE HTML string, e.g. `<!DOCTYPE html>`.
     ///
