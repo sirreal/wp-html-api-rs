@@ -9,7 +9,7 @@ license.workspace = true
 
 [dependencies]
 entities = { path = "../entities" }
-memchr = "2.7.5"
+memchr = "2.7.6"
 rustc-hash = "2.1.1"
 
 [dev-dependencies]
