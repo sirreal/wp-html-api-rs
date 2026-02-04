@@ -97,26 +97,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bindgen"
-version = "0.72.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "993776b509cfb49c750f11b8f07a46fa23e0a1386ffc01fb1e7d343efc387895"
-dependencies = [
- "bitflags",
- "cexpr",
- "clang-sys",
- "itertools 0.13.0",
- "log",
- "prettyplease",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash",
- "shlex",
- "syn",
-]
-
-[[package]]
 name = "bitflags"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -239,17 +219,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clang-sys"
-version = "1.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b023947811758c97c59bf9d1c188fd619ad4718dcaa767947df1cadb14f39f4"
-dependencies = [
- "glob",
- "libc",
- "libloading",
-]
-
-[[package]]
 name = "clap"
 version = "4.5.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -311,7 +280,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "058167258e819b16a4ba601fdfe270349ef191154758dbce122c62a698f70ba8"
 dependencies = [
  "divan-macros",
- "itertools 0.14.0",
+ "itertools",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
@@ -583,15 +552,16 @@ dependencies = [
 
 [[package]]
 name = "ext-php-rs"
-version = "0.15.3"
+version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "babf1838a191c62b88c73351100b55d2b3ffee4d3a91b4101190574352c6c426"
+checksum = "bae7ff00a57b4138c87e5c14b54a76af1a55c97fc0324a2a9add6274a4aec8c9"
 dependencies = [
  "anyhow",
- "bindgen",
  "bitflags",
  "cc",
  "cfg-if",
+ "ext-php-rs-bindgen",
+ "ext-php-rs-build",
  "ext-php-rs-derive",
  "native-tls",
  "once_cell",
@@ -602,14 +572,54 @@ dependencies = [
 ]
 
 [[package]]
-name = "ext-php-rs-derive"
-version = "0.11.6"
+name = "ext-php-rs-bindgen"
+version = "0.72.1-extphprs.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ad2ea3a19621a895ee396903a0e493a7128cde28306d922e4da55805b0dc3f9"
+checksum = "4795dd0976bd7d7d321c49e88e836f8e5b5b2b481e089067e303f2945617458a"
+dependencies = [
+ "bitflags",
+ "cexpr",
+ "ext-php-rs-clang-sys",
+ "itertools",
+ "log",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "syn",
+]
+
+[[package]]
+name = "ext-php-rs-build"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "561bce8a6312a6182c078cd987d8d9cb6bf9292a35817cfd009ea0bffa794f5f"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
+name = "ext-php-rs-clang-sys"
+version = "1.8.1-extphprs.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa1ad6e482017d457d57d73691f8bed148a8a6198babe90830310c3308480a61"
+dependencies = [
+ "glob",
+ "libc",
+ "libloading",
+]
+
+[[package]]
+name = "ext-php-rs-derive"
+version = "0.11.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "392cae7cdb924b08b91ba28b35e2d72012e6f54fc11a8d4abc0cf37dc6255978"
 dependencies = [
  "convert_case",
  "darling",
- "itertools 0.14.0",
+ "itertools",
  "proc-macro2",
  "quote",
  "syn",
@@ -782,15 +792,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "879f10e63c20629ecabbb64a8010319738c66a5cd0c29b02d63d272b03751d01"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "itertools"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
-dependencies = [
- "either",
 ]
 
 [[package]]
