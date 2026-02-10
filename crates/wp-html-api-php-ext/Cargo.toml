@@ -9,6 +9,6 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-ext-php-rs = "0.15.5"
+ext-php-rs = "0.15.6"
 wp-html-api = { path = "../wp-html-api" }
 
