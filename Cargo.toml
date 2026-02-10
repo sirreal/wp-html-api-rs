@@ -12,4 +12,4 @@ edition    = "2024"
 license    = "GPL-2.0-or-later"
 
 [workspace.dependencies]
-memchr = "2.7.6"
+memchr = "2.8.0"
