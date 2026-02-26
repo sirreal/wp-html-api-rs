@@ -1,9 +1,11 @@
+use std::rc::Rc;
+
 use crate::html_processor::HTMLToken;
 
 #[derive(Debug)]
 pub(super) struct HTMLStackEvent {
     pub operation: StackOperation,
-    pub token: HTMLToken,
+    pub token: Rc<HTMLToken>,
     pub provenance: StackProvenance,
 }
 

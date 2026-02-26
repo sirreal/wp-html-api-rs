@@ -9,6 +9,7 @@ mod processor_state;
 mod stack_of_open_elements;
 
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 use crate::{
     attributes::qualified_attribute_name,
@@ -68,7 +69,7 @@ pub struct HtmlProcessor {
     bookmark_counter: u32,
 
     /// Context node if created as a fragment parser.
-    context_node: Option<HTMLToken>,
+    context_node: Option<Rc<HTMLToken>>,
 }
 
 impl HtmlProcessor {
@@ -269,19 +270,21 @@ impl HtmlProcessor {
         };
 
         fragment_processor.bookmark_counter += 1;
-        fragment_processor.push(root_node);
+        fragment_processor.push(Rc::new(root_node));
 
         fragment_processor
             .tag_processor
             .internal_bookmarks
             .insert(fragment_processor.bookmark_counter, HtmlSpan::new(0, 0));
-        fragment_processor.context_node =
-            Some(self.current_element.as_ref().unwrap().token.clone());
-        fragment_processor
-            .context_node
-            .as_mut()
+        let mut ctx_node = self
+            .current_element
+            .as_ref()
             .unwrap()
-            .bookmark_name = Some(fragment_processor.bookmark_counter);
+            .token
+            .as_ref()
+            .clone();
+        ctx_node.bookmark_name = Some(fragment_processor.bookmark_counter);
+        fragment_processor.context_node = Some(Rc::new(ctx_node));
         fragment_processor.bookmark_counter += 1;
 
         if tag_name == TagName::TEMPLATE {
@@ -304,13 +307,9 @@ impl HtmlProcessor {
          */
         for element in self.state.stack_of_open_elements.walk_up() {
             if element.node_name == NodeName::Tag(TagName::FORM) {
-                fragment_processor.state.form_element = Some(element.clone());
-                fragment_processor
-                    .state
-                    .form_element
-                    .as_mut()
-                    .unwrap()
-                    .bookmark_name = None;
+                let mut element_clone = element.clone();
+                element_clone.bookmark_name = None;
+                fragment_processor.state.form_element = Some(Rc::new(element_clone));
                 break;
             }
         }
@@ -762,11 +761,23 @@ impl HtmlProcessor {
         let token_name = self.get_token_name().unwrap();
         if node_to_process != NodeToProcess::ReprocessCurrentNode {
             if let Ok(bookmark) = self.bookmark_token() {
-                self.state.current_token = Some(HTMLToken::new(
+                if let Some(previous_current_token_bookmark) = self
+                    .state
+                    .current_token
+                    .take()
+                    .and_then(Rc::into_inner)
+                    .and_then(|token| token.bookmark_name)
+                {
+                    self.tag_processor
+                        .internal_bookmarks
+                        .remove(&previous_current_token_bookmark);
+                }
+
+                self.state.current_token = Some(Rc::new(HTMLToken::new(
                     Some(bookmark),
                     token_name.clone(),
                     self.has_self_closing_flag(),
-                ));
+                )));
             } else {
                 self.last_error = Some(HtmlProcessorError::ExceededMaxBookmarks);
                 return false;
@@ -1161,8 +1172,7 @@ impl HtmlProcessor {
             Op::Token(
                 TokenType::Comment | TokenType::FunkyComment | TokenType::PresumptuousTag,
             ) => {
-                let token: HTMLToken = self.state.current_token.clone().unwrap();
-                self.insert_html_element(token);
+                self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
 
@@ -1180,7 +1190,8 @@ impl HtmlProcessor {
              * > A start tag whose tag name is "head"
              */
             Op::TagPush(TagName::HEAD) => {
-                let token: HTMLToken = self.state.current_token.clone().unwrap();
+                // Clone the Rc pointer for both the insert_html_element and head_element
+                let token = self.state.current_token.clone().unwrap();
                 self.insert_html_element(token.clone());
                 self.state.head_element = Some(token);
                 self.state.insertion_mode = InsertionMode::IN_HEAD;
@@ -1241,8 +1252,8 @@ impl HtmlProcessor {
                     == TextNodeClassification::Whitespace =>
             {
                 // Insert the character.
-                let token: HTMLToken = self.state.current_token.clone().unwrap();
-                self.insert_html_element(token.clone());
+                // Pass the Rc directly
+                self.insert_html_element(self.state.current_token.clone().unwrap());
                 true
             }
 
@@ -2172,7 +2183,7 @@ impl HtmlProcessor {
                 if !self
                     .state
                     .stack_of_open_elements
-                    .has_element_in_scope(&tag_name)
+                    .has_element_in_scope(tag_name)
                 {
                     // Parse error: ignore the token.
                     self.step(NodeToProcess::ProcessNextNode)
@@ -2185,7 +2196,7 @@ impl HtmlProcessor {
                     {
                         // Parse error: this error doesn't impact parsing.
                     }
-                    self.pop_until(&tag_name);
+                    self.pop_until(tag_name);
                     true
                 }
             }
@@ -2221,7 +2232,9 @@ impl HtmlProcessor {
                     let node = node.unwrap();
 
                     self.generate_implied_end_tags(None);
-                    if node != *self.state.stack_of_open_elements.current_node().unwrap() {
+                    let current_rc = self.state.stack_of_open_elements.stack.last().unwrap();
+                    // Both node and current_rc are Rc<HTMLToken>, so compare them directly
+                    if node != *current_rc {
                         // @todo Indicate a parse error once it's possible. This error does not impact the logic here.
                         return self
                             .bail(UnsupportedException::CannotCloseFormWithOtherElementsOpen);
@@ -2294,7 +2307,7 @@ impl HtmlProcessor {
                      */
                     (
                          tag_name!=&TagName::LI  &&
-                        !self.state.stack_of_open_elements.has_element_in_scope(&tag_name)
+                        !self.state.stack_of_open_elements.has_element_in_scope(tag_name)
                     )
                 {
                     /*
@@ -2305,7 +2318,7 @@ impl HtmlProcessor {
                     return self.step(NodeToProcess::ProcessNextNode);
                 }
 
-                self.generate_implied_end_tags(Some(&tag_name));
+                self.generate_implied_end_tags(Some(tag_name));
 
                 if !self
                     .state
@@ -2315,7 +2328,7 @@ impl HtmlProcessor {
                     // @todo Indicate a parse error once it's possible. This error does not impact the logic here.
                 }
 
-                self.pop_until(&tag_name);
+                self.pop_until(tag_name);
                 true
             }
 
@@ -2361,27 +2374,24 @@ impl HtmlProcessor {
              * > A start tag whose tag name is "a"
              */
             Op::TagPush(TagName::A) => {
-                let item = self
-                    .state
-                    .active_formatting_elements
-                    .walk_up()
-                    .find(|item| {
-                        matches!(
-                            item,
-                            ActiveFormattingElement::Marker
-                                | ActiveFormattingElement::Token(HTMLToken {
-                                    node_name: NodeName::Tag(TagName::A),
-                                    ..
-                                })
-                        )
-                    });
+                let item =
+                    self.state
+                        .active_formatting_elements
+                        .walk_up()
+                        .find(|item| match item {
+                            ActiveFormattingElement::Marker => true,
+                            ActiveFormattingElement::Token(token) => {
+                                let HTMLToken { node_name, .. } = token.as_ref();
+                                token.node_name == NodeName::Tag(TagName::A)
+                            }
+                        });
                 if let Some(ActiveFormattingElement::Token(a_token)) = item {
                     let remove_token = a_token.clone();
                     self.run_adoption_agency_algorithm();
                     self.state
                         .active_formatting_elements
-                        .remove_node(&remove_token);
-                    self.remove_node_from_stack_of_open_elements(&remove_token);
+                        .remove_node(remove_token.as_ref());
+                    self.remove_node_from_stack_of_open_elements(remove_token.as_ref());
                 }
 
                 self.reconstruct_active_formatting_elements();
@@ -2788,10 +2798,11 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                let token = self.state.current_token.as_mut().unwrap();
+                let mut token = self.state.current_token.as_ref().unwrap().as_ref().clone();
                 token.namespace = ParsingNamespace::MathML;
-                let token = token.clone();
                 let has_self_closing_flag = token.has_self_closing_flag;
+                let token = Rc::new(token);
+                self.state.current_token = Some(token.clone());
                 self.insert_html_element(token);
                 if has_self_closing_flag {
                     self.pop();
@@ -2811,10 +2822,11 @@ impl HtmlProcessor {
                  *
                  * These ought to be handled in the attribute methods.
                  */
-                let token = self.state.current_token.as_mut().unwrap();
+                let mut token = self.state.current_token.as_ref().unwrap().as_ref().clone();
                 token.namespace = ParsingNamespace::Svg;
-                let token = token.clone();
                 let has_self_closing_flag = token.has_self_closing_flag;
+                let token = Rc::new(token);
+                self.state.current_token = Some(token.clone());
                 self.insert_html_element(token);
                 if has_self_closing_flag {
                     self.pop();
@@ -4931,7 +4943,7 @@ impl HtmlProcessor {
     ///
     /// @throws Exception When unable to allocate requested bookmark.
     ///
-    /// @return string|false Name of created bookmark, or false if unable to create.
+    /// @return Bookmark identifier, or error if unable to create.
     fn bookmark_token(&mut self) -> Result<u32, HtmlProcessorError> {
         self.tag_processor
             .set_bookmark(BookmarkName::Internal(self.bookmark_counter + 1))
@@ -5543,7 +5555,7 @@ impl HtmlProcessor {
     /// @return WP_HTML_Token|null The adjusted current node.
     fn get_adjusted_current_node(&self) -> Option<&HTMLToken> {
         if self.context_node.is_some() && self.state.stack_of_open_elements.count() == 1 {
-            self.context_node.as_ref()
+            self.context_node.as_ref().map(|rc| rc.as_ref())
         } else {
             self.state.stack_of_open_elements.current_node()
         }
@@ -5875,6 +5887,9 @@ impl HtmlProcessor {
              *
              * // @todo this looks like a find?
              */
+            // Get access to walk_up_elements
+            use crate::html_processor::active_formatting_elements::ActiveFormattingElement;
+
             let mut formatting_element = None;
             for item in self.state.active_formatting_elements.walk_up() {
                 match item {
@@ -5953,7 +5968,8 @@ impl HtmlProcessor {
              */
             if furthest_block.is_none() {
                 while let Some(x) = self.pop() {
-                    if x == formatting_element {
+                    if x.node_name == formatting_element.node_name {
+                        // Comparing node names is sufficient since we're looking for the same element
                         break;
                     }
                 }
@@ -5985,11 +6001,12 @@ impl HtmlProcessor {
         self.generate_implied_end_tags(None);
 
         // @todo Parse error if the current node is a "td" or "th" element.
-        while let Some(HTMLToken {
-            node_name: popped_token_node_name,
-            ..
-        }) = self.pop()
-        {
+        while let Some(token) = self.pop() {
+            let HTMLToken {
+                node_name: popped_token_node_name,
+                ..
+            } = token.as_ref();
+
             if matches!(
                 popped_token_node_name,
                 NodeName::Tag(TagName::TD | TagName::TH)
@@ -6009,7 +6026,7 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#insert-a-foreign-element
     ///
     /// @param WP_HTML_Token $token Name of bookmark pointing to element in original input HTML.
-    fn insert_html_element(&mut self, token: HTMLToken) {
+    fn insert_html_element(&mut self, token: Rc<HTMLToken>) {
         self.push(token);
     }
 
@@ -6026,19 +6043,18 @@ impl HtmlProcessor {
             .get_adjusted_current_node()
             .map_or(ParsingNamespace::Html, |tok| tok.namespace.clone());
 
-        if let Some(token) = self.state.current_token.as_mut() {
-            token.namespace = adjusted_namespace;
+        let mut token = self.state.current_token.as_ref().unwrap().as_ref().clone();
+        token.namespace = adjusted_namespace;
+
+        // Set integration_node_type if needed
+        if self.is_mathml_integration_point(&token) {
+            token.integration_node_type = Some(IntegrationNodeType::MathML);
+        } else if self.is_html_integration_point(&token) {
+            token.integration_node_type = Some(IntegrationNodeType::HTML);
         }
 
-        if self.is_mathml_integration_point() {
-            if let Some(token) = self.state.current_token.as_mut() {
-                token.integration_node_type = Some(IntegrationNodeType::MathML);
-            }
-        } else if self.is_html_integration_point() {
-            if let Some(token) = self.state.current_token.as_mut() {
-                token.integration_node_type = Some(IntegrationNodeType::HTML);
-            }
-        }
+        let token = Rc::new(token);
+        self.state.current_token = Some(token.clone());
 
         if !only_add_to_element_stack {
             /*
@@ -6053,7 +6069,7 @@ impl HtmlProcessor {
              */
         }
 
-        self.insert_html_element(self.state.current_token.as_ref().unwrap().clone());
+        self.insert_html_element(token);
     }
 
     /// Inserts a virtual element on the stack of open elements.
@@ -6072,12 +6088,13 @@ impl HtmlProcessor {
             .map(|span| span.start)
             .unwrap();
 
-        let name = self.bookmark_token().unwrap();
+        let bookmark_id = self.bookmark_token().unwrap();
+        let span = HtmlSpan::new(current_token_start, 0);
         self.tag_processor
             .internal_bookmarks
-            .insert(name, HtmlSpan::new(current_token_start, 0));
-        let token = HTMLToken::new(Some(name), token_name.into(), false);
-        self.insert_html_element(token);
+            .insert(bookmark_id, span);
+        let token = HTMLToken::new(Some(bookmark_id), token_name.into(), false);
+        self.insert_html_element(Rc::new(token));
     }
 
     /*
@@ -6091,17 +6108,12 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#mathml-text-integration-point
     ///
     /// @return bool Whether the current token is a MathML integration point.
-    fn is_mathml_integration_point(&self) -> bool {
-        let current_token = match &self.state.current_token {
-            Some(token) => token,
-            None => return false,
-        };
-
-        if current_token.namespace != ParsingNamespace::MathML {
+    fn is_mathml_integration_point(&self, token: &HTMLToken) -> bool {
+        if token.namespace != ParsingNamespace::MathML {
             return false;
         }
 
-        let tag_name = match &current_token.node_name {
+        let tag_name = match &token.node_name {
             NodeName::Tag(tag_name) => tag_name,
             NodeName::Token(_) => return false,
         };
@@ -6123,18 +6135,13 @@ impl HtmlProcessor {
     /// @see https://html.spec.whatwg.org/#html-integration-point
     ///
     /// @return bool Whether the current token is an HTML integration point.
-    fn is_html_integration_point(&self) -> bool {
-        let current_token = match &self.state.current_token {
-            Some(token) => token,
-            None => return false,
-        };
-
-        let tag_name = match &current_token.node_name {
+    fn is_html_integration_point(&self, token: &HTMLToken) -> bool {
+        let tag_name = match &token.node_name {
             NodeName::Tag(tag_name) => tag_name,
             NodeName::Token(_) => return false,
         };
 
-        match current_token.namespace {
+        match token.namespace {
             ParsingNamespace::Html => false,
             ParsingNamespace::MathML => {
                 tag_name == &TagName::ANNOTATION_XML
@@ -6317,7 +6324,7 @@ impl HtmlProcessor {
         todo!()
     }
 
-    fn push(&mut self, token: HTMLToken) {
+    fn push(&mut self, token: Rc<HTMLToken>) {
         self.state.stack_of_open_elements._push(token.clone());
 
         let is_virtual = self.state.current_token.is_none() || self.is_tag_closer();
@@ -6337,25 +6344,22 @@ impl HtmlProcessor {
             provenance,
         });
 
-        self.tag_processor
-            .change_parsing_namespace(if token.integration_node_type.is_some() {
+        self.tag_processor.change_parsing_namespace(
+            if token.as_ref().integration_node_type.is_some() {
                 ParsingNamespace::Html
             } else {
-                token.namespace
-            });
+                token.namespace.to_owned()
+            },
+        );
     }
 
-    fn pop(&mut self) -> Option<HTMLToken> {
+    fn pop(&mut self) -> Option<Rc<HTMLToken>> {
         let token = self.state.stack_of_open_elements._pop()?;
         self.after_pop(&token);
         Some(token)
     }
 
-    fn after_pop(&mut self, token: &HTMLToken) {
-        if let Some(bookmark_name) = token.bookmark_name.as_ref() {
-            let _ = self.tag_processor.internal_bookmarks.remove(bookmark_name);
-        }
-
+    fn after_pop(&mut self, token: &Rc<HTMLToken>) {
         let is_virtual = self.state.current_token.is_none() || !self.is_tag_closer();
         let same_node = self
             .state
@@ -6394,19 +6398,20 @@ impl HtmlProcessor {
     /// @param string $html_tag_name Name of tag that needs to be popped off of the stack of open elements.
     /// @return bool Whether a tag of the given name was found and popped off of the stack of open elements.
     fn pop_until(&mut self, html_tag_name: &TagName) -> bool {
-        while let Some(HTMLToken {
-            node_name: token_node_name,
-            namespace: token_namespace,
-            ..
-        }) = self.pop()
-        {
-            if token_namespace != ParsingNamespace::Html {
+        while let Some(token) = self.pop() {
+            let HTMLToken {
+                node_name: token_node_name,
+                namespace: token_namespace,
+                ..
+            } = token.as_ref();
+
+            if token_namespace != &ParsingNamespace::Html {
                 continue;
             }
 
             match token_node_name {
                 NodeName::Tag(tag_name) => {
-                    if tag_name == *html_tag_name {
+                    if tag_name == html_tag_name {
                         return true;
                     }
                 }
@@ -6427,13 +6432,14 @@ impl HtmlProcessor {
     ///
     /// The
     fn pop_until_any_h1_to_h6(&mut self) -> bool {
-        while let Some(HTMLToken {
-            node_name: token_node_name,
-            namespace: token_namespace,
-            ..
-        }) = self.pop()
-        {
-            if token_namespace != ParsingNamespace::Html {
+        while let Some(token) = self.pop() {
+            let HTMLToken {
+                node_name: token_node_name,
+                namespace: token_namespace,
+                ..
+            } = token.as_ref();
+
+            if token_namespace != &ParsingNamespace::Html {
                 continue;
             }
 
@@ -6466,7 +6472,7 @@ impl HtmlProcessor {
             .stack
             .iter()
             .rev()
-            .position(|item| item == token)
+            .position(|item| item.as_ref() == token)
         {
             let idx = self.state.stack_of_open_elements.stack.len() - 1 - idx;
             let token = self.state.stack_of_open_elements.stack.remove(idx);
